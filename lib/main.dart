@@ -1,122 +1,231 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MyApp());
+import 'package:tw_stock_capital_flow/ui/theme/app_theme.dart';
+import 'package:tw_stock_capital_flow/managers/sync_manager.dart';
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/repositories/history_repository.dart';
+import 'package:tw_stock_capital_flow/services/market_calendar_service.dart';
+import 'package:tw_stock_capital_flow/services/storage_service.dart';
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/ui/pages/home_page.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final storageService = StorageService();
+
+  final syncManager = SyncManager(
+    storageService: storageService,
+    calendarService: MarketCalendarService(),
+  );
+
+  await syncManager.syncTodayData();
+
+  final historyRepository = HistoryRepository(storageService: storageService);
+
+  final snapshots = await historyRepository.loadRecentSnapshots(1);
+
+  if (snapshots.isEmpty) {
+    runApp(
+      const MaterialApp(
+        home: Scaffold(body: Center(child: Text('無歷史資料'))),
+      ),
+    );
+
+    return;
+  }
+
+  final latest = snapshots.first;
+
+  final listedStocks = latest.stocks
+      .where((e) => e.market == MarketType.listed)
+      .toList();
+
+  final otcStocks = latest.stocks
+      .where((e) => e.market == MarketType.otc)
+      .toList();
+
+  final listedCategories = buildMainCategoryModels(listedStocks);
+
+  final otcCategories = buildMainCategoryModels(otcStocks);
+
+  runApp(
+    MyApp(
+      listedCategories: listedCategories,
+      otcCategories: otcCategories,
+      listedRiseCount: listedStocks.where((e) => e.changePercent > 0).length,
+      listedFallCount: listedStocks.where((e) => e.changePercent < 0).length,
+      otcRiseCount: otcStocks.where((e) => e.changePercent > 0).length,
+      otcFallCount: otcStocks.where((e) => e.changePercent < 0).length,
+      listedScore: calculateMarketScore(listedStocks),
+      otcScore: calculateMarketScore(otcStocks),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final List<CategoryUiModel> listedCategories;
 
-  // This widget is the root of your application.
+  final List<CategoryUiModel> otcCategories;
+
+  final int listedRiseCount;
+
+  final int listedFallCount;
+
+  final int otcRiseCount;
+
+  final int otcFallCount;
+
+  final double listedScore;
+
+  final double otcScore;
+
+  const MyApp({
+    super.key,
+    required this.listedCategories,
+    required this.otcCategories,
+    required this.listedRiseCount,
+    required this.listedFallCount,
+    required this.otcRiseCount,
+    required this.otcFallCount,
+    required this.listedScore,
+    required this.otcScore,
+  });
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+      debugShowCheckedModeBanner: false,
+
+      theme: AppTheme.lightTheme,
+
+      home: HomePage(
+        listedCategories: listedCategories,
+        otcCategories: otcCategories,
+        listedRiseCount: listedRiseCount,
+        listedFallCount: listedFallCount,
+        listedScore: listedScore,
+        otcRiseCount: otcRiseCount,
+        otcFallCount: otcFallCount,
+        otcScore: otcScore,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+List<CategoryUiModel> buildMainCategoryModels(List<StockData> stocks) {
+  final Map<String, List<StockData>> grouped = {};
 
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
+  for (final stock in stocks) {
+    grouped.putIfAbsent(stock.mainCategory, () => []);
 
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+    grouped[stock.mainCategory]!.add(stock);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: .center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
+  final List<CategoryUiModel> result = [];
+
+  for (final entry in grouped.entries) {
+    final categoryStocks = entry.value;
+
+    final riseCount = categoryStocks.where((e) => e.changePercent > 0).length;
+
+    final fallCount = categoryStocks.where((e) => e.changePercent < 0).length;
+
+    final subCategories = buildSubCategoryModels(categoryStocks);
+
+    result.add(
+      CategoryUiModel(
+        name: entry.key,
+
+        totalCount: categoryStocks.length,
+
+        riseCount: riseCount,
+
+        fallCount: fallCount,
+
+        score: calculateCategoryScore(categoryStocks),
+
+        children: subCategories,
       ),
     );
   }
+
+  result.sort((a, b) => b.score.compareTo(a.score));
+
+  return result;
+}
+
+List<CategoryUiModel> buildSubCategoryModels(List<StockData> stocks) {
+  final Map<String, List<StockData>> grouped = {};
+
+  for (final stock in stocks) {
+    grouped.putIfAbsent(stock.subCategory, () => []);
+
+    grouped[stock.subCategory]!.add(stock);
+  }
+
+  final List<CategoryUiModel> result = [];
+
+  for (final entry in grouped.entries) {
+    final categoryStocks = entry.value;
+
+    final riseCount = categoryStocks.where((e) => e.changePercent > 0).length;
+
+    final fallCount = categoryStocks.where((e) => e.changePercent < 0).length;
+
+    result.add(
+      CategoryUiModel(
+        name: entry.key,
+
+        totalCount: categoryStocks.length,
+
+        riseCount: riseCount,
+
+        fallCount: fallCount,
+
+        score: calculateCategoryScore(categoryStocks),
+
+        stocks: categoryStocks
+            .map(
+              (e) => StockUiModel(
+                stock: e,
+                score: e.changePercent * (e.value / 100000000),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
+  result.sort((a, b) => b.score.compareTo(a.score));
+
+  return result;
+}
+
+double calculateCategoryScore(List<StockData> stocks) {
+  if (stocks.isEmpty) {
+    return 0;
+  }
+
+  double total = 0;
+
+  for (final stock in stocks) {
+    total += stock.changePercent * (stock.value / 100000000);
+  }
+
+  return total / stocks.length;
+}
+
+double calculateMarketScore(List<StockData> stocks) {
+  if (stocks.isEmpty) {
+    return 0;
+  }
+
+  double total = 0;
+
+  for (final stock in stocks) {
+    total += stock.changePercent * (stock.value / 100000000);
+  }
+
+  return total / stocks.length;
 }
