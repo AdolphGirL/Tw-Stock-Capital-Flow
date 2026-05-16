@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:tw_stock_capital_flow/core/constants/app_constants.dart';
 import 'package:tw_stock_capital_flow/core/utils/date_utils.dart';
 import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'dart:developer' as dev;
 
 class StorageService {
   Future<Directory> _getDailyDirectory() async {
@@ -37,12 +38,13 @@ class StorageService {
 
   Future<void> saveDailySnapshot(StockDaySnapshot snapshot) async {
     final alreadyExists = await exists(snapshot.date);
-
+    dev.log('日期: ${snapshot.date}，檔案是否存在: $alreadyExists');
     if (alreadyExists) {
       return;
     }
 
     final filePath = await _buildFilePath(snapshot.date);
+    dev.log('日期: ${snapshot.date}，建構檔案路徑: $filePath');
 
     final file = File(filePath);
 

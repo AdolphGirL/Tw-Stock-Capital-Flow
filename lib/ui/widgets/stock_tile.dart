@@ -11,17 +11,29 @@ class StockTile extends StatelessWidget {
 
   const StockTile({super.key, required this.stock, required this.score});
 
+  Future<void> _openYahooPage() async {
+    try {
+      final suffix = stock.market == MarketType.listed ? 'TW' : 'TWO';
+
+      final uri = Uri.parse(
+        'https://tw.stock.yahoo.com/quote/${stock.code}.$suffix/technical-analysis',
+      );
+
+      final canLaunch = await canLaunchUrl(uri);
+
+      if (!canLaunch) {
+        return;
+      }
+
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
       child: ListTile(
-        onTap: () async {
-          final uri = Uri.parse(
-            'https://tw.stock.yahoo.com/quote/${stock.code}.TW/technical-analysis',
-          );
-
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        },
+        onTap: _openYahooPage,
 
         title: Text('${stock.code} ${stock.name}'),
 

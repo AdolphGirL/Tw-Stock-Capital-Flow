@@ -1,5 +1,6 @@
 import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:flutter/material.dart';
+import 'dart:ui';
 
 class MarketSummaryCard extends StatelessWidget {
   final String title;
@@ -20,60 +21,145 @@ class MarketSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
+    final positive = score >= 0;
 
-            const SizedBox(height: 20),
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
 
-            Row(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: positive
+              ? [const Color(0xFF3B82F6), const Color(0xFF2563EB)]
+              : [const Color(0xFF10B981), const Color(0xFF059669)],
+        ),
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+
               children: [
-                Expanded(child: _buildInfo('上漲', riseCount, Colors.redAccent)),
-                Expanded(
-                  child: _buildInfo('下跌', fallCount, Colors.greenAccent),
+                Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.18),
+
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+
+                      child: const Icon(
+                        Icons.analytics_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 28),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMarketInfo(
+                        '上漲',
+
+                        riseCount.toString(),
+
+                        Colors.redAccent,
+                      ),
+                    ),
+
+                    Expanded(
+                      child: _buildMarketInfo(
+                        '下跌',
+
+                        fallCount.toString(),
+
+                        Colors.greenAccent,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 28),
+
+                const Text(
+                  '資金流強度',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+
+                const SizedBox(height: 8),
+
+                AnimatedFlipCounter(
+                  value: score,
+
+                  fractionDigits: 2,
+
+                  textStyle: const TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
                 ),
               ],
             ),
-
-            const SizedBox(height: 20),
-
-            Text('資金流分數', style: TextStyle(color: Colors.grey.shade400)),
-
-            const SizedBox(height: 6),
-
-            AnimatedFlipCounter(
-              value: score,
-              fractionDigits: 2,
-              textStyle: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildInfo(String title, int count, Color color) {
+  Widget _buildMarketInfo(String title, String value, Color color) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+
       children: [
-        Text(title, style: TextStyle(color: color)),
-        const SizedBox(height: 4),
+        Text(title, style: const TextStyle(color: Colors.white70)),
+
+        const SizedBox(height: 8),
+
         Text(
-          '$count',
+          value,
           style: TextStyle(
-            fontSize: 22,
-            color: color,
+            fontSize: 26,
             fontWeight: FontWeight.bold,
+            color: color,
           ),
         ),
       ],
