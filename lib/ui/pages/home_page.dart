@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/models/rotation_result.dart';
 import 'package:tw_stock_capital_flow/ui/widgets/market_summary_card.dart';
 import 'main_category_page.dart';
 import 'package:tw_stock_capital_flow/ui/widgets/top_hot_categories.dart';
+import 'package:tw_stock_capital_flow/ui/widgets/rotation_flow_card.dart';
+import 'package:tw_stock_capital_flow/ui/widgets/market_heatmap.dart';
 
 class HomePage extends StatelessWidget {
   final List<CategoryUiModel> listedCategories;
@@ -21,6 +24,7 @@ class HomePage extends StatelessWidget {
   final int otcFallCount;
 
   final double otcScore;
+  final List<RotationResult> rotations;
 
   const HomePage({
     super.key,
@@ -32,6 +36,7 @@ class HomePage extends StatelessWidget {
     required this.otcRiseCount,
     required this.otcFallCount,
     required this.otcScore,
+    required this.rotations,
   });
 
   @override
@@ -106,6 +111,28 @@ class HomePage extends StatelessWidget {
             TopHotCategories(
               categories: [...listedCategories, ...otcCategories],
             ),
+
+            const SizedBox(height: 40),
+
+            const Text(
+              '市場熱力圖',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 18),
+
+            MarketHeatmap(categories: [...listedCategories, ...otcCategories]),
+
+            const SizedBox(height: 40),
+
+            const Text(
+              '資金輪動',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 18),
+
+            ...rotations.take(5).map((e) => RotationFlowCard(result: e)),
 
             const SizedBox(height: 40),
           ],

@@ -127,6 +127,8 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
 
             trendValues: [item.day3Score, item.day2Score, item.day1Score],
 
+            persistence: item.persistence,
+
             onTap: () {
               Navigator.push(
                 context,

@@ -9,6 +9,8 @@ import 'package:tw_stock_capital_flow/services/storage_service.dart';
 import 'package:tw_stock_capital_flow/services/capital_flow_analyzer.dart';
 import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/ui/pages/home_page.dart';
+import 'package:tw_stock_capital_flow/models/rotation_result.dart';
+import 'package:tw_stock_capital_flow/core/engines/rotation_engine.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +45,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
   double listedScore = 0;
 
   double otcScore = 0;
+
+  List<RotationResult> rotations = [];
 
   @override
   void initState() {
@@ -97,6 +101,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
       otcScore = analyzer.calculateMarketScore(market: MarketType.otc);
 
+      final rotationEngine = RotationEngine(snapshots: snapshots);
+
+      rotations = rotationEngine.analyzeMainCategoryRotation();
+
       setState(() {
         loading = false;
       });
@@ -149,6 +157,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
         otcFallCount: otcFallCount,
 
         otcScore: otcScore,
+
+        rotations: rotations,
       ),
     );
   }

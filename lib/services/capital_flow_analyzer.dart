@@ -1,6 +1,7 @@
 import 'package:tw_stock_capital_flow/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/core/engines/capital_flow_engine.dart';
 
 class CapitalFlowAnalyzer {
   final List<StockDaySnapshot> snapshots;
@@ -63,6 +64,10 @@ class CapitalFlowAnalyzer {
         mainCategory: categoryName,
       );
 
+      final trendStrength =
+          ((day1 * 0.5) + (day2 * 0.3) + (day3 * 0.2)) +
+          ((day1 - day2) + ((day2 - day3) * 0.5));
+
       result.add(
         CategoryUiModel(
           name: categoryName,
@@ -82,6 +87,10 @@ class CapitalFlowAnalyzer {
           day3Score: day3,
 
           children: subCategories,
+
+          hotScore: trendStrength,
+
+          persistence: (day1 + day2 + day3) / 3,
         ),
       );
     }
@@ -145,6 +154,10 @@ class CapitalFlowAnalyzer {
         mainCategory: false,
       );
 
+      final trendStrength =
+          ((day1 * 0.5) + (day2 * 0.3) + (day3 * 0.2)) +
+          ((day1 - day2) + ((day2 - day3) * 0.5));
+
       result.add(
         CategoryUiModel(
           name: categoryName,
@@ -168,6 +181,9 @@ class CapitalFlowAnalyzer {
                 (e) => StockUiModel(stock: e, score: _calculateStockScore(e)),
               )
               .toList(),
+          hotScore: trendStrength,
+
+          persistence: (day1 + day2 + day3) / 3,
         ),
       );
     }
@@ -211,18 +227,11 @@ class CapitalFlowAnalyzer {
   }
 
   double _calculateStockScore(StockData stock) {
-    final volumeWeight = stock.value / 100000000;
+    final engine = CapitalFlowEngine(snapshots: snapshots);
 
-    final changeWeight = stock.changePercent;
+    final signal = engine.analyzeStock(stock);
 
-    final volatility =
-        ((stock.high - stock.low) / (stock.close == 0 ? 1 : stock.close)) * 100;
-
-    final flow = changeWeight * volumeWeight;
-
-    final momentumBonus = volatility * 0.15;
-
-    return flow + momentumBonus;
+    return signal.score;
   }
 
   double calculateMarketScore({required MarketType market}) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
 import 'trend_sparkline.dart';
+import 'hot_badge.dart';
 
 class CategoryCard extends StatelessWidget {
   final String title;
@@ -18,6 +19,8 @@ class CategoryCard extends StatelessWidget {
 
   final List<double> trendValues;
 
+  final double persistence;
+
   const CategoryCard({
     super.key,
     required this.title,
@@ -27,7 +30,9 @@ class CategoryCard extends StatelessWidget {
     required this.score,
     required this.onTap,
     required this.trendValues,
+    required this.persistence,
   });
+
   @override
   Widget build(BuildContext context) {
     final positive = score >= 0;
@@ -89,16 +94,30 @@ class CategoryCard extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   Wrap(
-                    spacing: 14,
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     runSpacing: 10,
                     children: [
-                      _buildTag(Icons.apps, '$totalCount 檔'),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
 
-                      _buildTag(Icons.trending_up, '$riseCount 上漲'),
-
-                      _buildTag(Icons.trending_down, '$fallCount 下跌'),
+                      HotBadge(score: score),
                     ],
                   ),
+
+                  const SizedBox(height: 10),
+
+                  Text(
+                    '持續性 ${persistence.toStringAsFixed(1)}',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
