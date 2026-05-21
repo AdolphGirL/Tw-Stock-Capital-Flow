@@ -49,7 +49,7 @@ class CategoryCard extends StatelessWidget {
 
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -148,32 +148,32 @@ class CategoryCard extends StatelessWidget {
     ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.12, end: 0);
   }
 
-  Widget _buildTag(IconData icon, String text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+  // Widget _buildTag(IconData icon, String text) {
+  //   return Container(
+  //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
 
-      decoration: BoxDecoration(
-        color: const Color(0xFFF3F4F6),
+  //     decoration: BoxDecoration(
+  //       color: const Color(0xFFF3F4F6),
 
-        borderRadius: BorderRadius.circular(999),
-      ),
+  //       borderRadius: BorderRadius.circular(999),
+  //     ),
 
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: Colors.grey.shade700),
+  //     child: Row(
+  //       mainAxisSize: MainAxisSize.min,
+  //       children: [
+  //         Icon(icon, size: 14, color: Colors.grey.shade700),
 
-          const SizedBox(width: 4),
+  //         const SizedBox(width: 4),
 
-          Text(
-            text,
-            style: TextStyle(
-              color: Colors.grey.shade700,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  //         Text(
+  //           text,
+  //           style: TextStyle(
+  //             color: Colors.grey.shade700,
+  //             fontWeight: FontWeight.w600,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }

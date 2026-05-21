@@ -1,7 +1,5 @@
 import 'package:tw_stock_capital_flow/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
-
-import 'package:tw_stock_capital_flow/core/extensions/list_extension.dart';
 import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
 
 class MainstreamEngine {

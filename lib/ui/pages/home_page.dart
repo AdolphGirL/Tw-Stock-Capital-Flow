@@ -167,7 +167,7 @@ class HomePage extends StatelessWidget {
 
                         Icon(
                           Icons.arrow_forward_ios,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ],
                     ),
@@ -190,7 +190,7 @@ class HomePage extends StatelessWidget {
                       '目前市場最強主流',
 
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                         fontSize: 15,
                       ),
                     ),

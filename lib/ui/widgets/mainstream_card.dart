@@ -51,7 +51,7 @@ class MainstreamCard extends StatelessWidget {
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -71,7 +71,7 @@ class MainstreamCard extends StatelessWidget {
                 alignment: Alignment.center,
 
                 decoration: BoxDecoration(
-                  color: trendColor.withOpacity(0.12),
+                  color: trendColor.withValues(alpha: 0.12),
 
                   borderRadius: BorderRadius.circular(14),
                 ),
@@ -118,7 +118,7 @@ class MainstreamCard extends StatelessWidget {
                 ),
 
                 decoration: BoxDecoration(
-                  color: trendColor.withOpacity(0.12),
+                  color: trendColor.withValues(alpha: 0.12),
 
                   borderRadius: BorderRadius.circular(18),
                 ),

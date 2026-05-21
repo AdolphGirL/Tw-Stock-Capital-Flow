@@ -37,7 +37,7 @@ class MarketSummaryCard extends StatelessWidget {
 
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -64,7 +64,7 @@ class MarketSummaryCard extends StatelessWidget {
                       height: 52,
 
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
+                        color: Colors.white.withValues(alpha: 0.18),
 
                         borderRadius: BorderRadius.circular(18),
                       ),
