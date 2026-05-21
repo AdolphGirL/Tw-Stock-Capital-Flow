@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
 
 import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/models/rotation_result.dart';
@@ -7,6 +8,7 @@ import 'main_category_page.dart';
 import 'package:tw_stock_capital_flow/ui/widgets/top_hot_categories.dart';
 import 'package:tw_stock_capital_flow/ui/widgets/rotation_flow_card.dart';
 import 'package:tw_stock_capital_flow/ui/widgets/market_heatmap.dart';
+import 'package:tw_stock_capital_flow/ui/pages/mainstream_page.dart';
 
 class HomePage extends StatelessWidget {
   final List<CategoryUiModel> listedCategories;
@@ -26,6 +28,8 @@ class HomePage extends StatelessWidget {
   final double otcScore;
   final List<RotationResult> rotations;
 
+  final List<MainstreamResult> mainstreams;
+
   const HomePage({
     super.key,
     required this.listedCategories,
@@ -37,6 +41,7 @@ class HomePage extends StatelessWidget {
     required this.otcFallCount,
     required this.otcScore,
     required this.rotations,
+    required this.mainstreams,
   });
 
   @override
@@ -110,6 +115,88 @@ class HomePage extends StatelessWidget {
 
             TopHotCategories(
               categories: [...listedCategories, ...otcCategories],
+            ),
+
+            const SizedBox(height: 28),
+
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MainstreamPage(mainstreams: mainstreams),
+                  ),
+                );
+              },
+
+              child: Container(
+                padding: const EdgeInsets.all(24),
+
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xff1e3c72), Color(0xff2a5298)],
+                  ),
+
+                  borderRadius: BorderRadius.circular(28),
+                ),
+
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.auto_graph,
+                          color: Colors.white,
+                          size: 30,
+                        ),
+
+                        const SizedBox(width: 12),
+
+                        const Expanded(
+                          child: Text(
+                            '市場主流分析',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    Text(
+                      mainstreams.isEmpty ? '-' : mainstreams.first.category,
+
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    Text(
+                      '目前市場最強主流',
+
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
 
             const SizedBox(height: 40),

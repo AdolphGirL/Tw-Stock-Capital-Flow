@@ -11,6 +11,10 @@ import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/ui/pages/home_page.dart';
 import 'package:tw_stock_capital_flow/models/rotation_result.dart';
 import 'package:tw_stock_capital_flow/core/engines/rotation_engine.dart';
+import 'package:tw_stock_capital_flow/core/engines/mainstream_engine.dart';
+import 'package:tw_stock_capital_flow/core/engines/market_sentiment_engine.dart';
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,6 +51,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
   double otcScore = 0;
 
   List<RotationResult> rotations = [];
+
+  List<MainstreamResult> mainstreams = [];
+
+  MarketSentimentResult? sentiment;
 
   @override
   void initState() {
@@ -105,6 +113,17 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
       rotations = rotationEngine.analyzeMainCategoryRotation();
 
+      final mainstreamEngine = MainstreamEngine(snapshots: snapshots);
+
+      mainstreams = mainstreamEngine.analyzeMainstreams();
+
+      final sentimentEngine = MarketSentimentEngine(
+        snapshots: snapshots,
+        mainstreams: mainstreams,
+      );
+
+      sentiment = sentimentEngine.analyze();
+
       setState(() {
         loading = false;
       });
@@ -159,6 +178,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
         otcScore: otcScore,
 
         rotations: rotations,
+
+        mainstreams: mainstreams,
       ),
     );
   }
