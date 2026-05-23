@@ -6,7 +6,4927 @@
 
 <project_structure>
 請參考以下專案結構進行上下文理解：
-[在此貼上您的 lib/ 目錄結構，或利用 gitingest 將整包程式碼提供給 Gemini CLI]
+
+Directory structure:
+└── adolphgirl-tw-stock-capital-flow/
+    └── lib/
+        ├── main.dart
+        ├── core/
+        │   ├── bootstrap/
+        │   │   └── app_bootstrapper.dart
+        │   ├── constants/
+        │   │   └── app_constants.dart
+        │   ├── engines/
+        │   │   ├── abnormal_money_engine.dart
+        │   │   ├── capital_flow_engine.dart
+        │   │   ├── lifecycle_engine.dart
+        │   │   ├── mainstream_engine.dart
+        │   │   ├── market_sentiment_engine.dart
+        │   │   ├── rotation_engine.dart
+        │   │   └── trend_metrics_engine.dart
+        │   ├── enums/
+        │   │   ├── lifecycle_stage.dart
+        │   │   └── sentiment_level.dart
+        │   ├── extensions/
+        │   │   ├── list_extension.dart
+        │   │   └── market_type_extension.dart
+        │   ├── models/
+        │   │   ├── abnormal_money_result.dart
+        │   │   ├── lifecycle_result.dart
+        │   │   ├── lifecycle_timeline.dart
+        │   │   ├── mainstream_result.dart
+        │   │   ├── market_sentiment_result.dart
+        │   │   └── trend_metrics.dart
+        │   └── utils/
+        │       └── date_utils.dart
+        ├── managers/
+        │   └── sync_manager.dart
+        ├── models/
+        │   ├── category_ui_model.dart
+        │   ├── flow_signal.dart
+        │   ├── rotation_result.dart
+        │   ├── stock_data.dart
+        │   ├── stock_day_snapshot.dart
+        │   └── stock_score.dart
+        ├── repositories/
+        │   ├── history_repository.dart
+        │   └── stock_repository.dart
+        ├── services/
+        │   ├── capital_flow_analyzer.dart
+        │   ├── market_calendar_service.dart
+        │   ├── score_service.dart
+        │   ├── stock_service.dart
+        │   └── storage_service.dart
+        └── ui/
+            ├── enums/
+            │   └── category_sort_type.dart
+            ├── pages/
+            │   ├── home_page.dart
+            │   ├── lifecycle_page.dart
+            │   ├── main_category_page.dart
+            │   ├── mainstream_page.dart
+            │   ├── market_sentiment_page.dart
+            │   ├── rotation_page.dart
+            │   ├── stock_list_page.dart
+            │   └── sub_category_page.dart
+            ├── theme/
+            │   └── app_theme.dart
+            └── widgets/
+                ├── category_card.dart
+                ├── empty_view.dart
+                ├── home_section_card.dart
+                ├── hot_badge.dart
+                ├── lifecycle_card.dart
+                ├── mainstream_card.dart
+                ├── market_heatmap.dart
+                ├── market_summary_card.dart
+                ├── rotation_flow_card.dart
+                ├── score_chip.dart
+                ├── section_title.dart
+                ├── stock_tile.dart
+                ├── top_hot_categories.dart
+                └── trend_sparkline.dart
+
+
+================================================
+FILE: lib/main.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/ui/theme/app_theme.dart';
+import 'package:tw_stock_capital_flow/managers/sync_manager.dart';
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/repositories/history_repository.dart';
+import 'package:tw_stock_capital_flow/services/market_calendar_service.dart';
+import 'package:tw_stock_capital_flow/services/storage_service.dart';
+import 'package:tw_stock_capital_flow/services/capital_flow_analyzer.dart';
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/ui/pages/home_page.dart';
+import 'package:tw_stock_capital_flow/models/rotation_result.dart';
+import 'package:tw_stock_capital_flow/core/engines/rotation_engine.dart';
+import 'package:tw_stock_capital_flow/core/engines/mainstream_engine.dart';
+import 'package:tw_stock_capital_flow/core/engines/market_sentiment_engine.dart';
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
+import 'package:tw_stock_capital_flow/core/engines/lifecycle_engine.dart';
+import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  runApp(const BootstrapApp());
+}
+
+class BootstrapApp extends StatefulWidget {
+  const BootstrapApp({super.key});
+
+  @override
+  State<BootstrapApp> createState() => _BootstrapAppState();
+}
+
+class _BootstrapAppState extends State<BootstrapApp> {
+  bool loading = true;
+
+  String? error;
+
+  List<CategoryUiModel> listedCategories = [];
+
+  List<CategoryUiModel> otcCategories = [];
+
+  int listedRiseCount = 0;
+
+  int listedFallCount = 0;
+
+  int otcRiseCount = 0;
+
+  int otcFallCount = 0;
+
+  double listedScore = 0;
+
+  double otcScore = 0;
+
+  List<RotationResult> rotations = [];
+
+  List<MainstreamResult> mainstreams = [];
+
+  MarketSentimentResult? sentiment;
+
+  List<LifecycleResult> lifecycles = [];
+
+  @override
+  void initState() {
+    super.initState();
+
+    initialize();
+  }
+
+  Future<void> initialize() async {
+    try {
+      final storageService = StorageService();
+
+      final syncManager = SyncManager(
+        storageService: storageService,
+        calendarService: MarketCalendarService(),
+      );
+
+      await syncManager.syncTodayData();
+
+      final historyRepository = HistoryRepository(
+        storageService: storageService,
+      );
+
+      final snapshots = await historyRepository.loadRecentSnapshots(1);
+
+      if (snapshots.isEmpty) {
+        setState(() {
+          error = '無歷史資料';
+          loading = false;
+        });
+
+        return;
+      }
+
+      final analyzer = CapitalFlowAnalyzer(snapshots: snapshots);
+
+      listedCategories = analyzer.analyzeMainCategories(
+        market: MarketType.listed,
+      );
+
+      otcCategories = analyzer.analyzeMainCategories(market: MarketType.otc);
+
+      listedRiseCount = analyzer.calculateRiseCount(market: MarketType.listed);
+
+      listedFallCount = analyzer.calculateFallCount(market: MarketType.listed);
+
+      otcRiseCount = analyzer.calculateRiseCount(market: MarketType.otc);
+
+      otcFallCount = analyzer.calculateFallCount(market: MarketType.otc);
+
+      listedScore = analyzer.calculateMarketScore(market: MarketType.listed);
+
+      otcScore = analyzer.calculateMarketScore(market: MarketType.otc);
+
+      final rotationEngine = RotationEngine(snapshots: snapshots);
+
+      rotations = rotationEngine.analyzeMainCategoryRotation();
+
+      final mainstreamEngine = MainstreamEngine(snapshots: snapshots);
+
+      mainstreams = mainstreamEngine.analyzeMainstreams();
+
+      final sentimentEngine = MarketSentimentEngine(
+        snapshots: snapshots,
+        mainstreams: mainstreams,
+      );
+
+      sentiment = sentimentEngine.analyze();
+
+      final lifecycleEngine = LifecycleEngine(
+        snapshots: snapshots,
+        mainstreams: mainstreams,
+      );
+
+      lifecycles = lifecycleEngine.analyze();
+
+      setState(() {
+        loading = false;
+      });
+    } catch (e) {
+      setState(() {
+        error = e.toString();
+        loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+
+        theme: AppTheme.lightTheme,
+
+        home: const Scaffold(body: Center(child: CircularProgressIndicator())),
+      );
+    }
+
+    if (error != null) {
+      return MaterialApp(
+        debugShowCheckedModeBanner: false,
+
+        home: Scaffold(body: Center(child: Text(error!))),
+      );
+    }
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+
+      theme: AppTheme.lightTheme,
+
+      home: HomePage(
+        listedCategories: listedCategories,
+
+        otcCategories: otcCategories,
+
+        listedRiseCount: listedRiseCount,
+
+        listedFallCount: listedFallCount,
+
+        listedScore: listedScore,
+
+        otcRiseCount: otcRiseCount,
+
+        otcFallCount: otcFallCount,
+
+        otcScore: otcScore,
+
+        rotations: rotations,
+
+        mainstreams: mainstreams,
+
+        lifecycles: lifecycles,
+
+        sentiment: sentiment!,
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/core/bootstrap/app_bootstrapper.dart
+================================================
+
+
+
+
+================================================
+FILE: lib/core/constants/app_constants.dart
+================================================
+class AppConstants {
+  static const String dailyFolder = 'daily';
+
+  static const int recentCompareDays = 3;
+
+  static const int minSubCategoryStockCount = 3;
+}
+
+
+
+================================================
+FILE: lib/core/engines/abnormal_money_engine.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/core/models/abnormal_money_result.dart';
+
+class AbnormalMoneyEngine {
+  final List<StockDaySnapshot> snapshots;
+
+  const AbnormalMoneyEngine({required this.snapshots});
+
+  List<AbnormalMoneyResult> analyze() {
+    if (snapshots.length < 3) {
+      return [];
+    }
+
+    final latest = snapshots[0];
+
+    final prev1 = snapshots[1];
+
+    final prev2 = snapshots[2];
+
+    final List<AbnormalMoneyResult> results = [];
+
+    for (final stock in latest.stocks) {
+      final old1 = _findStock(prev1, stock.code);
+
+      final old2 = _findStock(prev2, stock.code);
+
+      if (old1 == null || old2 == null) {
+        continue;
+      }
+
+      final avgVolume = (old1.volume + old2.volume) / 2;
+
+      final avgValue = (old1.value + old2.value) / 2;
+
+      if (avgVolume <= 0 || avgValue <= 0) {
+        continue;
+      }
+
+      final volumeRatio = stock.volume / avgVolume;
+
+      final valueRatio = stock.value / avgValue;
+
+      final momentumScore = stock.changePercent;
+
+      final continuous =
+          stock.changePercent > 0 &&
+          old1.changePercent > 0 &&
+          old2.changePercent > 0;
+
+      final breakout = volumeRatio > 2 && momentumScore > 3;
+
+      final moneyScore =
+          (volumeRatio * 35) +
+          (valueRatio * 35) +
+          (momentumScore * 20) +
+          (continuous ? 10 : 0);
+
+      if (moneyScore < 80) {
+        continue;
+      }
+
+      results.add(
+        AbnormalMoneyResult(
+          stock: stock,
+
+          moneyScore: moneyScore,
+
+          volumeRatio: volumeRatio,
+
+          valueRatio: valueRatio,
+
+          momentumScore: momentumScore,
+
+          continuous: continuous,
+
+          breakout: breakout,
+        ),
+      );
+    }
+
+    results.sort((a, b) => b.moneyScore.compareTo(a.moneyScore));
+
+    return results;
+  }
+
+  StockData? _findStock(StockDaySnapshot snapshot, String code) {
+    try {
+      return snapshot.stocks.firstWhere((e) => e.code == code);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+
+
+================================================
+FILE: lib/core/engines/capital_flow_engine.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/core/extensions/list_extension.dart';
+import 'package:tw_stock_capital_flow/models/flow_signal.dart';
+
+class CapitalFlowEngine {
+  final List<StockDaySnapshot> snapshots;
+
+  const CapitalFlowEngine({required this.snapshots});
+
+  FlowSignal analyzeStock(StockData stock) {
+    final histories = _findStockHistory(stock.code);
+
+    if (histories.isEmpty) {
+      return const FlowSignal(
+        score: 0,
+        volumeRatio: 0,
+        momentumScore: 0,
+        persistenceScore: 0,
+        direction: FlowDirection.neutral,
+      );
+    }
+
+    final today = histories.first;
+
+    final avgValue = histories
+        .map((e) => e.value.toDouble())
+        .toList()
+        .average();
+
+    final double volumeRatio = avgValue == 0 ? 0 : today.value / avgValue;
+
+    final priceMomentum = today.changePercent;
+
+    final volatility =
+        ((today.high - today.low) / (today.close == 0 ? 1 : today.close)) * 100;
+
+    final momentumScore = (priceMomentum * 0.7) + (volatility * 0.3);
+
+    final persistenceScore = _calculatePersistence(histories);
+
+    final flowScore =
+        (volumeRatio * 0.35) +
+        (momentumScore * 0.40) +
+        (persistenceScore * 0.25);
+
+    final direction = flowScore > 1
+        ? FlowDirection.inflow
+        : flowScore < -1
+        ? FlowDirection.outflow
+        : FlowDirection.neutral;
+
+    return FlowSignal(
+      score: flowScore,
+
+      volumeRatio: volumeRatio,
+
+      momentumScore: momentumScore,
+
+      persistenceScore: persistenceScore,
+
+      direction: direction,
+    );
+  }
+
+  List<StockData> _findStockHistory(String code) {
+    final List<StockData> result = [];
+
+    for (final snapshot in snapshots) {
+      try {
+        final stock = snapshot.stocks.firstWhere((e) => e.code == code);
+
+        result.add(stock);
+      } catch (_) {}
+    }
+
+    return result;
+  }
+
+  double _calculatePersistence(List<StockData> histories) {
+    if (histories.length <= 1) {
+      return 0;
+    }
+
+    int positiveDays = 0;
+
+    for (final stock in histories) {
+      if (stock.changePercent > 0) {
+        positiveDays++;
+      }
+    }
+
+    final persistence = positiveDays / histories.length;
+
+    final latest = histories.first.changePercent;
+
+    return latest * persistence;
+  }
+}
+
+
+
+================================================
+FILE: lib/core/engines/lifecycle_engine.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/core/enums/lifecycle_stage.dart';
+import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
+import 'package:tw_stock_capital_flow/core/models/lifecycle_timeline.dart';
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+import 'package:tw_stock_capital_flow/core/models/trend_metrics.dart';
+import 'package:tw_stock_capital_flow/core/engines/trend_metrics_engine.dart';
+
+class LifecycleEngine {
+  final List<StockDaySnapshot> snapshots;
+
+  final List<MainstreamResult> mainstreams;
+
+  const LifecycleEngine({required this.snapshots, required this.mainstreams});
+
+  List<LifecycleResult> analyze() {
+    if (snapshots.isEmpty) {
+      return [];
+    }
+
+    final trendEngine = TrendMetricsEngine();
+
+    final List<LifecycleResult> results = [];
+
+    for (final mainstream in mainstreams) {
+      final timeline = _buildTimeline(mainstream.category);
+
+      final scoreTrend = trendEngine.analyze(timeline.scores);
+
+      final flowTrend = trendEngine.analyze(timeline.flows);
+
+      final diffusionTrend = trendEngine.analyze(timeline.diffusions);
+
+      final stage = _resolveStage(
+        mainstream: mainstream,
+
+        scoreTrend: scoreTrend,
+
+        flowTrend: flowTrend,
+
+        diffusionTrend: diffusionTrend,
+      );
+
+      final acceleration = scoreTrend.acceleration;
+
+      final hotMoneyIn = flowTrend.acceleration > 0 && diffusionTrend.slope > 0;
+
+      results.add(
+        LifecycleResult(
+          category: mainstream.category,
+
+          stage: stage,
+
+          strength: mainstream.mainstreamScore,
+
+          acceleration: acceleration,
+
+          persistence: mainstream.persistenceScore,
+
+          diffusion: mainstream.diffusionScore,
+
+          hotMoneyIn: hotMoneyIn,
+        ),
+      );
+    }
+
+    results.sort((a, b) => b.strength.compareTo(a.strength));
+
+    return results;
+  }
+
+  LifecycleTimeline _buildTimeline(String category) {
+    final List<double> scores = [];
+
+    final List<double> flows = [];
+
+    final List<double> diffusions = [];
+
+    for (final snapshot in snapshots.reversed) {
+      final categoryStocks = snapshot.stocks
+          .where((e) => e.mainCategory == category)
+          .toList();
+
+      if (categoryStocks.isEmpty) {
+        continue;
+      }
+
+      double score = 0;
+
+      double flow = 0;
+
+      int riseCount = 0;
+
+      for (final stock in categoryStocks) {
+        final valueScore = stock.value / 100000000;
+
+        score += stock.changePercent * valueScore;
+
+        flow += valueScore;
+
+        if (stock.changePercent > 0) {
+          riseCount++;
+        }
+      }
+
+      score /= categoryStocks.length;
+
+      flow /= categoryStocks.length;
+
+      final diffusion = riseCount / categoryStocks.length * 100;
+
+      scores.add(score);
+
+      flows.add(flow);
+
+      diffusions.add(diffusion);
+    }
+
+    return LifecycleTimeline(
+      category: category,
+
+      scores: scores,
+
+      flows: flows,
+
+      diffusions: diffusions,
+    );
+  }
+
+  LifecycleStage _resolveStage({
+    required MainstreamResult mainstream,
+
+    required TrendMetrics scoreTrend,
+
+    required TrendMetrics flowTrend,
+
+    required TrendMetrics diffusionTrend,
+  }) {
+    final score = mainstream.mainstreamScore;
+
+    final slope = scoreTrend.slope;
+
+    final acceleration = scoreTrend.acceleration;
+
+    final stability = scoreTrend.stability;
+
+    final volatility = scoreTrend.volatility;
+
+    final diffusion = mainstream.diffusionScore;
+
+    final flow = mainstream.flowScore;
+
+    // 死亡
+    if (score < 10 && slope < 0 && flow < 0) {
+      return LifecycleStage.dead;
+    }
+
+    // 退潮
+    if (slope < 0 && acceleration < 0 && flow < 0) {
+      return LifecycleStage.decline;
+    }
+
+    // 出貨
+    if (score > 70 && acceleration < 0 && volatility > 15) {
+      return LifecycleStage.distribution;
+    }
+
+    // 狂熱
+    if (score > 85 && diffusion > 75 && volatility > 20) {
+      return LifecycleStage.euphoric;
+    }
+
+    // 主升
+    if (score > 60 && slope > 20 && stability > 70 && volatility < 18) {
+      return LifecycleStage.markup;
+    }
+
+    // 擴散
+    if (diffusion > 45 && slope > 10 && flowTrend.slope > 0) {
+      return LifecycleStage.expansion;
+    }
+
+    // 點火
+    if (acceleration > 5 || flowTrend.acceleration > 0) {
+      return LifecycleStage.ignition;
+    }
+
+    return LifecycleStage.ignition;
+  }
+}
+
+
+
+================================================
+FILE: lib/core/engines/mainstream_engine.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+
+class MainstreamEngine {
+  final List<StockDaySnapshot> snapshots;
+
+  const MainstreamEngine({required this.snapshots});
+
+  List<MainstreamResult> analyzeMainstreams() {
+    if (snapshots.isEmpty) {
+      return [];
+    }
+
+    final latest = snapshots.first;
+
+    final Map<String, List<StockData>> grouped = {};
+
+    for (final stock in latest.stocks) {
+      grouped.putIfAbsent(stock.mainCategory, () => []);
+
+      grouped[stock.mainCategory]!.add(stock);
+    }
+
+    final List<MainstreamResult> results = [];
+
+    for (final entry in grouped.entries) {
+      final category = entry.key;
+
+      final stocks = entry.value;
+
+      final flowScore = _calculateFlowScore(stocks);
+
+      final persistenceScore = _calculatePersistence(category);
+
+      final diffusionScore = _calculateDiffusion(stocks);
+
+      final leaderScore = _calculateLeaderScore(stocks);
+
+      final mainstreamScore =
+          (flowScore * 0.35) +
+          (persistenceScore * 0.30) +
+          (diffusionScore * 0.20) +
+          (leaderScore * 0.15);
+
+      final strengthening = persistenceScore > 0 && flowScore > 0;
+
+      final weakening = persistenceScore < 0 && flowScore < 0;
+
+      results.add(
+        MainstreamResult(
+          category: category,
+
+          mainstreamScore: mainstreamScore,
+
+          flowScore: flowScore,
+
+          persistenceScore: persistenceScore,
+
+          diffusionScore: diffusionScore,
+
+          leaderScore: leaderScore,
+
+          strengthening: strengthening,
+
+          weakening: weakening,
+        ),
+      );
+    }
+
+    results.sort((a, b) => b.mainstreamScore.compareTo(a.mainstreamScore));
+
+    return results;
+  }
+
+  double _calculateFlowScore(List<StockData> stocks) {
+    if (stocks.isEmpty) {
+      return 0;
+    }
+
+    double total = 0;
+
+    for (final stock in stocks) {
+      final score = stock.changePercent * (stock.value / 100000000);
+
+      total += score;
+    }
+
+    return total / stocks.length;
+  }
+
+  double _calculatePersistence(String category) {
+    if (snapshots.length < 3) {
+      return 0;
+    }
+
+    final List<double> scores = [];
+
+    for (final snapshot in snapshots.take(3)) {
+      final stocks = snapshot.stocks
+          .where((e) => e.mainCategory == category)
+          .toList();
+
+      if (stocks.isEmpty) {
+        continue;
+      }
+
+      double score = 0;
+
+      for (final stock in stocks) {
+        score += stock.changePercent * (stock.value / 100000000);
+      }
+
+      scores.add(score / stocks.length);
+    }
+
+    if (scores.length < 3) {
+      return 0;
+    }
+
+    return (scores[0] * 0.5) + (scores[1] * 0.3) + (scores[2] * 0.2);
+  }
+
+  double _calculateDiffusion(List<StockData> stocks) {
+    if (stocks.isEmpty) {
+      return 0;
+    }
+
+    final rising = stocks.where((e) => e.changePercent > 0).length;
+
+    return rising / stocks.length * 100;
+  }
+
+  double _calculateLeaderScore(List<StockData> stocks) {
+    if (stocks.isEmpty) {
+      return 0;
+    }
+
+    stocks.sort((a, b) => b.value.compareTo(a.value));
+
+    final leader = stocks.first;
+
+    final valueScore = leader.value / 100000000;
+
+    final momentumScore = leader.changePercent;
+
+    return (valueScore * 0.6) + (momentumScore * 0.4);
+  }
+}
+
+
+
+================================================
+FILE: lib/core/engines/market_sentiment_engine.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+
+import 'package:tw_stock_capital_flow/core/enums/sentiment_level.dart';
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
+
+class MarketSentimentEngine {
+  final List<StockDaySnapshot> snapshots;
+
+  final List<MainstreamResult> mainstreams;
+
+  const MarketSentimentEngine({
+    required this.snapshots,
+    required this.mainstreams,
+  });
+
+  MarketSentimentResult analyze() {
+    if (snapshots.isEmpty) {
+      return const MarketSentimentResult(
+        score: 0,
+        level: SentimentLevel.neutral,
+        riseCount: 0,
+        fallCount: 0,
+        strongCategoryCount: 0,
+        mainstreamAverage: 0,
+        hotMoneyStrength: 0,
+      );
+    }
+
+    final latest = snapshots.first;
+
+    final riseCount = latest.stocks.where((e) => e.changePercent > 0).length;
+
+    final fallCount = latest.stocks.where((e) => e.changePercent < 0).length;
+
+    final riseRatio = latest.stocks.isEmpty
+        ? 0
+        : riseCount / latest.stocks.length;
+
+    final strongCategoryCount = mainstreams
+        .where((e) => e.mainstreamScore > 30)
+        .length;
+
+    double mainstreamAverage = 0;
+
+    if (mainstreams.isNotEmpty) {
+      mainstreamAverage =
+          mainstreams.map((e) => e.mainstreamScore).reduce((a, b) => a + b) /
+          mainstreams.length;
+    }
+
+    final hotMoneyStrength = _calculateHotMoney(latest);
+
+    final score =
+        (riseRatio * 30) +
+        (strongCategoryCount * 8) +
+        (mainstreamAverage * 0.35) +
+        (hotMoneyStrength * 0.25);
+
+    final level = _resolveLevel(score);
+
+    return MarketSentimentResult(
+      score: score,
+
+      level: level,
+
+      riseCount: riseCount,
+
+      fallCount: fallCount,
+
+      strongCategoryCount: strongCategoryCount,
+
+      mainstreamAverage: mainstreamAverage,
+
+      hotMoneyStrength: hotMoneyStrength,
+    );
+  }
+
+  double _calculateHotMoney(StockDaySnapshot snapshot) {
+    double total = 0;
+
+    for (final stock in snapshot.stocks) {
+      final valueScore = stock.value / 100000000;
+
+      final momentum = stock.changePercent;
+
+      total += valueScore * momentum;
+    }
+
+    return total / snapshot.stocks.length;
+  }
+
+  SentimentLevel _resolveLevel(double score) {
+    if (score >= 85) {
+      return SentimentLevel.euphoric;
+    }
+
+    if (score >= 65) {
+      return SentimentLevel.optimistic;
+    }
+
+    if (score >= 40) {
+      return SentimentLevel.neutral;
+    }
+
+    if (score >= 20) {
+      return SentimentLevel.weak;
+    }
+
+    return SentimentLevel.panic;
+  }
+}
+
+
+
+================================================
+FILE: lib/core/engines/rotation_engine.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/core/extensions/list_extension.dart';
+import 'package:tw_stock_capital_flow/models/rotation_result.dart';
+
+class RotationEngine {
+  final List<StockDaySnapshot> snapshots;
+
+  const RotationEngine({required this.snapshots});
+
+  List<RotationResult> analyzeMainCategoryRotation() {
+    if (snapshots.length < 2) {
+      return [];
+    }
+
+    final today = snapshots[0];
+
+    final yesterday = snapshots[1];
+
+    final todayScores = _calculateCategoryScores(today);
+
+    final yesterdayScores = _calculateCategoryScores(yesterday);
+
+    final List<MapEntry<String, double>> increases = [];
+
+    final List<MapEntry<String, double>> decreases = [];
+
+    for (final entry in todayScores.entries) {
+      final yesterdayScore = yesterdayScores[entry.key] ?? 0;
+
+      final diff = entry.value - yesterdayScore;
+
+      if (diff > 0) {
+        increases.add(MapEntry(entry.key, diff));
+      } else {
+        decreases.add(MapEntry(entry.key, diff.abs()));
+      }
+    }
+
+    increases.sort((a, b) => b.value.compareTo(a.value));
+
+    decreases.sort((a, b) => b.value.compareTo(a.value));
+
+    final List<RotationResult> result = [];
+
+    final length = increases.length < decreases.length
+        ? increases.length
+        : decreases.length;
+
+    for (int i = 0; i < length; i++) {
+      final fromValue = decreases[i].value.abs();
+
+      final toValue = increases[i].value.abs();
+
+      final rotationScore = (fromValue + toValue) / 2;
+
+      result.add(
+        RotationResult(
+          fromCategory: decreases[i].key,
+
+          toCategory: increases[i].key,
+
+          score: rotationScore,
+
+          inflowStrength: increases[i].value,
+        ),
+      );
+    }
+
+    return result;
+  }
+
+  Map<String, double> _calculateCategoryScores(StockDaySnapshot snapshot) {
+    final Map<String, List<double>> grouped = {};
+
+    for (final stock in snapshot.stocks) {
+      grouped.putIfAbsent(stock.mainCategory, () => []);
+
+      final score = stock.changePercent * (stock.value / 100000000);
+
+      grouped[stock.mainCategory]!.add(score);
+    }
+
+    final Map<String, double> result = {};
+
+    for (final entry in grouped.entries) {
+      result[entry.key] = entry.value.average();
+    }
+
+    return result;
+  }
+}
+
+
+
+================================================
+FILE: lib/core/engines/trend_metrics_engine.dart
+================================================
+import 'package:tw_stock_capital_flow/core/models/trend_metrics.dart';
+
+class TrendMetricsEngine {
+  const TrendMetricsEngine();
+
+  TrendMetrics analyze(List<double> values) {
+    if (values.length < 2) {
+      return const TrendMetrics(
+        slope: 0,
+        acceleration: 0,
+        stability: 0,
+        volatility: 0,
+      );
+    }
+
+    final first = values.first;
+
+    final last = values.last;
+
+    final slope = last - first;
+
+    double acceleration = 0;
+
+    if (values.length >= 3) {
+      final mid = values[values.length ~/ 2];
+
+      acceleration = (last - mid) - (mid - first);
+    }
+
+    double volatility = 0;
+
+    final avg = values.reduce((a, b) => a + b) / values.length;
+
+    for (final value in values) {
+      volatility += (value - avg).abs();
+    }
+
+    volatility /= values.length;
+
+    final stability = 100 - volatility;
+
+    return TrendMetrics(
+      slope: slope,
+
+      acceleration: acceleration,
+
+      stability: stability,
+
+      volatility: volatility,
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/core/enums/lifecycle_stage.dart
+================================================
+enum LifecycleStage {
+  ignition, // 點火
+  expansion, // 擴散
+  markup, // 主升
+  euphoric, // 狂熱
+  distribution, // 出貨
+  decline, // 退潮
+  dead, // 死亡
+}
+
+
+
+================================================
+FILE: lib/core/enums/sentiment_level.dart
+================================================
+enum SentimentLevel { panic, weak, neutral, optimistic, euphoric }
+
+
+
+================================================
+FILE: lib/core/extensions/list_extension.dart
+================================================
+extension AverageExtension on List<double> {
+  double average() {
+    if (isEmpty) {
+      return 0;
+    }
+
+    return reduce((a, b) => a + b) / length;
+  }
+}
+
+
+
+================================================
+FILE: lib/core/extensions/market_type_extension.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+
+extension MarketTypeExtension on MarketType {
+  String get value {
+    switch (this) {
+      case MarketType.listed:
+        return 'listed';
+      case MarketType.otc:
+        return 'otc';
+    }
+  }
+
+  static MarketType fromString(String value) {
+    switch (value) {
+      case 'listed':
+        return MarketType.listed;
+      case 'otc':
+        return MarketType.otc;
+      default:
+        return MarketType.listed;
+    }
+  }
+}
+
+
+
+================================================
+FILE: lib/core/models/abnormal_money_result.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+
+class AbnormalMoneyResult {
+  final StockData stock;
+
+  final double moneyScore;
+
+  final double volumeRatio;
+
+  final double valueRatio;
+
+  final double momentumScore;
+
+  final bool continuous;
+
+  final bool breakout;
+
+  const AbnormalMoneyResult({
+    required this.stock,
+    required this.moneyScore,
+    required this.volumeRatio,
+    required this.valueRatio,
+    required this.momentumScore,
+    required this.continuous,
+    required this.breakout,
+  });
+}
+
+
+
+================================================
+FILE: lib/core/models/lifecycle_result.dart
+================================================
+import 'package:tw_stock_capital_flow/core/enums/lifecycle_stage.dart';
+
+class LifecycleResult {
+  final String category;
+
+  final LifecycleStage stage;
+
+  final double strength;
+
+  final double acceleration;
+
+  final double persistence;
+
+  final double diffusion;
+
+  final bool hotMoneyIn;
+
+  const LifecycleResult({
+    required this.category,
+    required this.stage,
+    required this.strength,
+    required this.acceleration,
+    required this.persistence,
+    required this.diffusion,
+    required this.hotMoneyIn,
+  });
+}
+
+
+
+================================================
+FILE: lib/core/models/lifecycle_timeline.dart
+================================================
+class LifecycleTimeline {
+  final String category;
+
+  final List<double> scores;
+
+  final List<double> flows;
+
+  final List<double> diffusions;
+
+  const LifecycleTimeline({
+    required this.category,
+    required this.scores,
+    required this.flows,
+    required this.diffusions,
+  });
+}
+
+
+
+================================================
+FILE: lib/core/models/mainstream_result.dart
+================================================
+class MainstreamResult {
+  final String category;
+
+  final double mainstreamScore;
+
+  final double flowScore;
+
+  final double persistenceScore;
+
+  final double diffusionScore;
+
+  final double leaderScore;
+
+  final bool strengthening;
+
+  final bool weakening;
+
+  const MainstreamResult({
+    required this.category,
+    required this.mainstreamScore,
+    required this.flowScore,
+    required this.persistenceScore,
+    required this.diffusionScore,
+    required this.leaderScore,
+    required this.strengthening,
+    required this.weakening,
+  });
+}
+
+
+
+================================================
+FILE: lib/core/models/market_sentiment_result.dart
+================================================
+import 'package:tw_stock_capital_flow/core/enums/sentiment_level.dart';
+
+class MarketSentimentResult {
+  final double score;
+
+  final SentimentLevel level;
+
+  final int riseCount;
+
+  final int fallCount;
+
+  final int strongCategoryCount;
+
+  final double mainstreamAverage;
+
+  final double hotMoneyStrength;
+
+  const MarketSentimentResult({
+    required this.score,
+    required this.level,
+    required this.riseCount,
+    required this.fallCount,
+    required this.strongCategoryCount,
+    required this.mainstreamAverage,
+    required this.hotMoneyStrength,
+  });
+}
+
+
+
+================================================
+FILE: lib/core/models/trend_metrics.dart
+================================================
+class TrendMetrics {
+  final double slope;
+
+  final double acceleration;
+
+  final double stability;
+
+  final double volatility;
+
+  const TrendMetrics({
+    required this.slope,
+    required this.acceleration,
+    required this.stability,
+    required this.volatility,
+  });
+}
+
+
+
+================================================
+FILE: lib/core/utils/date_utils.dart
+================================================
+class AppDateUtils {
+  static int compareRocDate(String a, String b) {
+    return a.compareTo(b);
+  }
+
+  static List<String> sortDesc(List<String> dates) {
+    final copied = [...dates];
+
+    copied.sort((a, b) => b.compareTo(a));
+
+    return copied;
+  }
+}
+
+
+
+================================================
+FILE: lib/managers/sync_manager.dart
+================================================
+import 'dart:developer' as dev;
+
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/services/market_calendar_service.dart';
+import 'package:tw_stock_capital_flow/services/storage_service.dart';
+import 'package:tw_stock_capital_flow/services/stock_service.dart';
+
+class SyncResult {
+  final bool success;
+
+  final bool saved;
+
+  final String message;
+
+  final String date;
+
+  final int stockCount;
+
+  final List<StockData> stocks;
+
+  SyncResult({
+    required this.success,
+    required this.saved,
+    required this.message,
+    required this.date,
+    required this.stockCount,
+    required this.stocks,
+  });
+}
+
+class SyncManager {
+  final StorageService storageService;
+
+  final MarketCalendarService calendarService;
+
+  SyncManager({required this.storageService, required this.calendarService});
+
+  Future<SyncResult> syncTodayData() async {
+    try {
+      dev.log('開始同步今日股市資料', name: 'SyncManager');
+
+      await StockService.loadMapping();
+
+      dev.log('開始抓取上市資料', name: 'SyncManager');
+
+      final listed = await StockService.fetchListed();
+
+      final listedDate = StockService.lastDataDate;
+
+      dev.log('上市資料筆數: ${listed.length}', name: 'SyncManager');
+
+      dev.log('開始抓取上櫃資料', name: 'SyncManager');
+
+      final otc = await StockService.fetchOTC();
+
+      final otcDate = StockService.lastDataDate;
+
+      dev.log('上櫃資料筆數: ${otc.length}', name: 'SyncManager');
+
+      if (listed.isEmpty && otc.isEmpty) {
+        return SyncResult(
+          success: false,
+          saved: false,
+          message: '上市與上櫃資料皆為空',
+          date: '',
+          stockCount: 0,
+          stocks: [],
+        );
+      }
+
+      final latestDate = _resolveLatestDate(
+        listedDate: listedDate,
+        otcDate: otcDate,
+      );
+
+      if (latestDate.isEmpty) {
+        return SyncResult(
+          success: false,
+          saved: false,
+          message: '無法取得有效交易日期',
+          date: '',
+          stockCount: 0,
+          stocks: [],
+        );
+      }
+
+      final allStocks = <StockData>[...listed, ...otc];
+
+      dev.log('合併後總股票數: ${allStocks.length}', name: 'SyncManager');
+
+      final localDates = await storageService.listAvailableDates();
+
+      final isNewTradingDay = calendarService.isNewTradingDay(
+        latestApiDate: latestDate,
+        localDates: localDates,
+      );
+
+      if (!isNewTradingDay) {
+        dev.log('今日資料已存在，略過保存', name: 'SyncManager');
+
+        final existingSnapshot = await storageService.loadSnapshot(latestDate);
+
+        return SyncResult(
+          success: true,
+          saved: false,
+          message: '今日資料已存在',
+          date: latestDate,
+          stockCount: existingSnapshot?.stocks.length ?? allStocks.length,
+          stocks: existingSnapshot?.stocks ?? allStocks,
+        );
+      }
+
+      final snapshot = StockDaySnapshot(date: latestDate, stocks: allStocks);
+
+      await storageService.saveDailySnapshot(snapshot);
+
+      dev.log('資料同步成功: $latestDate', name: 'SyncManager');
+
+      return SyncResult(
+        success: true,
+        saved: true,
+        message: '同步成功',
+        date: latestDate,
+        stockCount: allStocks.length,
+        stocks: allStocks,
+      );
+    } catch (e, stack) {
+      dev.log('同步失敗: $e', name: 'SyncManager', error: e, stackTrace: stack);
+
+      return SyncResult(
+        success: false,
+        saved: false,
+        message: e.toString(),
+        date: '',
+        stockCount: 0,
+        stocks: [],
+      );
+    }
+  }
+
+  String _resolveLatestDate({
+    required String listedDate,
+    required String otcDate,
+  }) {
+    if (listedDate.isEmpty && otcDate.isEmpty) {
+      return '';
+    }
+
+    if (listedDate.isEmpty) {
+      return otcDate;
+    }
+
+    if (otcDate.isEmpty) {
+      return listedDate;
+    }
+
+    return listedDate.compareTo(otcDate) < 0 ? listedDate : otcDate;
+  }
+}
+
+
+
+================================================
+FILE: lib/models/category_ui_model.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+
+class CategoryUiModel {
+  final String name;
+
+  final int totalCount;
+
+  final int riseCount;
+
+  final int fallCount;
+
+  final double score;
+
+  final double day1Score;
+
+  final double day2Score;
+
+  final double day3Score;
+
+  final double hotScore;
+
+  final double persistence;
+
+  final List<CategoryUiModel> children;
+
+  final List<StockUiModel> stocks;
+
+  CategoryUiModel({
+    required this.name,
+    required this.totalCount,
+    required this.riseCount,
+    required this.fallCount,
+    required this.score,
+    required this.day1Score,
+    required this.day2Score,
+    required this.day3Score,
+    required this.hotScore,
+    required this.persistence,
+    this.children = const [],
+    this.stocks = const [],
+  });
+
+  // 真正三日趨勢強度
+  double get trendStrength {
+    // 權重：
+    // 今日 50%
+    // 昨日 30%
+    // 前日 20%
+
+    final weighted = (day1Score * 0.5) + (day2Score * 0.3) + (day3Score * 0.2);
+
+    // 趨勢加速度
+    final acceleration =
+        (day1Score - day2Score) + ((day2Score - day3Score) * 0.5);
+
+    return weighted + acceleration;
+  }
+
+  // 是否為持續增強
+  bool get isStrengthening {
+    return day1Score > day2Score && day2Score > day3Score;
+  }
+
+  // 是否為持續衰退
+  bool get isWeakening {
+    return day1Score < day2Score && day2Score < day3Score;
+  }
+
+  String get hotLevel {
+    final score = hotScore;
+
+    if (score >= 80) {
+      return '爆發';
+    }
+
+    if (score >= 50) {
+      return '強勢';
+    }
+
+    if (score >= 20) {
+      return '偏強';
+    }
+
+    if (score >= 0) {
+      return '整理';
+    }
+
+    return '退潮';
+  }
+}
+
+class StockUiModel {
+  final StockData stock;
+
+  final double score;
+
+  StockUiModel({required this.stock, required this.score});
+}
+
+
+
+================================================
+FILE: lib/models/flow_signal.dart
+================================================
+enum FlowDirection { inflow, outflow, neutral }
+
+class FlowSignal {
+  final double score;
+
+  final double volumeRatio;
+
+  final double momentumScore;
+
+  final double persistenceScore;
+
+  final FlowDirection direction;
+
+  const FlowSignal({
+    required this.score,
+    required this.volumeRatio,
+    required this.momentumScore,
+    required this.persistenceScore,
+    required this.direction,
+  });
+}
+
+
+
+================================================
+FILE: lib/models/rotation_result.dart
+================================================
+class RotationResult {
+  final String fromCategory;
+
+  final String toCategory;
+
+  final double score;
+
+  final double inflowStrength;
+
+  const RotationResult({
+    required this.fromCategory,
+    required this.toCategory,
+    required this.score,
+    required this.inflowStrength,
+  });
+}
+
+
+
+================================================
+FILE: lib/models/stock_data.dart
+================================================
+import 'package:tw_stock_capital_flow/core/extensions/market_type_extension.dart';
+
+enum MarketType { listed, otc }
+
+class StockData {
+  final String code;
+  final String name;
+  final MarketType market;
+  final String mainCategory;
+  final String subCategory;
+  final double open;
+  final double high;
+  final double low;
+  final double close;
+  final double change;
+  final double changePercent;
+  final int volume;
+  final int value;
+
+  StockData({
+    required this.code,
+    required this.name,
+    required this.market,
+    required this.mainCategory,
+    required this.subCategory,
+    required this.open,
+    required this.high,
+    required this.low,
+    required this.close,
+    required this.change,
+    required this.changePercent,
+    required this.volume,
+    required this.value,
+  });
+
+  factory StockData.fromJson(Map<String, dynamic> json) {
+    return StockData(
+      code: json['code'],
+      name: json['name'],
+      market: MarketTypeExtension.fromString(json['market']),
+      mainCategory: json['mainCategory'],
+      subCategory: json['subCategory'],
+      open: (json['open'] ?? 0).toDouble(),
+      high: (json['high'] ?? 0).toDouble(),
+      low: (json['low'] ?? 0).toDouble(),
+      close: (json['close'] ?? 0).toDouble(),
+      change: (json['change'] ?? 0).toDouble(),
+      changePercent: (json['changePercent'] ?? 0).toDouble(),
+      volume: json['volume'] ?? 0,
+      value: json['value'] ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'code': code,
+      'name': name,
+      'market': market.value,
+      'mainCategory': mainCategory,
+      'subCategory': subCategory,
+      'open': open,
+      'high': high,
+      'low': low,
+      'close': close,
+      'change': change,
+      'changePercent': changePercent,
+      'volume': volume,
+      'value': value,
+    };
+  }
+}
+
+
+
+================================================
+FILE: lib/models/stock_day_snapshot.dart
+================================================
+import 'stock_data.dart';
+
+class StockDaySnapshot {
+  final String date;
+
+  final List<StockData> stocks;
+
+  StockDaySnapshot({required this.date, required this.stocks});
+
+  factory StockDaySnapshot.fromJson(Map<String, dynamic> json) {
+    return StockDaySnapshot(
+      date: json['date'],
+      stocks: (json['stocks'] as List)
+          .map((e) => StockData.fromJson(e))
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'date': date, 'stocks': stocks.map((e) => e.toJson()).toList()};
+  }
+}
+
+
+
+================================================
+FILE: lib/models/stock_score.dart
+================================================
+class StockScore {
+  final String code;
+
+  final String name;
+
+  final double amountRatio;
+
+  final double priceScore;
+
+  final double finalScore;
+
+  StockScore({
+    required this.code,
+    required this.name,
+    required this.amountRatio,
+    required this.priceScore,
+    required this.finalScore,
+  });
+}
+
+
+
+================================================
+FILE: lib/repositories/history_repository.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/services/storage_service.dart';
+
+class HistoryRepository {
+  final StorageService storageService;
+
+  HistoryRepository({required this.storageService});
+
+  Future<List<StockDaySnapshot>> loadRecentSnapshots(int days) async {
+    final dates = await storageService.listAvailableDates();
+
+    final selectedDates = dates.take(days).toList();
+
+    final result = <StockDaySnapshot>[];
+
+    for (final date in selectedDates) {
+      final snapshot = await storageService.loadSnapshot(date);
+
+      if (snapshot != null) {
+        result.add(snapshot);
+      }
+    }
+
+    return result;
+  }
+}
+
+
+
+================================================
+FILE: lib/repositories/stock_repository.dart
+================================================
+[Empty file]
+
+
+================================================
+FILE: lib/services/capital_flow_analyzer.dart
+================================================
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/core/engines/capital_flow_engine.dart';
+
+class CapitalFlowAnalyzer {
+  final List<StockDaySnapshot> snapshots;
+
+  CapitalFlowAnalyzer({required this.snapshots});
+
+  List<CategoryUiModel> analyzeMainCategories({required MarketType market}) {
+    if (snapshots.isEmpty) {
+      return [];
+    }
+
+    final latest = snapshots[0];
+
+    final latestStocks = latest.stocks
+        .where((e) => e.market == market)
+        .toList();
+
+    final Map<String, List<StockData>> grouped = {};
+
+    for (final stock in latestStocks) {
+      grouped.putIfAbsent(stock.mainCategory, () => []);
+
+      grouped[stock.mainCategory]!.add(stock);
+    }
+
+    final List<CategoryUiModel> result = [];
+
+    for (final entry in grouped.entries) {
+      final categoryName = entry.key;
+
+      final categoryStocks = entry.value;
+
+      final riseCount = categoryStocks.where((e) => e.changePercent > 0).length;
+
+      final fallCount = categoryStocks.where((e) => e.changePercent < 0).length;
+
+      final day1 = _calculateCategoryScore(
+        categoryName: categoryName,
+        market: market,
+        dayOffset: 0,
+        mainCategory: true,
+      );
+
+      final day2 = _calculateCategoryScore(
+        categoryName: categoryName,
+        market: market,
+        dayOffset: 1,
+        mainCategory: true,
+      );
+
+      final day3 = _calculateCategoryScore(
+        categoryName: categoryName,
+        market: market,
+        dayOffset: 2,
+        mainCategory: true,
+      );
+
+      final subCategories = analyzeSubCategories(
+        market: market,
+        mainCategory: categoryName,
+      );
+
+      final trendStrength =
+          ((day1 * 0.5) + (day2 * 0.3) + (day3 * 0.2)) +
+          ((day1 - day2) + ((day2 - day3) * 0.5));
+
+      result.add(
+        CategoryUiModel(
+          name: categoryName,
+
+          totalCount: categoryStocks.length,
+
+          riseCount: riseCount,
+
+          fallCount: fallCount,
+
+          score: day1,
+
+          day1Score: day1,
+
+          day2Score: day2,
+
+          day3Score: day3,
+
+          children: subCategories,
+
+          hotScore: trendStrength,
+
+          persistence: (day1 + day2 + day3) / 3,
+        ),
+      );
+    }
+
+    result.sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
+
+    return result;
+  }
+
+  List<CategoryUiModel> analyzeSubCategories({
+    required MarketType market,
+    required String mainCategory,
+  }) {
+    if (snapshots.isEmpty) {
+      return [];
+    }
+
+    final latest = snapshots[0];
+
+    final latestStocks = latest.stocks
+        .where((e) => e.market == market && e.mainCategory == mainCategory)
+        .toList();
+
+    final Map<String, List<StockData>> grouped = {};
+
+    for (final stock in latestStocks) {
+      grouped.putIfAbsent(stock.subCategory, () => []);
+
+      grouped[stock.subCategory]!.add(stock);
+    }
+
+    final List<CategoryUiModel> result = [];
+
+    for (final entry in grouped.entries) {
+      final categoryName = entry.key;
+
+      final categoryStocks = entry.value;
+
+      final riseCount = categoryStocks.where((e) => e.changePercent > 0).length;
+
+      final fallCount = categoryStocks.where((e) => e.changePercent < 0).length;
+
+      final day1 = _calculateCategoryScore(
+        categoryName: categoryName,
+        market: market,
+        dayOffset: 0,
+        mainCategory: false,
+      );
+
+      final day2 = _calculateCategoryScore(
+        categoryName: categoryName,
+        market: market,
+        dayOffset: 1,
+        mainCategory: false,
+      );
+
+      final day3 = _calculateCategoryScore(
+        categoryName: categoryName,
+        market: market,
+        dayOffset: 2,
+        mainCategory: false,
+      );
+
+      final trendStrength =
+          ((day1 * 0.5) + (day2 * 0.3) + (day3 * 0.2)) +
+          ((day1 - day2) + ((day2 - day3) * 0.5));
+
+      result.add(
+        CategoryUiModel(
+          name: categoryName,
+
+          totalCount: categoryStocks.length,
+
+          riseCount: riseCount,
+
+          fallCount: fallCount,
+
+          score: day1,
+
+          day1Score: day1,
+
+          day2Score: day2,
+
+          day3Score: day3,
+
+          stocks: categoryStocks
+              .map(
+                (e) => StockUiModel(stock: e, score: _calculateStockScore(e)),
+              )
+              .toList(),
+          hotScore: trendStrength,
+
+          persistence: (day1 + day2 + day3) / 3,
+        ),
+      );
+    }
+
+    result.sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
+
+    return result;
+  }
+
+  double _calculateCategoryScore({
+    required String categoryName,
+    required MarketType market,
+    required int dayOffset,
+    required bool mainCategory,
+  }) {
+    if (dayOffset >= snapshots.length) {
+      return 0;
+    }
+
+    final snapshot = snapshots[dayOffset];
+
+    final stocks = snapshot.stocks.where((e) {
+      final matchedCategory = mainCategory
+          ? e.mainCategory == categoryName
+          : e.subCategory == categoryName;
+
+      return e.market == market && matchedCategory;
+    }).toList();
+
+    if (stocks.isEmpty) {
+      return 0;
+    }
+
+    double total = 0;
+
+    for (final stock in stocks) {
+      total += _calculateStockScore(stock);
+    }
+
+    return total / stocks.length;
+  }
+
+  double _calculateStockScore(StockData stock) {
+    final engine = CapitalFlowEngine(snapshots: snapshots);
+
+    final signal = engine.analyzeStock(stock);
+
+    return signal.score;
+  }
+
+  double calculateMarketScore({required MarketType market}) {
+    if (snapshots.isEmpty) {
+      return 0;
+    }
+
+    final latest = snapshots[0];
+
+    final stocks = latest.stocks.where((e) => e.market == market).toList();
+
+    if (stocks.isEmpty) {
+      return 0;
+    }
+
+    double total = 0;
+
+    for (final stock in stocks) {
+      total += _calculateStockScore(stock);
+    }
+
+    return total / stocks.length;
+  }
+
+  int calculateRiseCount({required MarketType market}) {
+    if (snapshots.isEmpty) {
+      return 0;
+    }
+
+    return snapshots[0].stocks
+        .where((e) => e.market == market && e.changePercent > 0)
+        .length;
+  }
+
+  int calculateFallCount({required MarketType market}) {
+    if (snapshots.isEmpty) {
+      return 0;
+    }
+
+    return snapshots[0].stocks
+        .where((e) => e.market == market && e.changePercent < 0)
+        .length;
+  }
+}
+
+
+
+================================================
+FILE: lib/services/market_calendar_service.dart
+================================================
+class MarketCalendarService {
+  bool isNewTradingDay({
+    required String latestApiDate,
+    required List<String> localDates,
+  }) {
+    return !localDates.contains(latestApiDate);
+  }
+}
+
+
+
+================================================
+FILE: lib/services/score_service.dart
+================================================
+import 'dart:math';
+
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/models/stock_score.dart';
+
+class ScoreService {
+  List<StockScore> calculateScores({
+    required List<StockData> today,
+    required List<StockDaySnapshot> history,
+  }) {
+    final List<StockScore> result = [];
+
+    for (final stock in today) {
+      final avgAmount = _calculateAverageAmount(
+        code: stock.code,
+        history: history,
+      );
+
+      if (avgAmount <= 0) {
+        continue;
+      }
+
+      final amountRatio = stock.value / avgAmount;
+
+      final priceScore = tanh(stock.changePercent / 5);
+
+      final finalScore = amountRatio * priceScore;
+
+      result.add(
+        StockScore(
+          code: stock.code,
+          name: stock.name,
+          amountRatio: amountRatio,
+          priceScore: priceScore,
+          finalScore: finalScore,
+        ),
+      );
+    }
+
+    result.sort((a, b) => b.finalScore.compareTo(a.finalScore));
+
+    return result;
+  }
+
+  double _calculateAverageAmount({
+    required String code,
+    required List<StockDaySnapshot> history,
+  }) {
+    double total = 0;
+
+    int count = 0;
+
+    for (final day in history) {
+      try {
+        final stock = day.stocks.firstWhere((e) => e.code == code);
+
+        total += stock.value;
+
+        count++;
+      } catch (_) {}
+    }
+
+    if (count == 0) {
+      return 0;
+    }
+
+    return total / count;
+  }
+
+  double tanh(double x) {
+    return (exp(x) - exp(-x)) / (exp(x) + exp(-x));
+  }
+}
+
+
+
+================================================
+FILE: lib/services/stock_service.dart
+================================================
+[Binary file]
+
+
+================================================
+FILE: lib/services/storage_service.dart
+================================================
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+
+import 'package:tw_stock_capital_flow/core/constants/app_constants.dart';
+import 'package:tw_stock_capital_flow/core/utils/date_utils.dart';
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
+import 'dart:developer' as dev;
+
+class StorageService {
+  Future<Directory> _getDailyDirectory() async {
+    final root = await getApplicationDocumentsDirectory();
+
+    final dailyPath = path.join(root.path, AppConstants.dailyFolder);
+
+    final dir = Directory(dailyPath);
+
+    if (!await dir.exists()) {
+      await dir.create(recursive: true);
+    }
+
+    return dir;
+  }
+
+  Future<String> _buildFilePath(String date) async {
+    final dir = await _getDailyDirectory();
+
+    return path.join(dir.path, '$date.json');
+  }
+
+  Future<bool> exists(String date) async {
+    final filePath = await _buildFilePath(date);
+
+    return File(filePath).exists();
+  }
+
+  Future<void> saveDailySnapshot(StockDaySnapshot snapshot) async {
+    final alreadyExists = await exists(snapshot.date);
+    dev.log('日期: ${snapshot.date}，檔案是否存在: $alreadyExists');
+    if (alreadyExists) {
+      return;
+    }
+
+    final filePath = await _buildFilePath(snapshot.date);
+    dev.log('日期: ${snapshot.date}，建構檔案路徑: $filePath');
+
+    final file = File(filePath);
+
+    final jsonString = jsonEncode(snapshot.toJson());
+
+    await file.writeAsString(jsonString);
+  }
+
+  Future<StockDaySnapshot?> loadSnapshot(String date) async {
+    final filePath = await _buildFilePath(date);
+
+    final file = File(filePath);
+
+    if (!await file.exists()) {
+      return null;
+    }
+
+    final content = await file.readAsString();
+
+    final jsonData = jsonDecode(content);
+
+    return StockDaySnapshot.fromJson(jsonData);
+  }
+
+  Future<List<String>> listAvailableDates() async {
+    final dir = await _getDailyDirectory();
+
+    final files = dir.listSync();
+
+    final dates = files
+        .whereType<File>()
+        .map((e) => path.basenameWithoutExtension(e.path))
+        .toList();
+
+    return AppDateUtils.sortDesc(dates);
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/enums/category_sort_type.dart
+================================================
+enum CategorySortType { score, riseCount, fallCount, totalCount, threeDayTrend }
+
+
+
+================================================
+FILE: lib/ui/pages/home_page.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
+import 'package:tw_stock_capital_flow/models/rotation_result.dart';
+
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+
+import 'package:tw_stock_capital_flow/ui/widgets/home_section_card.dart';
+import 'package:tw_stock_capital_flow/ui/widgets/market_summary_card.dart';
+import 'package:tw_stock_capital_flow/ui/widgets/top_hot_categories.dart';
+
+import 'package:tw_stock_capital_flow/ui/pages/mainstream_page.dart';
+import 'package:tw_stock_capital_flow/ui/pages/lifecycle_page.dart';
+import 'package:tw_stock_capital_flow/ui/pages/main_category_page.dart';
+import 'package:tw_stock_capital_flow/ui/pages/market_sentiment_page.dart';
+import 'package:tw_stock_capital_flow/ui/pages/rotation_page.dart';
+import 'package:tw_stock_capital_flow/ui/widgets/market_heatmap.dart';
+
+class HomePage extends StatelessWidget {
+  final List<CategoryUiModel> listedCategories;
+
+  final List<CategoryUiModel> otcCategories;
+
+  final int listedRiseCount;
+
+  final int listedFallCount;
+
+  final double listedScore;
+
+  final int otcRiseCount;
+
+  final int otcFallCount;
+
+  final double otcScore;
+
+  final List<RotationResult> rotations;
+
+  final List<MainstreamResult> mainstreams;
+
+  final List<LifecycleResult> lifecycles;
+
+  final MarketSentimentResult? sentiment;
+
+  const HomePage({
+    super.key,
+    required this.listedCategories,
+    required this.otcCategories,
+    required this.listedRiseCount,
+    required this.listedFallCount,
+    required this.listedScore,
+    required this.otcRiseCount,
+    required this.otcFallCount,
+    required this.otcScore,
+    required this.rotations,
+    required this.mainstreams,
+    required this.lifecycles,
+    required this.sentiment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xfff3f6fb),
+
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+
+          children: [
+            _buildHeader(),
+
+            const SizedBox(height: 28),
+
+            _buildMarketSection(context),
+
+            const SizedBox(height: 32),
+
+            _buildHeatMap(),
+
+            const SizedBox(height: 32),
+
+            _buildMainstreamSection(context),
+
+            const SizedBox(height: 24),
+
+            _buildLifecycleSection(context),
+
+            const SizedBox(height: 24),
+
+            _buildSentimentSection(context),
+
+            const SizedBox(height: 24),
+
+            _buildRotationSection(context),
+
+            const SizedBox(height: 32),
+
+            TopHotCategories(
+              categories: [...listedCategories, ...otcCategories],
+            ),
+
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        const Text(
+          '台股資金流',
+          style: TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1,
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        Text(
+          '市場主流・資金輪動・情緒週期',
+          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMarketSection(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MainCategoryPage(categories: listedCategories),
+              ),
+            );
+          },
+
+          child: MarketSummaryCard(
+            title: '上市市場',
+            riseCount: listedRiseCount,
+            fallCount: listedFallCount,
+            score: listedScore,
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MainCategoryPage(categories: otcCategories),
+              ),
+            );
+          },
+
+          child: MarketSummaryCard(
+            title: '上櫃市場',
+            riseCount: otcRiseCount,
+            fallCount: otcFallCount,
+            score: otcScore,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeatMap() {
+    return MarketHeatmap(categories: [...listedCategories, ...otcCategories]);
+  }
+
+  Widget _buildMainstreamSection(BuildContext context) {
+    final top = mainstreams.isEmpty ? null : mainstreams.first;
+
+    return HomeSectionCard(
+      title: '市場主流',
+
+      subtitle: top == null ? '-' : top.category,
+
+      description: '追蹤市場最強主流方向',
+
+      gradient: const [Color(0xff1e3c72), Color(0xff2a5298)],
+
+      icon: Icons.auto_graph,
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MainstreamPage(mainstreams: mainstreams),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLifecycleSection(BuildContext context) {
+    final top = lifecycles.isEmpty ? null : lifecycles.first;
+
+    return HomeSectionCard(
+      title: '主流生命週期',
+
+      subtitle: top == null ? '-' : top.category,
+
+      description: top == null ? '-' : top.stage.name,
+
+      gradient: const [Color(0xff614385), Color(0xff516395)],
+
+      icon: Icons.timeline,
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LifecyclePage(lifecycles: lifecycles),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSentimentSection(BuildContext context) {
+    return HomeSectionCard(
+      title: '市場情緒',
+
+      subtitle: sentiment == null ? '-' : sentiment!.level.name,
+
+      description: sentiment == null
+          ? '-'
+          : '熱錢強度 ${sentiment!.hotMoneyStrength.toStringAsFixed(1)}',
+
+      gradient: const [Color(0xff134e5e), Color(0xff71b280)],
+
+      icon: Icons.psychology,
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MarketSentimentPage(result: sentiment!),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRotationSection(BuildContext context) {
+    final top = rotations.isEmpty ? null : rotations.first;
+
+    return HomeSectionCard(
+      title: '資金輪動',
+
+      subtitle: top == null ? '-' : top.toCategory,
+
+      description: top == null ? '-' : '輪動分數 ${top.score.toStringAsFixed(1)}',
+
+      gradient: const [Color(0xff42275a), Color(0xff734b6d)],
+
+      icon: Icons.sync_alt,
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => RotationPage(rotations: rotations)),
+        );
+      },
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/pages/lifecycle_page.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
+
+import 'package:tw_stock_capital_flow/ui/widgets/lifecycle_card.dart';
+
+class LifecyclePage extends StatelessWidget {
+  final List<LifecycleResult> lifecycles;
+
+  const LifecyclePage({super.key, required this.lifecycles});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xfff5f7fb),
+
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+
+        title: const Text(
+          '主流生命週期',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+      ),
+
+      body: ListView.builder(
+        padding: const EdgeInsets.all(20),
+
+        itemCount: lifecycles.length,
+
+        itemBuilder: (_, index) {
+          final item = lifecycles[index];
+
+          return LifecycleCard(result: item);
+        },
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/pages/main_category_page.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/ui/enums/category_sort_type.dart';
+import 'package:tw_stock_capital_flow/ui/widgets/category_card.dart';
+import 'sub_category_page.dart';
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+
+class MainCategoryPage extends StatefulWidget {
+  final List<CategoryUiModel> categories;
+
+  const MainCategoryPage({super.key, required this.categories});
+
+  @override
+  State<MainCategoryPage> createState() => _MainCategoryPageState();
+}
+
+class _MainCategoryPageState extends State<MainCategoryPage> {
+  late List<CategoryUiModel> categories;
+
+  CategorySortType sortType = CategorySortType.score;
+
+  @override
+  void initState() {
+    super.initState();
+
+    categories = [...widget.categories];
+
+    applySort();
+  }
+
+  void applySort() {
+    switch (sortType) {
+      case CategorySortType.score:
+        categories.sort((a, b) => b.score.compareTo(a.score));
+        break;
+
+      case CategorySortType.riseCount:
+        categories.sort((a, b) => b.riseCount.compareTo(a.riseCount));
+        break;
+
+      case CategorySortType.fallCount:
+        categories.sort((a, b) => b.fallCount.compareTo(a.fallCount));
+        break;
+
+      case CategorySortType.totalCount:
+        categories.sort((a, b) => b.totalCount.compareTo(a.totalCount));
+        break;
+
+      case CategorySortType.threeDayTrend:
+        categories.sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
+        break;
+    }
+
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('主類股'),
+
+        actions: [
+          PopupMenuButton<CategorySortType>(
+            onSelected: (value) {
+              sortType = value;
+
+              applySort();
+            },
+
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: CategorySortType.score,
+                child: Text('資金流'),
+              ),
+
+              const PopupMenuItem(
+                value: CategorySortType.threeDayTrend,
+                child: Text('三日強度'),
+              ),
+
+              const PopupMenuItem(
+                value: CategorySortType.riseCount,
+                child: Text('上漲家數'),
+              ),
+
+              const PopupMenuItem(
+                value: CategorySortType.totalCount,
+                child: Text('股票數量'),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+
+        itemCount: categories.length,
+
+        separatorBuilder: (_, _) => const SizedBox(height: 14),
+
+        itemBuilder: (_, index) {
+          final item = categories[index];
+
+          return CategoryCard(
+            title: item.name,
+
+            totalCount: item.totalCount,
+
+            riseCount: item.riseCount,
+
+            fallCount: item.fallCount,
+
+            score: item.score,
+
+            trendValues: [item.day3Score, item.day2Score, item.day1Score],
+
+            persistence: item.persistence,
+
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => SubCategoryPage(
+                    title: item.name,
+                    categories: item.children,
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/pages/mainstream_page.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+
+import 'package:tw_stock_capital_flow/ui/widgets/mainstream_card.dart';
+
+class MainstreamPage extends StatelessWidget {
+  final List<MainstreamResult> mainstreams;
+
+  const MainstreamPage({super.key, required this.mainstreams});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xfff5f7fb),
+
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+
+        title: const Text(
+          '市場主流',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+        ),
+      ),
+
+      body: ListView.builder(
+        padding: const EdgeInsets.all(20),
+
+        itemCount: mainstreams.length,
+
+        itemBuilder: (_, index) {
+          final item = mainstreams[index];
+
+          return MainstreamCard(rank: index + 1, result: item);
+        },
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/pages/market_sentiment_page.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
+
+class MarketSentimentPage extends StatelessWidget {
+  final MarketSentimentResult result;
+
+  const MarketSentimentPage({super.key, required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xfff4f7fb),
+
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+
+        title: const Text(
+          '市場情緒',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+      ),
+
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+
+              padding: const EdgeInsets.all(28),
+
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xff134e5e), Color(0xff71b280)],
+                ),
+
+                borderRadius: BorderRadius.circular(30),
+              ),
+
+              child: Column(
+                children: [
+                  const Text(
+                    '市場情緒狀態',
+
+                    style: TextStyle(color: Colors.white, fontSize: 18),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  Text(
+                    result.level.name,
+
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Text(
+                    '情緒分數 ${result.score.toStringAsFixed(1)}',
+
+                    style: TextStyle(color: Colors.white.withOpacity(0.85)),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 28),
+
+            _Metric(title: '上漲家數', value: result.riseCount.toString()),
+
+            _Metric(title: '下跌家數', value: result.fallCount.toString()),
+
+            _Metric(
+              title: '熱錢強度',
+              value: result.hotMoneyStrength.toStringAsFixed(1),
+            ),
+
+            _Metric(
+              title: '主流平均強度',
+              value: result.mainstreamAverage.toStringAsFixed(1),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  final String title;
+
+  final String value;
+
+  const _Metric({required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+
+      padding: const EdgeInsets.all(20),
+
+      decoration: BoxDecoration(
+        color: Colors.white,
+
+        borderRadius: BorderRadius.circular(22),
+      ),
+
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
+        children: [
+          Text(
+            title,
+
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          ),
+
+          Text(
+            value,
+
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/pages/rotation_page.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/models/rotation_result.dart';
+
+class RotationPage extends StatelessWidget {
+  final List<RotationResult> rotations;
+
+  const RotationPage({super.key, required this.rotations});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xfff5f7fb),
+
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+
+        title: const Text(
+          '資金輪動',
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+        ),
+      ),
+
+      body: ListView.builder(
+        padding: const EdgeInsets.all(20),
+
+        itemCount: rotations.length,
+
+        itemBuilder: (_, index) {
+          final item = rotations[index];
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+
+            padding: const EdgeInsets.all(22),
+
+            decoration: BoxDecoration(
+              color: Colors.white,
+
+              borderRadius: BorderRadius.circular(24),
+            ),
+
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+
+              children: [
+                Text(
+                  item.toCategory,
+
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _RotationMetric(
+                        title: '輪動分數',
+
+                        value: item.score.toStringAsFixed(1),
+                      ),
+                    ),
+
+                    Expanded(
+                      child: _RotationMetric(
+                        title: '流入強度',
+
+                        value: item.inflowStrength.toStringAsFixed(1),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _RotationMetric extends StatelessWidget {
+  final String title;
+
+  final String value;
+
+  const _RotationMetric({required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value,
+
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+
+        const SizedBox(height: 8),
+
+        Text(title, style: TextStyle(color: Colors.grey.shade600)),
+      ],
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/pages/stock_list_page.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/ui/widgets/stock_tile.dart';
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+
+class StockListPage extends StatelessWidget {
+  final String title;
+
+  final List<StockUiModel> stocks;
+
+  const StockListPage({super.key, required this.title, required this.stocks});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+
+        itemCount: stocks.length,
+
+        separatorBuilder: (_, _) => const SizedBox(height: 10),
+
+        itemBuilder: (_, index) {
+          final item = stocks[index];
+
+          return StockTile(stock: item.stock, score: item.score);
+        },
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/pages/sub_category_page.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/ui/enums/category_sort_type.dart';
+import 'package:tw_stock_capital_flow/ui/widgets/category_card.dart';
+import 'stock_list_page.dart';
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+
+class SubCategoryPage extends StatefulWidget {
+  final String title;
+
+  final List<CategoryUiModel> categories;
+
+  const SubCategoryPage({
+    super.key,
+    required this.title,
+    required this.categories,
+  });
+
+  @override
+  State<SubCategoryPage> createState() => _SubCategoryPageState();
+}
+
+class _SubCategoryPageState extends State<SubCategoryPage> {
+  late List<CategoryUiModel> categories;
+
+  CategorySortType sortType = CategorySortType.score;
+
+  @override
+  void initState() {
+    super.initState();
+
+    categories = [...widget.categories];
+
+    applySort();
+  }
+
+  void applySort() {
+    switch (sortType) {
+      case CategorySortType.score:
+        categories.sort((a, b) => b.score.compareTo(a.score));
+        break;
+
+      case CategorySortType.riseCount:
+        categories.sort((a, b) => b.riseCount.compareTo(a.riseCount));
+        break;
+
+      case CategorySortType.fallCount:
+        categories.sort((a, b) => b.fallCount.compareTo(a.fallCount));
+        break;
+
+      case CategorySortType.totalCount:
+        categories.sort((a, b) => b.totalCount.compareTo(a.totalCount));
+        break;
+
+      case CategorySortType.threeDayTrend:
+        categories.sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
+        break;
+    }
+
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+
+        actions: [
+          PopupMenuButton<CategorySortType>(
+            onSelected: (value) {
+              sortType = value;
+
+              applySort();
+            },
+
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: CategorySortType.score,
+                child: Text('資金流'),
+              ),
+
+              const PopupMenuItem(
+                value: CategorySortType.threeDayTrend,
+                child: Text('三日強度'),
+              ),
+
+              const PopupMenuItem(
+                value: CategorySortType.riseCount,
+                child: Text('上漲家數'),
+              ),
+
+              const PopupMenuItem(
+                value: CategorySortType.fallCount,
+                child: Text('下跌家數'),
+              ),
+
+              const PopupMenuItem(
+                value: CategorySortType.totalCount,
+                child: Text('股票數量'),
+              ),
+            ],
+          ),
+        ],
+      ),
+
+      body: ListView.separated(
+        padding: const EdgeInsets.all(16),
+
+        itemCount: categories.length,
+
+        separatorBuilder: (_, _) => const SizedBox(height: 14),
+
+        itemBuilder: (_, index) {
+          final item = categories[index];
+
+          return CategoryCard(
+            title: item.name,
+
+            totalCount: item.totalCount,
+
+            riseCount: item.riseCount,
+
+            fallCount: item.fallCount,
+
+            score: item.score,
+
+            trendValues: [item.day3Score, item.day2Score, item.day1Score],
+
+            persistence: item.persistence,
+
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      StockListPage(title: item.name, stocks: item.stocks),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/theme/app_theme.dart
+================================================
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+class AppTheme {
+  static const bg = Color(0xFFF4F7FB);
+
+  static const card = Colors.white;
+
+  static const primary = Color(0xFF2563EB);
+
+  static const text = Color(0xFF111827);
+
+  static const subText = Color(0xFF6B7280);
+
+  static ThemeData lightTheme = ThemeData(
+    useMaterial3: true,
+
+    brightness: Brightness.light,
+
+    scaffoldBackgroundColor: bg,
+
+    primaryColor: primary,
+
+    textTheme: GoogleFonts.notoSansTextTheme(),
+
+    appBarTheme: const AppBarTheme(
+      elevation: 0,
+      centerTitle: false,
+      backgroundColor: bg,
+      foregroundColor: text,
+    ),
+
+    cardTheme: CardThemeData(
+      color: card,
+
+      elevation: 0,
+
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+
+      margin: EdgeInsets.zero,
+    ),
+  );
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/category_card.dart
+================================================
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'trend_sparkline.dart';
+import 'hot_badge.dart';
+
+class CategoryCard extends StatelessWidget {
+  final String title;
+
+  final int totalCount;
+
+  final int riseCount;
+
+  final int fallCount;
+
+  final double score;
+
+  final VoidCallback onTap;
+
+  final List<double> trendValues;
+
+  final double persistence;
+
+  const CategoryCard({
+    super.key,
+    required this.title,
+    required this.totalCount,
+    required this.riseCount,
+    required this.fallCount,
+    required this.score,
+    required this.onTap,
+    required this.trendValues,
+    required this.persistence,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final positive = score >= 0;
+
+    return GestureDetector(
+      onTap: onTap,
+
+      child: Container(
+        padding: const EdgeInsets.all(20),
+
+        decoration: BoxDecoration(
+          color: Colors.white,
+
+          borderRadius: BorderRadius.circular(28),
+
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+
+        child: Row(
+          children: [
+            Container(
+              width: 62,
+              height: 62,
+
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+
+                gradient: LinearGradient(
+                  colors: positive
+                      ? [const Color(0xFFFF6B6B), const Color(0xFFFF8E53)]
+                      : [const Color(0xFF00C9A7), const Color(0xFF00B894)],
+                ),
+              ),
+
+              child: const Icon(Icons.candlestick_chart, color: Colors.white),
+            ),
+
+            const SizedBox(width: 18),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  Wrap(
+                    spacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    runSpacing: 10,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      HotBadge(score: score),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Text(
+                    '持續性 ${persistence.toStringAsFixed(1)}',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+
+                  const SizedBox(height: 10),
+                ],
+              ),
+            ),
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+
+              children: [
+                TrendSparkline(values: trendValues),
+                const SizedBox(height: 10),
+                Text(
+                  score.toStringAsFixed(2),
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+
+                    color: positive ? Colors.redAccent : Colors.green,
+                  ),
+                ),
+
+                const SizedBox(height: 6),
+
+                Text('三日資金流', style: TextStyle(color: Colors.grey.shade500)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 450.ms).slideY(begin: 0.12, end: 0);
+  }
+
+  // Widget _buildTag(IconData icon, String text) {
+  //   return Container(
+  //     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+
+  //     decoration: BoxDecoration(
+  //       color: const Color(0xFFF3F4F6),
+
+  //       borderRadius: BorderRadius.circular(999),
+  //     ),
+
+  //     child: Row(
+  //       mainAxisSize: MainAxisSize.min,
+  //       children: [
+  //         Icon(icon, size: 14, color: Colors.grey.shade700),
+
+  //         const SizedBox(width: 4),
+
+  //         Text(
+  //           text,
+  //           style: TextStyle(
+  //             color: Colors.grey.shade700,
+  //             fontWeight: FontWeight.w600,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/empty_view.dart
+================================================
+[Empty file]
+
+
+================================================
+FILE: lib/ui/widgets/home_section_card.dart
+================================================
+import 'package:flutter/material.dart';
+
+class HomeSectionCard extends StatelessWidget {
+  final String title;
+
+  final String subtitle;
+
+  final String description;
+
+  final List<Color> gradient;
+
+  final IconData icon;
+
+  final VoidCallback onTap;
+
+  const HomeSectionCard({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.description,
+    required this.gradient,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 18),
+
+        padding: const EdgeInsets.all(24),
+
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: gradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+
+          borderRadius: BorderRadius.circular(30),
+
+          boxShadow: [
+            BoxShadow(
+              color: gradient.first.withValues(alpha: 0.25),
+
+              blurRadius: 20,
+
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+
+        child: Row(
+          children: [
+            Container(
+              width: 66,
+              height: 66,
+
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.14),
+
+                borderRadius: BorderRadius.circular(22),
+              ),
+
+              child: Icon(icon, color: Colors.white, size: 34),
+            ),
+
+            const SizedBox(width: 18),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+
+                children: [
+                  Text(
+                    title,
+
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  Text(
+                    subtitle,
+
+                    maxLines: 1,
+
+                    overflow: TextOverflow.ellipsis,
+
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  Text(
+                    description,
+
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white.withValues(alpha: 0.85),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/hot_badge.dart
+================================================
+import 'package:flutter/material.dart';
+
+class HotBadge extends StatelessWidget {
+  final double score;
+
+  const HotBadge({super.key, required this.score});
+
+  String get label {
+    if (score >= 80) {
+      return '爆發';
+    }
+
+    if (score >= 50) {
+      return '強勢';
+    }
+
+    if (score >= 20) {
+      return '偏強';
+    }
+
+    if (score >= 0) {
+      return '整理';
+    }
+
+    return '退潮';
+  }
+
+  Color get color {
+    if (score >= 80) {
+      return Colors.deepOrange;
+    }
+
+    if (score >= 50) {
+      return Colors.orange;
+    }
+
+    if (score >= 20) {
+      return Colors.amber;
+    }
+
+    if (score >= 0) {
+      return Colors.blueGrey;
+    }
+
+    return Colors.teal;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+
+        borderRadius: BorderRadius.circular(999),
+      ),
+
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/lifecycle_card.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/core/enums/lifecycle_stage.dart';
+import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
+
+class LifecycleCard extends StatelessWidget {
+  final LifecycleResult result;
+
+  const LifecycleCard({super.key, required this.result});
+
+  String get stageName {
+    switch (result.stage) {
+      case LifecycleStage.ignition:
+        return '點火';
+
+      case LifecycleStage.expansion:
+        return '擴散';
+
+      case LifecycleStage.markup:
+        return '主升';
+
+      case LifecycleStage.euphoric:
+        return '市場狂熱';
+
+      case LifecycleStage.distribution:
+        return '高檔出貨';
+
+      case LifecycleStage.decline:
+        return '退潮';
+
+      case LifecycleStage.dead:
+        return '死亡';
+    }
+  }
+
+  Color get color {
+    switch (result.stage) {
+      case LifecycleStage.ignition:
+        return Colors.blue;
+
+      case LifecycleStage.expansion:
+        return Colors.teal;
+
+      case LifecycleStage.markup:
+        return Colors.orange;
+
+      case LifecycleStage.euphoric:
+        return Colors.red;
+
+      case LifecycleStage.distribution:
+        return Colors.purple;
+
+      case LifecycleStage.decline:
+        return Colors.grey;
+
+      case LifecycleStage.dead:
+        return Colors.black87;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+
+      padding: const EdgeInsets.all(22),
+
+      decoration: BoxDecoration(
+        color: Colors.white,
+
+        borderRadius: BorderRadius.circular(28),
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  result.category,
+
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+
+                  borderRadius: BorderRadius.circular(18),
+                ),
+
+                child: Text(
+                  stageName,
+
+                  style: TextStyle(color: color, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          LinearProgressIndicator(
+            value: result.strength / 100,
+
+            borderRadius: BorderRadius.circular(999),
+
+            minHeight: 12,
+
+            backgroundColor: Colors.grey.shade200,
+
+            valueColor: AlwaysStoppedAnimation(color),
+          ),
+
+          const SizedBox(height: 24),
+
+          Row(
+            children: [
+              Expanded(
+                child: _Metric(title: '加速度', value: result.acceleration),
+              ),
+
+              Expanded(
+                child: _Metric(title: '持續性', value: result.persistence),
+              ),
+
+              Expanded(
+                child: _Metric(title: '擴散', value: result.diffusion),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Metric extends StatelessWidget {
+  final String title;
+
+  final double value;
+
+  const _Metric({required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          value.toStringAsFixed(1),
+
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        ),
+
+        const SizedBox(height: 6),
+
+        Text(title, style: TextStyle(color: Colors.grey.shade600)),
+      ],
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/mainstream_card.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+
+class MainstreamCard extends StatelessWidget {
+  final int rank;
+
+  final MainstreamResult result;
+
+  const MainstreamCard({super.key, required this.rank, required this.result});
+
+  Color get trendColor {
+    if (result.mainstreamScore >= 80) {
+      return Colors.deepOrange;
+    }
+
+    if (result.mainstreamScore >= 60) {
+      return Colors.orange;
+    }
+
+    if (result.mainstreamScore >= 40) {
+      return Colors.amber;
+    }
+
+    return Colors.blueGrey;
+  }
+
+  String get status {
+    if (result.strengthening) {
+      return '資金增強';
+    }
+
+    if (result.weakening) {
+      return '資金退潮';
+    }
+
+    return '整理';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+
+      padding: const EdgeInsets.all(22),
+
+      decoration: BoxDecoration(
+        color: Colors.white,
+
+        borderRadius: BorderRadius.circular(28),
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+
+                alignment: Alignment.center,
+
+                decoration: BoxDecoration(
+                  color: trendColor.withValues(alpha: 0.12),
+
+                  borderRadius: BorderRadius.circular(14),
+                ),
+
+                child: Text(
+                  '$rank',
+
+                  style: TextStyle(
+                    color: trendColor,
+
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                  children: [
+                    Text(
+                      result.category,
+
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Text(status, style: TextStyle(color: Colors.grey.shade600)),
+                  ],
+                ),
+              ),
+
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+
+                decoration: BoxDecoration(
+                  color: trendColor.withValues(alpha: 0.12),
+
+                  borderRadius: BorderRadius.circular(18),
+                ),
+
+                child: Column(
+                  children: [
+                    Text(
+                      result.mainstreamScore.toStringAsFixed(1),
+
+                      style: TextStyle(
+                        color: trendColor,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Text(
+                      '主流分數',
+
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          Row(
+            children: [
+              Expanded(
+                child: _MetricCard(
+                  title: '資金流',
+                  value: result.flowScore,
+                  icon: Icons.water_drop,
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: _MetricCard(
+                  title: '持續性',
+                  value: result.persistenceScore,
+                  icon: Icons.timeline,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          Row(
+            children: [
+              Expanded(
+                child: _MetricCard(
+                  title: '擴散度',
+                  value: result.diffusionScore,
+                  icon: Icons.hub,
+                ),
+              ),
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: _MetricCard(
+                  title: '領頭羊',
+                  value: result.leaderScore,
+                  icon: Icons.emoji_events,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricCard extends StatelessWidget {
+  final String title;
+
+  final double value;
+
+  final IconData icon;
+
+  const _MetricCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+
+      decoration: BoxDecoration(
+        color: const Color(0xfff7f9fc),
+
+        borderRadius: BorderRadius.circular(20),
+      ),
+
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.blueGrey),
+
+          const SizedBox(height: 10),
+
+          Text(
+            value.toStringAsFixed(1),
+
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+
+          const SizedBox(height: 6),
+
+          Text(
+            title,
+
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/market_heatmap.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+
+class MarketHeatmap extends StatelessWidget {
+  final List<CategoryUiModel> categories;
+
+  const MarketHeatmap({super.key, required this.categories});
+
+  Color _color(double score) {
+    if (score >= 60) {
+      return Colors.deepOrange;
+    }
+
+    if (score >= 30) {
+      return Colors.orange;
+    }
+
+    if (score >= 0) {
+      return Colors.blueGrey;
+    }
+
+    return Colors.teal;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+
+      children: categories.take(12).map((e) {
+        final size = (100 + (e.totalCount * 2)).clamp(110, 180);
+
+        return Container(
+          width: size.toDouble(),
+
+          height: size.toDouble(),
+
+          padding: const EdgeInsets.all(12),
+
+          decoration: BoxDecoration(
+            color: _color(e.hotScore),
+
+            borderRadius: BorderRadius.circular(22),
+          ),
+
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+
+            crossAxisAlignment: CrossAxisAlignment.start,
+
+            mainAxisAlignment: MainAxisAlignment.end,
+
+            children: [
+              Text(
+                e.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  height: 1.1,
+                ),
+              ),
+
+              const SizedBox(height: 6),
+
+              Text(
+                e.score.toStringAsFixed(1),
+
+                maxLines: 1,
+
+                overflow: TextOverflow.ellipsis,
+
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/market_summary_card.dart
+================================================
+import 'package:animated_flip_counter/animated_flip_counter.dart';
+import 'package:flutter/material.dart';
+import 'dart:ui';
+
+class MarketSummaryCard extends StatelessWidget {
+  final String title;
+
+  final int riseCount;
+
+  final int fallCount;
+
+  final double score;
+
+  const MarketSummaryCard({
+    super.key,
+    required this.title,
+    required this.riseCount,
+    required this.fallCount,
+    required this.score,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final positive = score >= 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(30),
+
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: positive
+              ? [const Color(0xFF3B82F6), const Color(0xFF2563EB)]
+              : [const Color(0xFF10B981), const Color(0xFF059669)],
+        ),
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
+
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+
+                      child: const Icon(
+                        Icons.analytics_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 28),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMarketInfo(
+                        '上漲',
+
+                        riseCount.toString(),
+
+                        Colors.redAccent,
+                      ),
+                    ),
+
+                    Expanded(
+                      child: _buildMarketInfo(
+                        '下跌',
+
+                        fallCount.toString(),
+
+                        Colors.greenAccent,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 28),
+
+                const Text(
+                  '資金流強度',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+
+                const SizedBox(height: 8),
+
+                AnimatedFlipCounter(
+                  value: score,
+
+                  fractionDigits: 2,
+
+                  textStyle: const TextStyle(
+                    fontSize: 40,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarketInfo(String title, String value, Color color) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        Text(title, style: const TextStyle(color: Colors.white70)),
+
+        const SizedBox(height: 8),
+
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/rotation_flow_card.dart
+================================================
+import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/models/rotation_result.dart';
+
+class RotationFlowCard extends StatelessWidget {
+  final RotationResult result;
+
+  const RotationFlowCard({super.key, required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+
+      padding: const EdgeInsets.all(20),
+
+      decoration: BoxDecoration(
+        color: Colors.white,
+
+        borderRadius: BorderRadius.circular(24),
+
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+
+              children: [
+                Text(
+                  result.fromCategory,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+
+                const SizedBox(height: 8),
+
+                Row(
+                  children: [
+                    const Icon(Icons.arrow_forward, color: Colors.orange),
+
+                    const SizedBox(width: 8),
+
+                    Expanded(
+                      child: Text(
+                        result.toCategory,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+
+            decoration: BoxDecoration(
+              color: Colors.orange.shade50,
+
+              borderRadius: BorderRadius.circular(18),
+            ),
+
+            child: Column(
+              children: [
+                Text(
+                  result.inflowStrength.toStringAsFixed(1),
+                  style: TextStyle(
+                    color: Colors.orange.shade800,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                Text(
+                  '輪動強度',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/score_chip.dart
+================================================
+import 'package:flutter/material.dart';
+
+class ScoreChip extends StatelessWidget {
+  final double score;
+
+  const ScoreChip({super.key, required this.score});
+
+  @override
+  Widget build(BuildContext context) {
+    final positive = score >= 0;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        // 修正處：將 .withOpacity(0.12) 改為 .withValues(alpha: 0.12)
+        color: positive
+            ? Colors.red.withValues(alpha: 0.12)
+            : Colors.green.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        score.toStringAsFixed(2),
+        style: TextStyle(
+          color: positive ? Colors.redAccent : Colors.greenAccent,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/section_title.dart
+================================================
+import 'package:flutter/material.dart';
+
+class SectionTitle extends StatelessWidget {
+  final String title;
+
+  const SectionTitle({super.key, required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
+      child: Text(
+        title,
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/stock_tile.dart
+================================================
+import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'score_chip.dart';
+
+class StockTile extends StatelessWidget {
+  final StockData stock;
+
+  final double score;
+
+  const StockTile({super.key, required this.stock, required this.score});
+
+  Future<void> _openYahooPage() async {
+    try {
+      final suffix = stock.market == MarketType.listed ? 'TW' : 'TWO';
+
+      final uri = Uri.parse(
+        'https://tw.stock.yahoo.com/quote/${stock.code}.$suffix/technical-analysis',
+      );
+
+      final canLaunch = await canLaunchUrl(uri);
+
+      if (!canLaunch) {
+        return;
+      }
+
+      await launchUrl(uri, mode: LaunchMode.platformDefault);
+    } catch (_) {}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        onTap: _openYahooPage,
+
+        title: Text('${stock.code} ${stock.name}'),
+
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Wrap(
+            spacing: 12,
+            children: [
+              Text(
+                '${stock.changePercent.toStringAsFixed(2)}%',
+                style: TextStyle(
+                  color: stock.changePercent >= 0
+                      ? Colors.redAccent
+                      : Colors.greenAccent,
+                ),
+              ),
+
+              Text('成交額 ${(stock.value / 100000000).toStringAsFixed(2)}億'),
+            ],
+          ),
+        ),
+
+        trailing: ScoreChip(score: score),
+      ),
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/top_hot_categories.dart
+================================================
+import 'package:flutter/material.dart';
+import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+
+class TopHotCategories extends StatelessWidget {
+  final List<CategoryUiModel> categories;
+
+  const TopHotCategories({super.key, required this.categories});
+
+  @override
+  Widget build(BuildContext context) {
+    final top = [...categories];
+
+    top.sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
+
+    final top5 = top.take(5).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        const Text(
+          '今日主流類股',
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+
+        const SizedBox(height: 18),
+
+        ...top5.map(
+          (e) => Container(
+            margin: const EdgeInsets.only(bottom: 14),
+
+            padding: const EdgeInsets.all(18),
+
+            decoration: BoxDecoration(
+              color: Colors.white,
+
+              borderRadius: BorderRadius.circular(24),
+
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 14,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+
+                    children: [
+                      Text(
+                        e.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        '資金流 ${e.score.toStringAsFixed(2)}',
+                        style: TextStyle(color: Colors.grey.shade600),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade50,
+
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+
+                  child: Text(
+                    e.trendStrength.toStringAsFixed(1),
+                    style: TextStyle(
+                      color: Colors.orange.shade700,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+
+
+================================================
+FILE: lib/ui/widgets/trend_sparkline.dart
+================================================
+import 'package:flutter/material.dart';
+
+class TrendSparkline extends StatelessWidget {
+  final List<double> values;
+
+  const TrendSparkline({super.key, required this.values});
+
+  @override
+  Widget build(BuildContext context) {
+    if (values.isEmpty) {
+      return const SizedBox();
+    }
+
+    final max = values.reduce((a, b) => a > b ? a : b);
+
+    final min = values.reduce((a, b) => a < b ? a : b);
+
+    return SizedBox(
+      width: 70,
+      height: 32,
+
+      child: CustomPaint(
+        painter: _SparklinePainter(values: values, max: max, min: min),
+      ),
+    );
+  }
+}
+
+class _SparklinePainter extends CustomPainter {
+  final List<double> values;
+
+  final double max;
+
+  final double min;
+
+  _SparklinePainter({
+    required this.values,
+    required this.max,
+    required this.min,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final positive = values.last >= values.first;
+
+    paint.color = positive ? Colors.redAccent : Colors.green;
+
+    final path = Path();
+
+    for (int i = 0; i < values.length; i++) {
+      final x = (i / (values.length - 1)) * size.width;
+
+      final normalized =
+          (values[i] - min) / ((max - min) == 0 ? 1 : (max - min));
+
+      final y = size.height - (normalized * size.height);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
+    return true;
+  }
+}
+
 </project_structure>
 
 <role>
@@ -19,6 +4939,7 @@
 2. **瓶頸與壞味道**: 指出潛在的效能瓶頸、依賴問題或程式碼異味 (Code Smells)。
 3. **重構與優化建議**: 根據 Flutter 官方最佳實踐，提供具體的改進方向與建議使用的套件。
 4. **核心演算**: 根據目前資料結構所進行的演算，給出詳細的文字敘述，並且記錄在markdown
+5. **重要注意資訊**: 不要對目前專案進行任何代碼異動，並且經過分析，提供可以進行刪除的程式代號
 </task>
 
 <output_format>
