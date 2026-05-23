@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
+
+import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
 import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
+import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
+import 'package:tw_stock_capital_flow/models/rotation_result.dart';
 
 import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
-import 'package:tw_stock_capital_flow/models/rotation_result.dart';
+
+import 'package:tw_stock_capital_flow/ui/widgets/home_section_card.dart';
 import 'package:tw_stock_capital_flow/ui/widgets/market_summary_card.dart';
-import 'main_category_page.dart';
 import 'package:tw_stock_capital_flow/ui/widgets/top_hot_categories.dart';
-import 'package:tw_stock_capital_flow/ui/widgets/rotation_flow_card.dart';
-import 'package:tw_stock_capital_flow/ui/widgets/market_heatmap.dart';
+
 import 'package:tw_stock_capital_flow/ui/pages/mainstream_page.dart';
+import 'package:tw_stock_capital_flow/ui/pages/lifecycle_page.dart';
+import 'package:tw_stock_capital_flow/ui/pages/main_category_page.dart';
+import 'package:tw_stock_capital_flow/ui/pages/market_sentiment_page.dart';
+import 'package:tw_stock_capital_flow/ui/pages/rotation_page.dart';
+import 'package:tw_stock_capital_flow/ui/widgets/market_heatmap.dart';
 
 class HomePage extends StatelessWidget {
   final List<CategoryUiModel> listedCategories;
@@ -26,9 +34,14 @@ class HomePage extends StatelessWidget {
   final int otcFallCount;
 
   final double otcScore;
+
   final List<RotationResult> rotations;
 
   final List<MainstreamResult> mainstreams;
+
+  final List<LifecycleResult> lifecycles;
+
+  final MarketSentimentResult? sentiment;
 
   const HomePage({
     super.key,
@@ -42,189 +55,226 @@ class HomePage extends StatelessWidget {
     required this.otcScore,
     required this.rotations,
     required this.mainstreams,
+    required this.lifecycles,
+    required this.sentiment,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xfff3f6fb),
+
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
 
           children: [
-            const Text(
-              '台股資金流',
-              style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900),
-            ),
-
-            const SizedBox(height: 8),
-
-            Text(
-              '追蹤市場主流資金輪動',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-            ),
+            _buildHeader(),
 
             const SizedBox(height: 28),
 
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        MainCategoryPage(categories: listedCategories),
-                  ),
-                );
-              },
+            _buildMarketSection(context),
 
-              child: MarketSummaryCard(
-                title: '上市市場',
+            const SizedBox(height: 32),
 
-                riseCount: listedRiseCount,
+            _buildHeatMap(),
 
-                fallCount: listedFallCount,
+            const SizedBox(height: 32),
 
-                score: listedScore,
-              ),
-            ),
+            _buildMainstreamSection(context),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MainCategoryPage(categories: otcCategories),
-                  ),
-                );
-              },
+            _buildLifecycleSection(context),
 
-              child: MarketSummaryCard(
-                title: '上櫃市場',
+            const SizedBox(height: 24),
 
-                riseCount: otcRiseCount,
+            _buildSentimentSection(context),
 
-                fallCount: otcFallCount,
+            const SizedBox(height: 24),
 
-                score: otcScore,
-              ),
-            ),
+            _buildRotationSection(context),
 
-            const SizedBox(height: 36),
+            const SizedBox(height: 32),
 
             TopHotCategories(
               categories: [...listedCategories, ...otcCategories],
             ),
 
-            const SizedBox(height: 28),
-
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => MainstreamPage(mainstreams: mainstreams),
-                  ),
-                );
-              },
-
-              child: Container(
-                padding: const EdgeInsets.all(24),
-
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xff1e3c72), Color(0xff2a5298)],
-                  ),
-
-                  borderRadius: BorderRadius.circular(28),
-                ),
-
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-
-                  children: [
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.auto_graph,
-                          color: Colors.white,
-                          size: 30,
-                        ),
-
-                        const SizedBox(width: 12),
-
-                        const Expanded(
-                          child: Text(
-                            '市場主流分析',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          color: Colors.white.withValues(alpha: 0.8),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    Text(
-                      mainstreams.isEmpty ? '-' : mainstreams.first.category,
-
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Text(
-                      '目前市場最強主流',
-
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 40),
-
-            const Text(
-              '市場熱力圖',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 18),
-
-            MarketHeatmap(categories: [...listedCategories, ...otcCategories]),
-
-            const SizedBox(height: 40),
-
-            const Text(
-              '資金輪動',
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 18),
-
-            ...rotations.take(5).map((e) => RotationFlowCard(result: e)),
-
             const SizedBox(height: 40),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+
+      children: [
+        const Text(
+          '台股資金流',
+          style: TextStyle(
+            fontSize: 36,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1,
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        Text(
+          '市場主流・資金輪動・情緒週期',
+          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMarketSection(BuildContext context) {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MainCategoryPage(categories: listedCategories),
+              ),
+            );
+          },
+
+          child: MarketSummaryCard(
+            title: '上市市場',
+            riseCount: listedRiseCount,
+            fallCount: listedFallCount,
+            score: listedScore,
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => MainCategoryPage(categories: otcCategories),
+              ),
+            );
+          },
+
+          child: MarketSummaryCard(
+            title: '上櫃市場',
+            riseCount: otcRiseCount,
+            fallCount: otcFallCount,
+            score: otcScore,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeatMap() {
+    return MarketHeatmap(categories: [...listedCategories, ...otcCategories]);
+  }
+
+  Widget _buildMainstreamSection(BuildContext context) {
+    final top = mainstreams.isEmpty ? null : mainstreams.first;
+
+    return HomeSectionCard(
+      title: '市場主流',
+
+      subtitle: top == null ? '-' : top.category,
+
+      description: '追蹤市場最強主流方向',
+
+      gradient: const [Color(0xff1e3c72), Color(0xff2a5298)],
+
+      icon: Icons.auto_graph,
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MainstreamPage(mainstreams: mainstreams),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLifecycleSection(BuildContext context) {
+    final top = lifecycles.isEmpty ? null : lifecycles.first;
+
+    return HomeSectionCard(
+      title: '主流生命週期',
+
+      subtitle: top == null ? '-' : top.category,
+
+      description: top == null ? '-' : top.stage.name,
+
+      gradient: const [Color(0xff614385), Color(0xff516395)],
+
+      icon: Icons.timeline,
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => LifecyclePage(lifecycles: lifecycles),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSentimentSection(BuildContext context) {
+    return HomeSectionCard(
+      title: '市場情緒',
+
+      subtitle: sentiment == null ? '-' : sentiment!.level.name,
+
+      description: sentiment == null
+          ? '-'
+          : '熱錢強度 ${sentiment!.hotMoneyStrength.toStringAsFixed(1)}',
+
+      gradient: const [Color(0xff134e5e), Color(0xff71b280)],
+
+      icon: Icons.psychology,
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MarketSentimentPage(result: sentiment!),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRotationSection(BuildContext context) {
+    final top = rotations.isEmpty ? null : rotations.first;
+
+    return HomeSectionCard(
+      title: '資金輪動',
+
+      subtitle: top == null ? '-' : top.toCategory,
+
+      description: top == null ? '-' : '輪動分數 ${top.score.toStringAsFixed(1)}',
+
+      gradient: const [Color(0xff42275a), Color(0xff734b6d)],
+
+      icon: Icons.sync_alt,
+
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => RotationPage(rotations: rotations)),
+        );
+      },
     );
   }
 }

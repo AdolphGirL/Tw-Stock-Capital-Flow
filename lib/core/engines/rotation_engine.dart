@@ -47,13 +47,21 @@ class RotationEngine {
         : decreases.length;
 
     for (int i = 0; i < length; i++) {
+      final fromValue = decreases[i].value.abs();
+
+      final toValue = increases[i].value.abs();
+
+      final rotationScore = (fromValue + toValue) / 2;
+
       result.add(
         RotationResult(
           fromCategory: decreases[i].key,
 
           toCategory: increases[i].key,
 
-          strength: increases[i].value,
+          score: rotationScore,
+
+          inflowStrength: increases[i].value,
         ),
       );
     }

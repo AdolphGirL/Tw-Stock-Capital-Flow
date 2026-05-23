@@ -75,7 +75,7 @@ class RotationFlowCard extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  result.strength.toStringAsFixed(1),
+                  result.inflowStrength.toStringAsFixed(1),
                   style: TextStyle(
                     color: Colors.orange.shade800,
                     fontWeight: FontWeight.bold,

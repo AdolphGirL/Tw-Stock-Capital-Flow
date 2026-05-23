@@ -1,0 +1,30 @@
+<context>
+專案類型: Flutter Cross-Platform App
+開發環境: Flutter 3.x, Dart 3.x
+目標平台: iOS, Android, Web
+</context>
+
+<project_structure>
+請參考以下專案結構進行上下文理解：
+[在此貼上您的 lib/ 目錄結構，或利用 gitingest 將整包程式碼提供給 Gemini CLI]
+</project_structure>
+
+<role>
+你是一位資深的 Flutter / Dart 架構專家。請具備 Clean Architecture 與 State Management (如 Bloc, Riverpod) 的專業知識。
+</role>
+
+<task>
+請對上述專案結構與程式碼進行全面分析，並完成以下輸出：
+1. **架構診斷**: 檢視專案目錄結構，評估其可維護性與可擴展性。
+2. **瓶頸與壞味道**: 指出潛在的效能瓶頸、依賴問題或程式碼異味 (Code Smells)。
+3. **重構與優化建議**: 根據 Flutter 官方最佳實踐，提供具體的改進方向與建議使用的套件。
+4. **核心演算**: 根據目前資料結構所進行的演算，給出詳細的文字敘述，並且記錄在markdown
+</task>
+
+<output_format>
+請以繁體中文回答，並依照以下 Markdown 格式結構化輸出：
+- ## 專案架構分析
+- ## 潛在問題與警告
+- ## 重構與優化建議
+- ## 建議下一步行動 (Next Steps)
+</output_format>

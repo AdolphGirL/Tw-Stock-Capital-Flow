@@ -3,11 +3,14 @@ class RotationResult {
 
   final String toCategory;
 
-  final double strength;
+  final double score;
+
+  final double inflowStrength;
 
   const RotationResult({
     required this.fromCategory,
     required this.toCategory,
-    required this.strength,
+    required this.score,
+    required this.inflowStrength,
   });
 }

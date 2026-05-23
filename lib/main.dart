@@ -15,6 +15,8 @@ import 'package:tw_stock_capital_flow/core/engines/mainstream_engine.dart';
 import 'package:tw_stock_capital_flow/core/engines/market_sentiment_engine.dart';
 import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
 import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
+import 'package:tw_stock_capital_flow/core/engines/lifecycle_engine.dart';
+import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +57,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
   List<MainstreamResult> mainstreams = [];
 
   MarketSentimentResult? sentiment;
+
+  List<LifecycleResult> lifecycles = [];
 
   @override
   void initState() {
@@ -124,6 +128,13 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
       sentiment = sentimentEngine.analyze();
 
+      final lifecycleEngine = LifecycleEngine(
+        snapshots: snapshots,
+        mainstreams: mainstreams,
+      );
+
+      lifecycles = lifecycleEngine.analyze();
+
       setState(() {
         loading = false;
       });
@@ -180,6 +191,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
         rotations: rotations,
 
         mainstreams: mainstreams,
+
+        lifecycles: lifecycles,
+
+        sentiment: sentiment!,
       ),
     );
   }
