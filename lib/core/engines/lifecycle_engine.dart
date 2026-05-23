@@ -1,4 +1,3 @@
-import 'package:tw_stock_capital_flow/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/core/enums/lifecycle_stage.dart';
 import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
