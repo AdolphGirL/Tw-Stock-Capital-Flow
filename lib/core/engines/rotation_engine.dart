@@ -7,7 +7,7 @@ class RotationEngine {
 
   const RotationEngine({required this.snapshots});
 
-  List<RotationResult> analyzeMainCategoryRotation() {
+  List<RotationResult> analyze() {
     if (snapshots.length < 2) {
       return [];
     }

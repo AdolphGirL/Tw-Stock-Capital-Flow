@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:tw_stock_capital_flow/models/stock_data.dart';
-import 'score_chip.dart';
 
 class StockTile extends StatelessWidget {
   final StockData stock;
@@ -56,7 +54,10 @@ class StockTile extends StatelessWidget {
           ),
         ),
 
-        trailing: ScoreChip(score: score),
+        trailing: Text(
+          score.toStringAsFixed(2),
+          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+        ),
       ),
     );
   }

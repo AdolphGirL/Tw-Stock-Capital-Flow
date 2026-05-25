@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 
 class MarketHeatmap extends StatelessWidget {
   final List<CategoryUiModel> categories;
@@ -32,52 +33,58 @@ class MarketHeatmap extends StatelessWidget {
       children: categories.take(12).map((e) {
         final size = (100 + (e.totalCount * 2)).clamp(110, 180);
 
-        return Container(
-          width: size.toDouble(),
+        return GestureDetector(
+          onTap: () {
+            CategoryNavigation.openCategory(context, e);
+          },
 
-          height: size.toDouble(),
+          child: Container(
+            width: size.toDouble(),
 
-          padding: const EdgeInsets.all(12),
+            height: size.toDouble(),
 
-          decoration: BoxDecoration(
-            color: _color(e.hotScore),
+            padding: const EdgeInsets.all(12),
 
-            borderRadius: BorderRadius.circular(22),
-          ),
+            decoration: BoxDecoration(
+              color: _color(e.hotScore),
 
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+              borderRadius: BorderRadius.circular(22),
+            ),
 
-            crossAxisAlignment: CrossAxisAlignment.start,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
 
-            mainAxisAlignment: MainAxisAlignment.end,
+              crossAxisAlignment: CrossAxisAlignment.start,
 
-            children: [
-              Text(
-                e.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              mainAxisAlignment: MainAxisAlignment.end,
 
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
-                  height: 1.1,
+              children: [
+                Text(
+                  e.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    height: 1.1,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 6),
+                const SizedBox(height: 6),
 
-              Text(
-                e.score.toStringAsFixed(1),
+                Text(
+                  e.score.toStringAsFixed(1),
 
-                maxLines: 1,
+                  maxLines: 1,
 
-                overflow: TextOverflow.ellipsis,
+                  overflow: TextOverflow.ellipsis,
 
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
           ),
         );
       }).toList(),

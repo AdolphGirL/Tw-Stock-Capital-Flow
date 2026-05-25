@@ -1,22 +1,20 @@
 import 'package:flutter/material.dart';
-
+import 'dart:isolate';
+import 'package:flutter/foundation.dart';
 import 'package:tw_stock_capital_flow/ui/theme/app_theme.dart';
 import 'package:tw_stock_capital_flow/managers/sync_manager.dart';
-import 'package:tw_stock_capital_flow/models/stock_data.dart';
-import 'package:tw_stock_capital_flow/repositories/history_repository.dart';
 import 'package:tw_stock_capital_flow/services/market_calendar_service.dart';
 import 'package:tw_stock_capital_flow/services/storage_service.dart';
-import 'package:tw_stock_capital_flow/services/capital_flow_analyzer.dart';
 import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/ui/pages/home_page.dart';
 import 'package:tw_stock_capital_flow/models/rotation_result.dart';
-import 'package:tw_stock_capital_flow/core/engines/rotation_engine.dart';
-import 'package:tw_stock_capital_flow/core/engines/mainstream_engine.dart';
-import 'package:tw_stock_capital_flow/core/engines/market_sentiment_engine.dart';
 import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
 import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
-import 'package:tw_stock_capital_flow/core/engines/lifecycle_engine.dart';
 import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
+import 'package:tw_stock_capital_flow/core/bootstrap/app_bootstrap_result.dart';
+import 'package:tw_stock_capital_flow/core/bootstrap/app_bootstrapper.dart';
+import 'package:tw_stock_capital_flow/core/bootstrap/bootstrap_analyzer.dart';
+import 'package:tw_stock_capital_flow/repositories/history_repository.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +58,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   List<LifecycleResult> lifecycles = [];
 
+  AppBootstrapResult? bootstrapResult;
+
   @override
   void initState() {
     super.initState();
@@ -73,6 +73,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
       final syncManager = SyncManager(
         storageService: storageService,
+
         calendarService: MarketCalendarService(),
       );
 
@@ -82,65 +83,23 @@ class _BootstrapAppState extends State<BootstrapApp> {
         storageService: storageService,
       );
 
-      final snapshots = await historyRepository.loadRecentSnapshots(1);
+      final snapshots = await historyRepository.loadRecentSnapshots(5);
 
-      if (snapshots.isEmpty) {
-        setState(() {
-          error = '無歷史資料';
-          loading = false;
-        });
-
-        return;
-      }
-
-      final analyzer = CapitalFlowAnalyzer(snapshots: snapshots);
-
-      listedCategories = analyzer.analyzeMainCategories(
-        market: MarketType.listed,
-      );
-
-      otcCategories = analyzer.analyzeMainCategories(market: MarketType.otc);
-
-      listedRiseCount = analyzer.calculateRiseCount(market: MarketType.listed);
-
-      listedFallCount = analyzer.calculateFallCount(market: MarketType.listed);
-
-      otcRiseCount = analyzer.calculateRiseCount(market: MarketType.otc);
-
-      otcFallCount = analyzer.calculateFallCount(market: MarketType.otc);
-
-      listedScore = analyzer.calculateMarketScore(market: MarketType.listed);
-
-      otcScore = analyzer.calculateMarketScore(market: MarketType.otc);
-
-      final rotationEngine = RotationEngine(snapshots: snapshots);
-
-      rotations = rotationEngine.analyzeMainCategoryRotation();
-
-      final mainstreamEngine = MainstreamEngine(snapshots: snapshots);
-
-      mainstreams = mainstreamEngine.analyzeMainstreams();
-
-      final sentimentEngine = MarketSentimentEngine(
-        snapshots: snapshots,
-        mainstreams: mainstreams,
-      );
-
-      sentiment = sentimentEngine.analyze();
-
-      final lifecycleEngine = LifecycleEngine(
-        snapshots: snapshots,
-        mainstreams: mainstreams,
-      );
-
-      lifecycles = lifecycleEngine.analyze();
+      final result = await compute(BootstrapAnalyzer.analyze, snapshots);
 
       setState(() {
+        bootstrapResult = result;
+
         loading = false;
       });
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint(e.toString());
+
+      debugPrint(stack.toString());
+
       setState(() {
         error = e.toString();
+
         loading = false;
       });
     }
@@ -166,35 +125,37 @@ class _BootstrapAppState extends State<BootstrapApp> {
       );
     }
 
+    final data = bootstrapResult!;
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
 
       theme: AppTheme.lightTheme,
 
       home: HomePage(
-        listedCategories: listedCategories,
+        listedCategories: data.listedCategories,
 
-        otcCategories: otcCategories,
+        otcCategories: data.otcCategories,
 
-        listedRiseCount: listedRiseCount,
+        listedRiseCount: data.listedRiseCount,
 
-        listedFallCount: listedFallCount,
+        listedFallCount: data.listedFallCount,
 
-        listedScore: listedScore,
+        listedScore: data.listedScore,
 
-        otcRiseCount: otcRiseCount,
+        otcRiseCount: data.otcRiseCount,
 
-        otcFallCount: otcFallCount,
+        otcFallCount: data.otcFallCount,
 
-        otcScore: otcScore,
+        otcScore: data.otcScore,
 
-        rotations: rotations,
+        rotations: data.rotations,
 
-        mainstreams: mainstreams,
+        mainstreams: data.mainstreams,
 
-        lifecycles: lifecycles,
+        lifecycles: data.lifecycles,
 
-        sentiment: sentiment!,
+        sentiment: data.sentiment,
       ),
     );
   }

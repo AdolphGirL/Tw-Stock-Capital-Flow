@@ -7,7 +7,7 @@ class MainstreamEngine {
 
   const MainstreamEngine({required this.snapshots});
 
-  List<MainstreamResult> analyzeMainstreams() {
+  List<MainstreamResult> analyze() {
     if (snapshots.isEmpty) {
       return [];
     }

@@ -229,7 +229,7 @@ class CapitalFlowAnalyzer {
   double _calculateStockScore(StockData stock) {
     final engine = CapitalFlowEngine(snapshots: snapshots);
 
-    final signal = engine.analyzeStock(stock);
+    final signal = engine.analyze(stock);
 
     return signal.score;
   }

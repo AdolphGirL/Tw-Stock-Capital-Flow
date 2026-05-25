@@ -8,7 +8,7 @@ class CapitalFlowEngine {
 
   const CapitalFlowEngine({required this.snapshots});
 
-  FlowSignal analyzeStock(StockData stock) {
+  FlowSignal analyze(StockData stock) {
     final histories = _findStockHistory(stock.code);
 
     if (histories.isEmpty) {

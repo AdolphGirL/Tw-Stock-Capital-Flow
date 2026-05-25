@@ -81,4 +81,44 @@ class StorageService {
 
     return AppDateUtils.sortDesc(dates);
   }
+
+  Future<String> buildCustomFilePath(String filename) async {
+    final dir = await _getDailyDirectory();
+
+    return path.join(dir.path, filename);
+  }
+
+  Future<void> writeFile(String filename, String content) async {
+    final filePath = await buildCustomFilePath(filename);
+
+    final file = File(filePath);
+
+    await file.writeAsString(content);
+  }
+
+  Future<String?> readFile(String filename) async {
+    final filePath = await buildCustomFilePath(filename);
+
+    final file = File(filePath);
+
+    if (!await file.exists()) {
+      return null;
+    }
+
+    return await file.readAsString();
+  }
+
+  Future<void> writeJson(String filename, Map<String, dynamic> json) async {
+    await writeFile(filename, jsonEncode(json));
+  }
+
+  Future<Map<String, dynamic>?> readJson(String filename) async {
+    final content = await readFile(filename);
+
+    if (content == null) {
+      return null;
+    }
+
+    return jsonDecode(content);
+  }
 }

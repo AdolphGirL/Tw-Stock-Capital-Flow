@@ -1,25 +1,17 @@
-import 'package:tw_stock_capital_flow/core/bootstrap/app_bootstrap_result.dart';
 import 'package:tw_stock_capital_flow/core/engines/lifecycle_engine.dart';
 import 'package:tw_stock_capital_flow/core/engines/mainstream_engine.dart';
 import 'package:tw_stock_capital_flow/core/engines/market_sentiment_engine.dart';
 import 'package:tw_stock_capital_flow/core/engines/rotation_engine.dart';
-import 'package:tw_stock_capital_flow/models/stock_data.dart';
-import 'package:tw_stock_capital_flow/repositories/history_repository.dart';
+
 import 'package:tw_stock_capital_flow/services/capital_flow_analyzer.dart';
-import 'package:tw_stock_capital_flow/services/storage_service.dart';
 
-class AppBootstrapper {
-  static Future<AppBootstrapResult> bootstrap() async {
-    final storageService = StorageService();
+import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/models/stock_day_snapshot.dart';
 
-    final historyRepository = HistoryRepository(storageService: storageService);
+import 'package:tw_stock_capital_flow/core/bootstrap/app_bootstrap_result.dart';
 
-    final snapshots = await historyRepository.loadRecentSnapshots(5);
-
-    if (snapshots.isEmpty) {
-      throw Exception('無歷史資料');
-    }
-
+class BootstrapAnalyzer {
+  static AppBootstrapResult analyze(List<StockDaySnapshot> snapshots) {
     final analyzer = CapitalFlowAnalyzer(snapshots: snapshots);
 
     final listedCategories = analyzer.analyzeMainCategories(
