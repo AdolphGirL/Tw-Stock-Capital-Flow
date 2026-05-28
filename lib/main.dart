@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'dart:isolate';
+// import 'dart:isolate';
 import 'package:flutter/foundation.dart';
-import 'package:tw_stock_capital_flow/ui/theme/app_theme.dart';
-import 'package:tw_stock_capital_flow/managers/sync_manager.dart';
-import 'package:tw_stock_capital_flow/services/market_calendar_service.dart';
-import 'package:tw_stock_capital_flow/services/storage_service.dart';
-import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
-import 'package:tw_stock_capital_flow/ui/pages/home_page.dart';
-import 'package:tw_stock_capital_flow/models/rotation_result.dart';
-import 'package:tw_stock_capital_flow/core/models/mainstream_result.dart';
-import 'package:tw_stock_capital_flow/core/models/market_sentiment_result.dart';
-import 'package:tw_stock_capital_flow/core/models/lifecycle_result.dart';
-import 'package:tw_stock_capital_flow/core/bootstrap/app_bootstrap_result.dart';
-import 'package:tw_stock_capital_flow/core/bootstrap/app_bootstrapper.dart';
-import 'package:tw_stock_capital_flow/core/bootstrap/bootstrap_analyzer.dart';
-import 'package:tw_stock_capital_flow/repositories/history_repository.dart';
+import 'package:tw_stock_capital_flow/presentation/theme/app_theme.dart';
+import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
+import 'package:tw_stock_capital_flow/data/services/market_calendar_service.dart';
+import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
+import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/home_page.dart';
+import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
+import 'package:tw_stock_capital_flow/domain/models/mainstream_result.dart';
+import 'package:tw_stock_capital_flow/domain/models/market_sentiment_result.dart';
+import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
+import 'package:tw_stock_capital_flow/domain/usecases/app_bootstrap_result.dart';
+// import 'package:tw_stock_capital_flow/domain/usecases/app_bootstrapper.dart';
+import 'package:tw_stock_capital_flow/domain/usecases/bootstrap_analyzer.dart';
+import 'package:tw_stock_capital_flow/data/repositories/history_repository.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

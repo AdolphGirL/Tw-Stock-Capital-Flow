@@ -1,4 +1,4 @@
-import 'package:tw_stock_capital_flow/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
 extension MarketTypeExtension on MarketType {
   String get value {

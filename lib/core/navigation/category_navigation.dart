@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:tw_stock_capital_flow/ui/pages/sub_category_page.dart';
-import 'package:tw_stock_capital_flow/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/sub_category_page.dart';
+import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 
 class CategoryNavigation {
   static void openCategory(BuildContext context, CategoryUiModel category) {
