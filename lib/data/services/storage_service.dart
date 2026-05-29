@@ -8,6 +8,7 @@ import 'package:tw_stock_capital_flow/core/constants/app_constants.dart';
 import 'package:tw_stock_capital_flow/core/utils/date_utils.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'dart:developer' as dev;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
   Future<Directory> _getDailyDirectory() async {
@@ -120,5 +121,19 @@ class StorageService {
     }
 
     return jsonDecode(content);
+  }
+
+  /// 🚀 獲取目前本地儲存的所有快取 Key
+  Future<List<String>> getAllKeys() async {
+    try {
+      // 1. 在方法內部直接獲取原生實體，100% 免疫欄位未定義錯誤
+      final SharedPreferences prefsInstance = await SharedPreferences.getInstance();
+      
+      // 2. 呼叫原生 getKeys() 並轉為 List 丢出
+      return prefsInstance.getKeys().toList();
+    } catch (e) {
+      dev.log('❌ [StorageService] 獲取全部 Keys 失敗: $e');
+      return [];
+    }
   }
 }

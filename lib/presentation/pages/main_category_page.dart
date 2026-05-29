@@ -1,134 +1,69 @@
 import 'package:flutter/material.dart';
-
-import 'package:tw_stock_capital_flow/presentation/enums/category_sort_type.dart';
-import 'package:tw_stock_capital_flow/presentation/widgets/category_card.dart';
-import 'package:tw_stock_capital_flow/presentation/pages/sub_category_page.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/presentation/widgets/category_card.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/stock_list_page.dart';
 
-class MainCategoryPage extends StatefulWidget {
+class MainCategoryPage extends StatelessWidget {
   final List<CategoryUiModel> categories;
+  final String title;
 
-  const MainCategoryPage({super.key, required this.categories});
-
-  @override
-  State<MainCategoryPage> createState() => _MainCategoryPageState();
-}
-
-class _MainCategoryPageState extends State<MainCategoryPage> {
-  late List<CategoryUiModel> categories;
-
-  CategorySortType sortType = CategorySortType.score;
-
-  @override
-  void initState() {
-    super.initState();
-
-    categories = [...widget.categories];
-
-    applySort();
-  }
-
-  void applySort() {
-    switch (sortType) {
-      case CategorySortType.score:
-        categories.sort((a, b) => b.score.compareTo(a.score));
-        break;
-
-      case CategorySortType.riseCount:
-        categories.sort((a, b) => b.riseCount.compareTo(a.riseCount));
-        break;
-
-      case CategorySortType.fallCount:
-        categories.sort((a, b) => b.fallCount.compareTo(a.fallCount));
-        break;
-
-      case CategorySortType.totalCount:
-        categories.sort((a, b) => b.totalCount.compareTo(a.totalCount));
-        break;
-
-      case CategorySortType.threeDayTrend:
-        categories.sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
-        break;
-    }
-
-    setState(() {});
-  }
+  const MainCategoryPage({
+    super.key,
+    required this.categories,
+    required this.title,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (categories.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: const Center(child: Text('暫無相關板塊數據')),
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('主類股'),
-
-        actions: [
-          PopupMenuButton<CategorySortType>(
-            onSelected: (value) {
-              sortType = value;
-
-              applySort();
-            },
-
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: CategorySortType.score,
-                child: Text('資金流'),
-              ),
-
-              const PopupMenuItem(
-                value: CategorySortType.threeDayTrend,
-                child: Text('三日強度'),
-              ),
-
-              const PopupMenuItem(
-                value: CategorySortType.riseCount,
-                child: Text('上漲家數'),
-              ),
-
-              const PopupMenuItem(
-                value: CategorySortType.totalCount,
-                child: Text('股票數量'),
-              ),
-            ],
-          ),
-        ],
-      ),
-
-      body: ListView.separated(
-        padding: const EdgeInsets.all(16),
-
+      appBar: AppBar(title: Text(title)),
+      body: ListView.builder(
+        // 🚀 視窗滾動優化：設定預估項目高度與物理彈性
+        itemExtent: 140,
+        cacheExtent: 300,
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         itemCount: categories.length,
+        itemBuilder: (context, index) {
+          final category = categories[index];
 
-        separatorBuilder: (_, _) => const SizedBox(height: 14),
-
-        itemBuilder: (_, index) {
-          final item = categories[index];
-
-          return CategoryCard(
-            title: item.name,
-
-            totalCount: item.totalCount,
-
-            riseCount: item.riseCount,
-
-            fallCount: item.fallCount,
-
-            score: item.score,
-
-            trendValues: [item.day3Score, item.day2Score, item.day1Score],
-
-            persistence: item.persistence,
-
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => SubCategoryPage(
-                    title: item.name,
-                    categories: item.children,
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: CategoryCard(
+              // 使用專一 Key 避免捲動時重複繪製
+              key: ValueKey('main_cat_${category.name}_$index'),
+              title: category.name,
+              totalCount: category.totalCount,
+              riseCount: category.riseCount,
+              fallCount: category.fallCount,
+              score: category.score,
+              persistence: category.persistence,
+              // 🚀 對齊底層模型：day3Score(前天)、day2Score(昨天)、day1Score(今天)、score(綜合)
+              trendValues: [
+                category.day3Score,
+                category.day2Score,
+                category.day1Score,
+                category.score,
+              ],
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => StockListPage(
+                      stocks: category.stocks, // 傳入 List<StockUiModel>
+                      categoryName: category.name,
+                    ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),
