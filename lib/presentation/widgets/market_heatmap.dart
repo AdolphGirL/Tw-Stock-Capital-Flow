@@ -9,85 +9,106 @@ class MarketHeatmap extends StatelessWidget {
   const MarketHeatmap({super.key, required this.categories});
 
   Color _color(double score) {
-    if (score >= 60) {
-      return Colors.deepOrange;
+    if (score >= 80) {
+      return Colors.red;
     }
 
-    if (score >= 30) {
+    if (score >= 50) {
       return Colors.orange;
     }
 
-    if (score >= 0) {
-      return Colors.blueGrey;
+    if (score >= 20) {
+      return Colors.green;
     }
 
-    return Colors.teal;
+    return Colors.blueGrey;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
+    final topCategories = [...categories]
+      ..sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
 
-      children: categories.take(12).map((e) {
-        final size = (100 + (e.totalCount * 2)).clamp(110, 180);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          '市場熱區',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
 
-        return GestureDetector(
-          onTap: () {
-            CategoryNavigation.openCategory(context, e);
-          },
+        const SizedBox(height: 16),
 
-          child: Container(
-            width: size.toDouble(),
+        GridView.builder(
+          shrinkWrap: true,
 
-            height: size.toDouble(),
+          physics: const NeverScrollableScrollPhysics(),
 
-            padding: const EdgeInsets.all(12),
+          itemCount: topCategories.length > 12 ? 12 : topCategories.length,
 
-            decoration: BoxDecoration(
-              color: _color(e.hotScore),
-
-              borderRadius: BorderRadius.circular(22),
-            ),
-
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-
-              crossAxisAlignment: CrossAxisAlignment.start,
-
-              mainAxisAlignment: MainAxisAlignment.end,
-
-              children: [
-                Text(
-                  e.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    height: 1.1,
-                  ),
-                ),
-
-                const SizedBox(height: 6),
-
-                Text(
-                  e.score.toStringAsFixed(1),
-
-                  maxLines: 1,
-
-                  overflow: TextOverflow.ellipsis,
-
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
-                ),
-              ],
-            ),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.15,
           ),
-        );
-      }).toList(),
+
+          itemBuilder: (context, index) {
+            final e = topCategories[index];
+
+            return GestureDetector(
+              onTap: () {
+                CategoryNavigation.openCategory(context, e);
+              },
+
+              child: Container(
+                padding: const EdgeInsets.all(12),
+
+                decoration: BoxDecoration(
+                  color: _color(e.hotScore),
+
+                  borderRadius: BorderRadius.circular(18),
+                ),
+
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+
+                  children: [
+                    Expanded(
+                      child: Text(
+                        e.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+
+                    Text(
+                      e.hotLevel,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+
+                    Text(
+                      '熱度 ${e.hotScore.toStringAsFixed(0)}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

@@ -26,7 +26,7 @@ class MainCategoryPage extends StatelessWidget {
       appBar: AppBar(title: Text(title)),
       body: ListView.builder(
         // 🚀 視窗滾動優化：設定預估項目高度與物理彈性
-        itemExtent: 140,
+        // itemExtent: 140, 關閉高度預估以允許不同高度的卡片，改用 cacheExtent 來提前載入附近項目
         cacheExtent: 300,
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
