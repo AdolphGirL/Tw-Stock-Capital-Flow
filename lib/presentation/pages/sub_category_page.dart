@@ -3,15 +3,18 @@ import 'package:tw_stock_capital_flow/presentation/enums/category_sort_type.dart
 import 'package:tw_stock_capital_flow/presentation/widgets/category_card.dart';
 import 'stock_list_page.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 
 class SubCategoryPage extends StatefulWidget {
-  final String title;
-  final List<CategoryUiModel> categories;
+  final List<CategoryUiModel> categories; // 必要參數 1
+  final String title; // 必要參數 2
+  final CategoryHistoryRepository historyRepository; // 必要參數 3
 
   const SubCategoryPage({
     super.key,
-    required this.title,
     required this.categories,
+    required this.title,
+    required this.historyRepository, // 確保有要求傳入 Repository
   });
 
   @override

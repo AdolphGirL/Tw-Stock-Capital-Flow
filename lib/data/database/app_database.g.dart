@@ -1,36 +1,23 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'package:tw_stock_capital_flow/data/database/app_database.dart';
+part of 'app_database.dart';
 
 // ignore_for_file: type=lint
 class $CategoryHistoryTableTable extends CategoryHistoryTable
-    with TableInfo<$CategoryHistoryTableTable, CategoryHistoryTableData> {
+    with TableInfo<$CategoryHistoryTableTable, CategoryHistoryData> {
   @override
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $CategoryHistoryTableTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'PRIMARY KEY AUTOINCREMENT',
-    ),
-  );
   static const VerificationMeta _tradeDateMeta = const VerificationMeta(
     'tradeDate',
   );
   @override
-  late final GeneratedColumn<DateTime> tradeDate = GeneratedColumn<DateTime>(
+  late final GeneratedColumn<String> tradeDate = GeneratedColumn<String>(
     'trade_date',
     aliasedName,
     false,
-    type: DriftSqlType.dateTime,
+    type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
   static const VerificationMeta _categoryNameMeta = const VerificationMeta(
@@ -121,7 +108,6 @@ class $CategoryHistoryTableTable extends CategoryHistoryTable
   );
   @override
   List<GeneratedColumn> get $columns => [
-    id,
     tradeDate,
     categoryName,
     score,
@@ -136,17 +122,14 @@ class $CategoryHistoryTableTable extends CategoryHistoryTable
   String get aliasedName => _alias ?? actualTableName;
   @override
   String get actualTableName => $name;
-  static const String $name = 'category_history_table';
+  static const String $name = 'category_history';
   @override
   VerificationContext validateIntegrity(
-    Insertable<CategoryHistoryTableData> instance, {
+    Insertable<CategoryHistoryData> instance, {
     bool isInserting = false,
   }) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
     if (data.containsKey('trade_date')) {
       context.handle(
         _tradeDateMeta,
@@ -232,20 +215,13 @@ class $CategoryHistoryTableTable extends CategoryHistoryTable
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {id};
+  Set<GeneratedColumn> get $primaryKey => {tradeDate, categoryName};
   @override
-  CategoryHistoryTableData map(
-    Map<String, dynamic> data, {
-    String? tablePrefix,
-  }) {
+  CategoryHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return CategoryHistoryTableData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
+    return CategoryHistoryData(
       tradeDate: attachedDatabase.typeMapping.read(
-        DriftSqlType.dateTime,
+        DriftSqlType.string,
         data['${effectivePrefix}trade_date'],
       )!,
       categoryName: attachedDatabase.typeMapping.read(
@@ -289,10 +265,9 @@ class $CategoryHistoryTableTable extends CategoryHistoryTable
   }
 }
 
-class CategoryHistoryTableData extends DataClass
-    implements Insertable<CategoryHistoryTableData> {
-  final int id;
-  final DateTime tradeDate;
+class CategoryHistoryData extends DataClass
+    implements Insertable<CategoryHistoryData> {
+  final String tradeDate;
   final String categoryName;
   final double score;
   final double hotScore;
@@ -301,8 +276,7 @@ class CategoryHistoryTableData extends DataClass
   final int riseCount;
   final int fallCount;
   final int totalCount;
-  const CategoryHistoryTableData({
-    required this.id,
+  const CategoryHistoryData({
     required this.tradeDate,
     required this.categoryName,
     required this.score,
@@ -316,8 +290,7 @@ class CategoryHistoryTableData extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['trade_date'] = Variable<DateTime>(tradeDate);
+    map['trade_date'] = Variable<String>(tradeDate);
     map['category_name'] = Variable<String>(categoryName);
     map['score'] = Variable<double>(score);
     map['hot_score'] = Variable<double>(hotScore);
@@ -331,7 +304,6 @@ class CategoryHistoryTableData extends DataClass
 
   CategoryHistoryTableCompanion toCompanion(bool nullToAbsent) {
     return CategoryHistoryTableCompanion(
-      id: Value(id),
       tradeDate: Value(tradeDate),
       categoryName: Value(categoryName),
       score: Value(score),
@@ -344,14 +316,13 @@ class CategoryHistoryTableData extends DataClass
     );
   }
 
-  factory CategoryHistoryTableData.fromJson(
+  factory CategoryHistoryData.fromJson(
     Map<String, dynamic> json, {
     ValueSerializer? serializer,
   }) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
-    return CategoryHistoryTableData(
-      id: serializer.fromJson<int>(json['id']),
-      tradeDate: serializer.fromJson<DateTime>(json['tradeDate']),
+    return CategoryHistoryData(
+      tradeDate: serializer.fromJson<String>(json['tradeDate']),
       categoryName: serializer.fromJson<String>(json['categoryName']),
       score: serializer.fromJson<double>(json['score']),
       hotScore: serializer.fromJson<double>(json['hotScore']),
@@ -366,8 +337,7 @@ class CategoryHistoryTableData extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'tradeDate': serializer.toJson<DateTime>(tradeDate),
+      'tradeDate': serializer.toJson<String>(tradeDate),
       'categoryName': serializer.toJson<String>(categoryName),
       'score': serializer.toJson<double>(score),
       'hotScore': serializer.toJson<double>(hotScore),
@@ -379,9 +349,8 @@ class CategoryHistoryTableData extends DataClass
     };
   }
 
-  CategoryHistoryTableData copyWith({
-    int? id,
-    DateTime? tradeDate,
+  CategoryHistoryData copyWith({
+    String? tradeDate,
     String? categoryName,
     double? score,
     double? hotScore,
@@ -390,8 +359,7 @@ class CategoryHistoryTableData extends DataClass
     int? riseCount,
     int? fallCount,
     int? totalCount,
-  }) => CategoryHistoryTableData(
-    id: id ?? this.id,
+  }) => CategoryHistoryData(
     tradeDate: tradeDate ?? this.tradeDate,
     categoryName: categoryName ?? this.categoryName,
     score: score ?? this.score,
@@ -402,11 +370,8 @@ class CategoryHistoryTableData extends DataClass
     fallCount: fallCount ?? this.fallCount,
     totalCount: totalCount ?? this.totalCount,
   );
-  CategoryHistoryTableData copyWithCompanion(
-    CategoryHistoryTableCompanion data,
-  ) {
-    return CategoryHistoryTableData(
-      id: data.id.present ? data.id.value : this.id,
+  CategoryHistoryData copyWithCompanion(CategoryHistoryTableCompanion data) {
+    return CategoryHistoryData(
       tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
       categoryName: data.categoryName.present
           ? data.categoryName.value
@@ -429,8 +394,7 @@ class CategoryHistoryTableData extends DataClass
 
   @override
   String toString() {
-    return (StringBuffer('CategoryHistoryTableData(')
-          ..write('id: $id, ')
+    return (StringBuffer('CategoryHistoryData(')
           ..write('tradeDate: $tradeDate, ')
           ..write('categoryName: $categoryName, ')
           ..write('score: $score, ')
@@ -446,7 +410,6 @@ class CategoryHistoryTableData extends DataClass
 
   @override
   int get hashCode => Object.hash(
-    id,
     tradeDate,
     categoryName,
     score,
@@ -460,8 +423,7 @@ class CategoryHistoryTableData extends DataClass
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      (other is CategoryHistoryTableData &&
-          other.id == this.id &&
+      (other is CategoryHistoryData &&
           other.tradeDate == this.tradeDate &&
           other.categoryName == this.categoryName &&
           other.score == this.score &&
@@ -474,9 +436,8 @@ class CategoryHistoryTableData extends DataClass
 }
 
 class CategoryHistoryTableCompanion
-    extends UpdateCompanion<CategoryHistoryTableData> {
-  final Value<int> id;
-  final Value<DateTime> tradeDate;
+    extends UpdateCompanion<CategoryHistoryData> {
+  final Value<String> tradeDate;
   final Value<String> categoryName;
   final Value<double> score;
   final Value<double> hotScore;
@@ -485,8 +446,8 @@ class CategoryHistoryTableCompanion
   final Value<int> riseCount;
   final Value<int> fallCount;
   final Value<int> totalCount;
+  final Value<int> rowid;
   const CategoryHistoryTableCompanion({
-    this.id = const Value.absent(),
     this.tradeDate = const Value.absent(),
     this.categoryName = const Value.absent(),
     this.score = const Value.absent(),
@@ -496,10 +457,10 @@ class CategoryHistoryTableCompanion
     this.riseCount = const Value.absent(),
     this.fallCount = const Value.absent(),
     this.totalCount = const Value.absent(),
+    this.rowid = const Value.absent(),
   });
   CategoryHistoryTableCompanion.insert({
-    this.id = const Value.absent(),
-    required DateTime tradeDate,
+    required String tradeDate,
     required String categoryName,
     required double score,
     required double hotScore,
@@ -508,6 +469,7 @@ class CategoryHistoryTableCompanion
     required int riseCount,
     required int fallCount,
     required int totalCount,
+    this.rowid = const Value.absent(),
   }) : tradeDate = Value(tradeDate),
        categoryName = Value(categoryName),
        score = Value(score),
@@ -517,9 +479,8 @@ class CategoryHistoryTableCompanion
        riseCount = Value(riseCount),
        fallCount = Value(fallCount),
        totalCount = Value(totalCount);
-  static Insertable<CategoryHistoryTableData> custom({
-    Expression<int>? id,
-    Expression<DateTime>? tradeDate,
+  static Insertable<CategoryHistoryData> custom({
+    Expression<String>? tradeDate,
     Expression<String>? categoryName,
     Expression<double>? score,
     Expression<double>? hotScore,
@@ -528,9 +489,9 @@ class CategoryHistoryTableCompanion
     Expression<int>? riseCount,
     Expression<int>? fallCount,
     Expression<int>? totalCount,
+    Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
-      if (id != null) 'id': id,
       if (tradeDate != null) 'trade_date': tradeDate,
       if (categoryName != null) 'category_name': categoryName,
       if (score != null) 'score': score,
@@ -540,12 +501,12 @@ class CategoryHistoryTableCompanion
       if (riseCount != null) 'rise_count': riseCount,
       if (fallCount != null) 'fall_count': fallCount,
       if (totalCount != null) 'total_count': totalCount,
+      if (rowid != null) 'rowid': rowid,
     });
   }
 
   CategoryHistoryTableCompanion copyWith({
-    Value<int>? id,
-    Value<DateTime>? tradeDate,
+    Value<String>? tradeDate,
     Value<String>? categoryName,
     Value<double>? score,
     Value<double>? hotScore,
@@ -554,9 +515,9 @@ class CategoryHistoryTableCompanion
     Value<int>? riseCount,
     Value<int>? fallCount,
     Value<int>? totalCount,
+    Value<int>? rowid,
   }) {
     return CategoryHistoryTableCompanion(
-      id: id ?? this.id,
       tradeDate: tradeDate ?? this.tradeDate,
       categoryName: categoryName ?? this.categoryName,
       score: score ?? this.score,
@@ -566,17 +527,15 @@ class CategoryHistoryTableCompanion
       riseCount: riseCount ?? this.riseCount,
       fallCount: fallCount ?? this.fallCount,
       totalCount: totalCount ?? this.totalCount,
+      rowid: rowid ?? this.rowid,
     );
   }
 
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
     if (tradeDate.present) {
-      map['trade_date'] = Variable<DateTime>(tradeDate.value);
+      map['trade_date'] = Variable<String>(tradeDate.value);
     }
     if (categoryName.present) {
       map['category_name'] = Variable<String>(categoryName.value);
@@ -602,13 +561,15 @@ class CategoryHistoryTableCompanion
     if (totalCount.present) {
       map['total_count'] = Variable<int>(totalCount.value);
     }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
     return map;
   }
 
   @override
   String toString() {
     return (StringBuffer('CategoryHistoryTableCompanion(')
-          ..write('id: $id, ')
           ..write('tradeDate: $tradeDate, ')
           ..write('categoryName: $categoryName, ')
           ..write('score: $score, ')
@@ -617,7 +578,934 @@ class CategoryHistoryTableCompanion
           ..write('trendStrength: $trendStrength, ')
           ..write('riseCount: $riseCount, ')
           ..write('fallCount: $fallCount, ')
-          ..write('totalCount: $totalCount')
+          ..write('totalCount: $totalCount, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MainstreamHistoryTableTable extends MainstreamHistoryTable
+    with TableInfo<$MainstreamHistoryTableTable, MainstreamHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MainstreamHistoryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tradeDateMeta = const VerificationMeta(
+    'tradeDate',
+  );
+  @override
+  late final GeneratedColumn<String> tradeDate = GeneratedColumn<String>(
+    'trade_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryNameMeta = const VerificationMeta(
+    'categoryName',
+  );
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+    'category_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rankNoMeta = const VerificationMeta('rankNo');
+  @override
+  late final GeneratedColumn<int> rankNo = GeneratedColumn<int>(
+    'rank_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<double> score = GeneratedColumn<double>(
+    'score',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    tradeDate,
+    categoryName,
+    rankNo,
+    score,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mainstream_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MainstreamHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('trade_date')) {
+      context.handle(
+        _tradeDateMeta,
+        tradeDate.isAcceptableOrUnknown(data['trade_date']!, _tradeDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeDateMeta);
+    }
+    if (data.containsKey('category_name')) {
+      context.handle(
+        _categoryNameMeta,
+        categoryName.isAcceptableOrUnknown(
+          data['category_name']!,
+          _categoryNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryNameMeta);
+    }
+    if (data.containsKey('rank_no')) {
+      context.handle(
+        _rankNoMeta,
+        rankNo.isAcceptableOrUnknown(data['rank_no']!, _rankNoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rankNoMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoreMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tradeDate, categoryName};
+  @override
+  MainstreamHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MainstreamHistoryData(
+      tradeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trade_date'],
+      )!,
+      categoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_name'],
+      )!,
+      rankNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rank_no'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}score'],
+      )!,
+    );
+  }
+
+  @override
+  $MainstreamHistoryTableTable createAlias(String alias) {
+    return $MainstreamHistoryTableTable(attachedDatabase, alias);
+  }
+}
+
+class MainstreamHistoryData extends DataClass
+    implements Insertable<MainstreamHistoryData> {
+  final String tradeDate;
+  final String categoryName;
+  final int rankNo;
+  final double score;
+  const MainstreamHistoryData({
+    required this.tradeDate,
+    required this.categoryName,
+    required this.rankNo,
+    required this.score,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['trade_date'] = Variable<String>(tradeDate);
+    map['category_name'] = Variable<String>(categoryName);
+    map['rank_no'] = Variable<int>(rankNo);
+    map['score'] = Variable<double>(score);
+    return map;
+  }
+
+  MainstreamHistoryTableCompanion toCompanion(bool nullToAbsent) {
+    return MainstreamHistoryTableCompanion(
+      tradeDate: Value(tradeDate),
+      categoryName: Value(categoryName),
+      rankNo: Value(rankNo),
+      score: Value(score),
+    );
+  }
+
+  factory MainstreamHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MainstreamHistoryData(
+      tradeDate: serializer.fromJson<String>(json['tradeDate']),
+      categoryName: serializer.fromJson<String>(json['categoryName']),
+      rankNo: serializer.fromJson<int>(json['rankNo']),
+      score: serializer.fromJson<double>(json['score']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tradeDate': serializer.toJson<String>(tradeDate),
+      'categoryName': serializer.toJson<String>(categoryName),
+      'rankNo': serializer.toJson<int>(rankNo),
+      'score': serializer.toJson<double>(score),
+    };
+  }
+
+  MainstreamHistoryData copyWith({
+    String? tradeDate,
+    String? categoryName,
+    int? rankNo,
+    double? score,
+  }) => MainstreamHistoryData(
+    tradeDate: tradeDate ?? this.tradeDate,
+    categoryName: categoryName ?? this.categoryName,
+    rankNo: rankNo ?? this.rankNo,
+    score: score ?? this.score,
+  );
+  MainstreamHistoryData copyWithCompanion(
+    MainstreamHistoryTableCompanion data,
+  ) {
+    return MainstreamHistoryData(
+      tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      rankNo: data.rankNo.present ? data.rankNo.value : this.rankNo,
+      score: data.score.present ? data.score.value : this.score,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MainstreamHistoryData(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('rankNo: $rankNo, ')
+          ..write('score: $score')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tradeDate, categoryName, rankNo, score);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MainstreamHistoryData &&
+          other.tradeDate == this.tradeDate &&
+          other.categoryName == this.categoryName &&
+          other.rankNo == this.rankNo &&
+          other.score == this.score);
+}
+
+class MainstreamHistoryTableCompanion
+    extends UpdateCompanion<MainstreamHistoryData> {
+  final Value<String> tradeDate;
+  final Value<String> categoryName;
+  final Value<int> rankNo;
+  final Value<double> score;
+  final Value<int> rowid;
+  const MainstreamHistoryTableCompanion({
+    this.tradeDate = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    this.rankNo = const Value.absent(),
+    this.score = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MainstreamHistoryTableCompanion.insert({
+    required String tradeDate,
+    required String categoryName,
+    required int rankNo,
+    required double score,
+    this.rowid = const Value.absent(),
+  }) : tradeDate = Value(tradeDate),
+       categoryName = Value(categoryName),
+       rankNo = Value(rankNo),
+       score = Value(score);
+  static Insertable<MainstreamHistoryData> custom({
+    Expression<String>? tradeDate,
+    Expression<String>? categoryName,
+    Expression<int>? rankNo,
+    Expression<double>? score,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tradeDate != null) 'trade_date': tradeDate,
+      if (categoryName != null) 'category_name': categoryName,
+      if (rankNo != null) 'rank_no': rankNo,
+      if (score != null) 'score': score,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MainstreamHistoryTableCompanion copyWith({
+    Value<String>? tradeDate,
+    Value<String>? categoryName,
+    Value<int>? rankNo,
+    Value<double>? score,
+    Value<int>? rowid,
+  }) {
+    return MainstreamHistoryTableCompanion(
+      tradeDate: tradeDate ?? this.tradeDate,
+      categoryName: categoryName ?? this.categoryName,
+      rankNo: rankNo ?? this.rankNo,
+      score: score ?? this.score,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tradeDate.present) {
+      map['trade_date'] = Variable<String>(tradeDate.value);
+    }
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (rankNo.present) {
+      map['rank_no'] = Variable<int>(rankNo.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<double>(score.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MainstreamHistoryTableCompanion(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('rankNo: $rankNo, ')
+          ..write('score: $score, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LifecycleHistoryTableTable extends LifecycleHistoryTable
+    with TableInfo<$LifecycleHistoryTableTable, LifecycleHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LifecycleHistoryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tradeDateMeta = const VerificationMeta(
+    'tradeDate',
+  );
+  @override
+  late final GeneratedColumn<String> tradeDate = GeneratedColumn<String>(
+    'trade_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryNameMeta = const VerificationMeta(
+    'categoryName',
+  );
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+    'category_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stageMeta = const VerificationMeta('stage');
+  @override
+  late final GeneratedColumn<String> stage = GeneratedColumn<String>(
+    'stage',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [tradeDate, categoryName, stage];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'lifecycle_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LifecycleHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('trade_date')) {
+      context.handle(
+        _tradeDateMeta,
+        tradeDate.isAcceptableOrUnknown(data['trade_date']!, _tradeDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeDateMeta);
+    }
+    if (data.containsKey('category_name')) {
+      context.handle(
+        _categoryNameMeta,
+        categoryName.isAcceptableOrUnknown(
+          data['category_name']!,
+          _categoryNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryNameMeta);
+    }
+    if (data.containsKey('stage')) {
+      context.handle(
+        _stageMeta,
+        stage.isAcceptableOrUnknown(data['stage']!, _stageMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stageMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tradeDate, categoryName};
+  @override
+  LifecycleHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LifecycleHistoryData(
+      tradeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trade_date'],
+      )!,
+      categoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_name'],
+      )!,
+      stage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage'],
+      )!,
+    );
+  }
+
+  @override
+  $LifecycleHistoryTableTable createAlias(String alias) {
+    return $LifecycleHistoryTableTable(attachedDatabase, alias);
+  }
+}
+
+class LifecycleHistoryData extends DataClass
+    implements Insertable<LifecycleHistoryData> {
+  final String tradeDate;
+  final String categoryName;
+  final String stage;
+  const LifecycleHistoryData({
+    required this.tradeDate,
+    required this.categoryName,
+    required this.stage,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['trade_date'] = Variable<String>(tradeDate);
+    map['category_name'] = Variable<String>(categoryName);
+    map['stage'] = Variable<String>(stage);
+    return map;
+  }
+
+  LifecycleHistoryTableCompanion toCompanion(bool nullToAbsent) {
+    return LifecycleHistoryTableCompanion(
+      tradeDate: Value(tradeDate),
+      categoryName: Value(categoryName),
+      stage: Value(stage),
+    );
+  }
+
+  factory LifecycleHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LifecycleHistoryData(
+      tradeDate: serializer.fromJson<String>(json['tradeDate']),
+      categoryName: serializer.fromJson<String>(json['categoryName']),
+      stage: serializer.fromJson<String>(json['stage']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tradeDate': serializer.toJson<String>(tradeDate),
+      'categoryName': serializer.toJson<String>(categoryName),
+      'stage': serializer.toJson<String>(stage),
+    };
+  }
+
+  LifecycleHistoryData copyWith({
+    String? tradeDate,
+    String? categoryName,
+    String? stage,
+  }) => LifecycleHistoryData(
+    tradeDate: tradeDate ?? this.tradeDate,
+    categoryName: categoryName ?? this.categoryName,
+    stage: stage ?? this.stage,
+  );
+  LifecycleHistoryData copyWithCompanion(LifecycleHistoryTableCompanion data) {
+    return LifecycleHistoryData(
+      tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      stage: data.stage.present ? data.stage.value : this.stage,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LifecycleHistoryData(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('stage: $stage')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tradeDate, categoryName, stage);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LifecycleHistoryData &&
+          other.tradeDate == this.tradeDate &&
+          other.categoryName == this.categoryName &&
+          other.stage == this.stage);
+}
+
+class LifecycleHistoryTableCompanion
+    extends UpdateCompanion<LifecycleHistoryData> {
+  final Value<String> tradeDate;
+  final Value<String> categoryName;
+  final Value<String> stage;
+  final Value<int> rowid;
+  const LifecycleHistoryTableCompanion({
+    this.tradeDate = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    this.stage = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LifecycleHistoryTableCompanion.insert({
+    required String tradeDate,
+    required String categoryName,
+    required String stage,
+    this.rowid = const Value.absent(),
+  }) : tradeDate = Value(tradeDate),
+       categoryName = Value(categoryName),
+       stage = Value(stage);
+  static Insertable<LifecycleHistoryData> custom({
+    Expression<String>? tradeDate,
+    Expression<String>? categoryName,
+    Expression<String>? stage,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tradeDate != null) 'trade_date': tradeDate,
+      if (categoryName != null) 'category_name': categoryName,
+      if (stage != null) 'stage': stage,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LifecycleHistoryTableCompanion copyWith({
+    Value<String>? tradeDate,
+    Value<String>? categoryName,
+    Value<String>? stage,
+    Value<int>? rowid,
+  }) {
+    return LifecycleHistoryTableCompanion(
+      tradeDate: tradeDate ?? this.tradeDate,
+      categoryName: categoryName ?? this.categoryName,
+      stage: stage ?? this.stage,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tradeDate.present) {
+      map['trade_date'] = Variable<String>(tradeDate.value);
+    }
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (stage.present) {
+      map['stage'] = Variable<String>(stage.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LifecycleHistoryTableCompanion(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('stage: $stage, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RotationHistoryTableTable extends RotationHistoryTable
+    with TableInfo<$RotationHistoryTableTable, RotationHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RotationHistoryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tradeDateMeta = const VerificationMeta(
+    'tradeDate',
+  );
+  @override
+  late final GeneratedColumn<String> tradeDate = GeneratedColumn<String>(
+    'trade_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fromCategoryMeta = const VerificationMeta(
+    'fromCategory',
+  );
+  @override
+  late final GeneratedColumn<String> fromCategory = GeneratedColumn<String>(
+    'from_category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _toCategoryMeta = const VerificationMeta(
+    'toCategory',
+  );
+  @override
+  late final GeneratedColumn<String> toCategory = GeneratedColumn<String>(
+    'to_category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<double> score = GeneratedColumn<double>(
+    'score',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    tradeDate,
+    fromCategory,
+    toCategory,
+    score,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'rotation_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RotationHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('trade_date')) {
+      context.handle(
+        _tradeDateMeta,
+        tradeDate.isAcceptableOrUnknown(data['trade_date']!, _tradeDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeDateMeta);
+    }
+    if (data.containsKey('from_category')) {
+      context.handle(
+        _fromCategoryMeta,
+        fromCategory.isAcceptableOrUnknown(
+          data['from_category']!,
+          _fromCategoryMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fromCategoryMeta);
+    }
+    if (data.containsKey('to_category')) {
+      context.handle(
+        _toCategoryMeta,
+        toCategory.isAcceptableOrUnknown(data['to_category']!, _toCategoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_toCategoryMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoreMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tradeDate, fromCategory, toCategory};
+  @override
+  RotationHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RotationHistoryData(
+      tradeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trade_date'],
+      )!,
+      fromCategory: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}from_category'],
+      )!,
+      toCategory: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}to_category'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}score'],
+      )!,
+    );
+  }
+
+  @override
+  $RotationHistoryTableTable createAlias(String alias) {
+    return $RotationHistoryTableTable(attachedDatabase, alias);
+  }
+}
+
+class RotationHistoryData extends DataClass
+    implements Insertable<RotationHistoryData> {
+  final String tradeDate;
+  final String fromCategory;
+  final String toCategory;
+  final double score;
+  const RotationHistoryData({
+    required this.tradeDate,
+    required this.fromCategory,
+    required this.toCategory,
+    required this.score,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['trade_date'] = Variable<String>(tradeDate);
+    map['from_category'] = Variable<String>(fromCategory);
+    map['to_category'] = Variable<String>(toCategory);
+    map['score'] = Variable<double>(score);
+    return map;
+  }
+
+  RotationHistoryTableCompanion toCompanion(bool nullToAbsent) {
+    return RotationHistoryTableCompanion(
+      tradeDate: Value(tradeDate),
+      fromCategory: Value(fromCategory),
+      toCategory: Value(toCategory),
+      score: Value(score),
+    );
+  }
+
+  factory RotationHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RotationHistoryData(
+      tradeDate: serializer.fromJson<String>(json['tradeDate']),
+      fromCategory: serializer.fromJson<String>(json['fromCategory']),
+      toCategory: serializer.fromJson<String>(json['toCategory']),
+      score: serializer.fromJson<double>(json['score']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tradeDate': serializer.toJson<String>(tradeDate),
+      'fromCategory': serializer.toJson<String>(fromCategory),
+      'toCategory': serializer.toJson<String>(toCategory),
+      'score': serializer.toJson<double>(score),
+    };
+  }
+
+  RotationHistoryData copyWith({
+    String? tradeDate,
+    String? fromCategory,
+    String? toCategory,
+    double? score,
+  }) => RotationHistoryData(
+    tradeDate: tradeDate ?? this.tradeDate,
+    fromCategory: fromCategory ?? this.fromCategory,
+    toCategory: toCategory ?? this.toCategory,
+    score: score ?? this.score,
+  );
+  RotationHistoryData copyWithCompanion(RotationHistoryTableCompanion data) {
+    return RotationHistoryData(
+      tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
+      fromCategory: data.fromCategory.present
+          ? data.fromCategory.value
+          : this.fromCategory,
+      toCategory: data.toCategory.present
+          ? data.toCategory.value
+          : this.toCategory,
+      score: data.score.present ? data.score.value : this.score,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RotationHistoryData(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('fromCategory: $fromCategory, ')
+          ..write('toCategory: $toCategory, ')
+          ..write('score: $score')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tradeDate, fromCategory, toCategory, score);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RotationHistoryData &&
+          other.tradeDate == this.tradeDate &&
+          other.fromCategory == this.fromCategory &&
+          other.toCategory == this.toCategory &&
+          other.score == this.score);
+}
+
+class RotationHistoryTableCompanion
+    extends UpdateCompanion<RotationHistoryData> {
+  final Value<String> tradeDate;
+  final Value<String> fromCategory;
+  final Value<String> toCategory;
+  final Value<double> score;
+  final Value<int> rowid;
+  const RotationHistoryTableCompanion({
+    this.tradeDate = const Value.absent(),
+    this.fromCategory = const Value.absent(),
+    this.toCategory = const Value.absent(),
+    this.score = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RotationHistoryTableCompanion.insert({
+    required String tradeDate,
+    required String fromCategory,
+    required String toCategory,
+    required double score,
+    this.rowid = const Value.absent(),
+  }) : tradeDate = Value(tradeDate),
+       fromCategory = Value(fromCategory),
+       toCategory = Value(toCategory),
+       score = Value(score);
+  static Insertable<RotationHistoryData> custom({
+    Expression<String>? tradeDate,
+    Expression<String>? fromCategory,
+    Expression<String>? toCategory,
+    Expression<double>? score,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tradeDate != null) 'trade_date': tradeDate,
+      if (fromCategory != null) 'from_category': fromCategory,
+      if (toCategory != null) 'to_category': toCategory,
+      if (score != null) 'score': score,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RotationHistoryTableCompanion copyWith({
+    Value<String>? tradeDate,
+    Value<String>? fromCategory,
+    Value<String>? toCategory,
+    Value<double>? score,
+    Value<int>? rowid,
+  }) {
+    return RotationHistoryTableCompanion(
+      tradeDate: tradeDate ?? this.tradeDate,
+      fromCategory: fromCategory ?? this.fromCategory,
+      toCategory: toCategory ?? this.toCategory,
+      score: score ?? this.score,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tradeDate.present) {
+      map['trade_date'] = Variable<String>(tradeDate.value);
+    }
+    if (fromCategory.present) {
+      map['from_category'] = Variable<String>(fromCategory.value);
+    }
+    if (toCategory.present) {
+      map['to_category'] = Variable<String>(toCategory.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<double>(score.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RotationHistoryTableCompanion(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('fromCategory: $fromCategory, ')
+          ..write('toCategory: $toCategory, ')
+          ..write('score: $score, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -628,17 +1516,27 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $CategoryHistoryTableTable categoryHistoryTable =
       $CategoryHistoryTableTable(this);
+  late final $MainstreamHistoryTableTable mainstreamHistoryTable =
+      $MainstreamHistoryTableTable(this);
+  late final $LifecycleHistoryTableTable lifecycleHistoryTable =
+      $LifecycleHistoryTableTable(this);
+  late final $RotationHistoryTableTable rotationHistoryTable =
+      $RotationHistoryTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [categoryHistoryTable];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    categoryHistoryTable,
+    mainstreamHistoryTable,
+    lifecycleHistoryTable,
+    rotationHistoryTable,
+  ];
 }
 
 typedef $$CategoryHistoryTableTableCreateCompanionBuilder =
     CategoryHistoryTableCompanion Function({
-      Value<int> id,
-      required DateTime tradeDate,
+      required String tradeDate,
       required String categoryName,
       required double score,
       required double hotScore,
@@ -647,11 +1545,11 @@ typedef $$CategoryHistoryTableTableCreateCompanionBuilder =
       required int riseCount,
       required int fallCount,
       required int totalCount,
+      Value<int> rowid,
     });
 typedef $$CategoryHistoryTableTableUpdateCompanionBuilder =
     CategoryHistoryTableCompanion Function({
-      Value<int> id,
-      Value<DateTime> tradeDate,
+      Value<String> tradeDate,
       Value<String> categoryName,
       Value<double> score,
       Value<double> hotScore,
@@ -660,6 +1558,7 @@ typedef $$CategoryHistoryTableTableUpdateCompanionBuilder =
       Value<int> riseCount,
       Value<int> fallCount,
       Value<int> totalCount,
+      Value<int> rowid,
     });
 
 class $$CategoryHistoryTableTableFilterComposer
@@ -671,12 +1570,7 @@ class $$CategoryHistoryTableTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnFilters<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<DateTime> get tradeDate => $composableBuilder(
+  ColumnFilters<String> get tradeDate => $composableBuilder(
     column: $table.tradeDate,
     builder: (column) => ColumnFilters(column),
   );
@@ -731,12 +1625,7 @@ class $$CategoryHistoryTableTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  ColumnOrderings<int> get id => $composableBuilder(
-    column: $table.id,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<DateTime> get tradeDate => $composableBuilder(
+  ColumnOrderings<String> get tradeDate => $composableBuilder(
     column: $table.tradeDate,
     builder: (column) => ColumnOrderings(column),
   );
@@ -791,10 +1680,7 @@ class $$CategoryHistoryTableTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
-  GeneratedColumn<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<DateTime> get tradeDate =>
+  GeneratedColumn<String> get tradeDate =>
       $composableBuilder(column: $table.tradeDate, builder: (column) => column);
 
   GeneratedColumn<String> get categoryName => $composableBuilder(
@@ -835,21 +1721,21 @@ class $$CategoryHistoryTableTableTableManager
         RootTableManager<
           _$AppDatabase,
           $CategoryHistoryTableTable,
-          CategoryHistoryTableData,
+          CategoryHistoryData,
           $$CategoryHistoryTableTableFilterComposer,
           $$CategoryHistoryTableTableOrderingComposer,
           $$CategoryHistoryTableTableAnnotationComposer,
           $$CategoryHistoryTableTableCreateCompanionBuilder,
           $$CategoryHistoryTableTableUpdateCompanionBuilder,
           (
-            CategoryHistoryTableData,
+            CategoryHistoryData,
             BaseReferences<
               _$AppDatabase,
               $CategoryHistoryTableTable,
-              CategoryHistoryTableData
+              CategoryHistoryData
             >,
           ),
-          CategoryHistoryTableData,
+          CategoryHistoryData,
           PrefetchHooks Function()
         > {
   $$CategoryHistoryTableTableTableManager(
@@ -873,8 +1759,7 @@ class $$CategoryHistoryTableTableTableManager
               ),
           updateCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                Value<DateTime> tradeDate = const Value.absent(),
+                Value<String> tradeDate = const Value.absent(),
                 Value<String> categoryName = const Value.absent(),
                 Value<double> score = const Value.absent(),
                 Value<double> hotScore = const Value.absent(),
@@ -883,8 +1768,8 @@ class $$CategoryHistoryTableTableTableManager
                 Value<int> riseCount = const Value.absent(),
                 Value<int> fallCount = const Value.absent(),
                 Value<int> totalCount = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
               }) => CategoryHistoryTableCompanion(
-                id: id,
                 tradeDate: tradeDate,
                 categoryName: categoryName,
                 score: score,
@@ -894,11 +1779,11 @@ class $$CategoryHistoryTableTableTableManager
                 riseCount: riseCount,
                 fallCount: fallCount,
                 totalCount: totalCount,
+                rowid: rowid,
               ),
           createCompanionCallback:
               ({
-                Value<int> id = const Value.absent(),
-                required DateTime tradeDate,
+                required String tradeDate,
                 required String categoryName,
                 required double score,
                 required double hotScore,
@@ -907,8 +1792,8 @@ class $$CategoryHistoryTableTableTableManager
                 required int riseCount,
                 required int fallCount,
                 required int totalCount,
+                Value<int> rowid = const Value.absent(),
               }) => CategoryHistoryTableCompanion.insert(
-                id: id,
                 tradeDate: tradeDate,
                 categoryName: categoryName,
                 score: score,
@@ -918,6 +1803,7 @@ class $$CategoryHistoryTableTableTableManager
                 riseCount: riseCount,
                 fallCount: fallCount,
                 totalCount: totalCount,
+                rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -931,21 +1817,607 @@ typedef $$CategoryHistoryTableTableProcessedTableManager =
     ProcessedTableManager<
       _$AppDatabase,
       $CategoryHistoryTableTable,
-      CategoryHistoryTableData,
+      CategoryHistoryData,
       $$CategoryHistoryTableTableFilterComposer,
       $$CategoryHistoryTableTableOrderingComposer,
       $$CategoryHistoryTableTableAnnotationComposer,
       $$CategoryHistoryTableTableCreateCompanionBuilder,
       $$CategoryHistoryTableTableUpdateCompanionBuilder,
       (
-        CategoryHistoryTableData,
+        CategoryHistoryData,
         BaseReferences<
           _$AppDatabase,
           $CategoryHistoryTableTable,
-          CategoryHistoryTableData
+          CategoryHistoryData
         >,
       ),
-      CategoryHistoryTableData,
+      CategoryHistoryData,
+      PrefetchHooks Function()
+    >;
+typedef $$MainstreamHistoryTableTableCreateCompanionBuilder =
+    MainstreamHistoryTableCompanion Function({
+      required String tradeDate,
+      required String categoryName,
+      required int rankNo,
+      required double score,
+      Value<int> rowid,
+    });
+typedef $$MainstreamHistoryTableTableUpdateCompanionBuilder =
+    MainstreamHistoryTableCompanion Function({
+      Value<String> tradeDate,
+      Value<String> categoryName,
+      Value<int> rankNo,
+      Value<double> score,
+      Value<int> rowid,
+    });
+
+class $$MainstreamHistoryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $MainstreamHistoryTableTable> {
+  $$MainstreamHistoryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rankNo => $composableBuilder(
+    column: $table.rankNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MainstreamHistoryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $MainstreamHistoryTableTable> {
+  $$MainstreamHistoryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rankNo => $composableBuilder(
+    column: $table.rankNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MainstreamHistoryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MainstreamHistoryTableTable> {
+  $$MainstreamHistoryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tradeDate =>
+      $composableBuilder(column: $table.tradeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rankNo =>
+      $composableBuilder(column: $table.rankNo, builder: (column) => column);
+
+  GeneratedColumn<double> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+}
+
+class $$MainstreamHistoryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MainstreamHistoryTableTable,
+          MainstreamHistoryData,
+          $$MainstreamHistoryTableTableFilterComposer,
+          $$MainstreamHistoryTableTableOrderingComposer,
+          $$MainstreamHistoryTableTableAnnotationComposer,
+          $$MainstreamHistoryTableTableCreateCompanionBuilder,
+          $$MainstreamHistoryTableTableUpdateCompanionBuilder,
+          (
+            MainstreamHistoryData,
+            BaseReferences<
+              _$AppDatabase,
+              $MainstreamHistoryTableTable,
+              MainstreamHistoryData
+            >,
+          ),
+          MainstreamHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$MainstreamHistoryTableTableTableManager(
+    _$AppDatabase db,
+    $MainstreamHistoryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MainstreamHistoryTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$MainstreamHistoryTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$MainstreamHistoryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tradeDate = const Value.absent(),
+                Value<String> categoryName = const Value.absent(),
+                Value<int> rankNo = const Value.absent(),
+                Value<double> score = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MainstreamHistoryTableCompanion(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                rankNo: rankNo,
+                score: score,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tradeDate,
+                required String categoryName,
+                required int rankNo,
+                required double score,
+                Value<int> rowid = const Value.absent(),
+              }) => MainstreamHistoryTableCompanion.insert(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                rankNo: rankNo,
+                score: score,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MainstreamHistoryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MainstreamHistoryTableTable,
+      MainstreamHistoryData,
+      $$MainstreamHistoryTableTableFilterComposer,
+      $$MainstreamHistoryTableTableOrderingComposer,
+      $$MainstreamHistoryTableTableAnnotationComposer,
+      $$MainstreamHistoryTableTableCreateCompanionBuilder,
+      $$MainstreamHistoryTableTableUpdateCompanionBuilder,
+      (
+        MainstreamHistoryData,
+        BaseReferences<
+          _$AppDatabase,
+          $MainstreamHistoryTableTable,
+          MainstreamHistoryData
+        >,
+      ),
+      MainstreamHistoryData,
+      PrefetchHooks Function()
+    >;
+typedef $$LifecycleHistoryTableTableCreateCompanionBuilder =
+    LifecycleHistoryTableCompanion Function({
+      required String tradeDate,
+      required String categoryName,
+      required String stage,
+      Value<int> rowid,
+    });
+typedef $$LifecycleHistoryTableTableUpdateCompanionBuilder =
+    LifecycleHistoryTableCompanion Function({
+      Value<String> tradeDate,
+      Value<String> categoryName,
+      Value<String> stage,
+      Value<int> rowid,
+    });
+
+class $$LifecycleHistoryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $LifecycleHistoryTableTable> {
+  $$LifecycleHistoryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LifecycleHistoryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $LifecycleHistoryTableTable> {
+  $$LifecycleHistoryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LifecycleHistoryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LifecycleHistoryTableTable> {
+  $$LifecycleHistoryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tradeDate =>
+      $composableBuilder(column: $table.tradeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get stage =>
+      $composableBuilder(column: $table.stage, builder: (column) => column);
+}
+
+class $$LifecycleHistoryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LifecycleHistoryTableTable,
+          LifecycleHistoryData,
+          $$LifecycleHistoryTableTableFilterComposer,
+          $$LifecycleHistoryTableTableOrderingComposer,
+          $$LifecycleHistoryTableTableAnnotationComposer,
+          $$LifecycleHistoryTableTableCreateCompanionBuilder,
+          $$LifecycleHistoryTableTableUpdateCompanionBuilder,
+          (
+            LifecycleHistoryData,
+            BaseReferences<
+              _$AppDatabase,
+              $LifecycleHistoryTableTable,
+              LifecycleHistoryData
+            >,
+          ),
+          LifecycleHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$LifecycleHistoryTableTableTableManager(
+    _$AppDatabase db,
+    $LifecycleHistoryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LifecycleHistoryTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LifecycleHistoryTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LifecycleHistoryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tradeDate = const Value.absent(),
+                Value<String> categoryName = const Value.absent(),
+                Value<String> stage = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LifecycleHistoryTableCompanion(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                stage: stage,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tradeDate,
+                required String categoryName,
+                required String stage,
+                Value<int> rowid = const Value.absent(),
+              }) => LifecycleHistoryTableCompanion.insert(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                stage: stage,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LifecycleHistoryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LifecycleHistoryTableTable,
+      LifecycleHistoryData,
+      $$LifecycleHistoryTableTableFilterComposer,
+      $$LifecycleHistoryTableTableOrderingComposer,
+      $$LifecycleHistoryTableTableAnnotationComposer,
+      $$LifecycleHistoryTableTableCreateCompanionBuilder,
+      $$LifecycleHistoryTableTableUpdateCompanionBuilder,
+      (
+        LifecycleHistoryData,
+        BaseReferences<
+          _$AppDatabase,
+          $LifecycleHistoryTableTable,
+          LifecycleHistoryData
+        >,
+      ),
+      LifecycleHistoryData,
+      PrefetchHooks Function()
+    >;
+typedef $$RotationHistoryTableTableCreateCompanionBuilder =
+    RotationHistoryTableCompanion Function({
+      required String tradeDate,
+      required String fromCategory,
+      required String toCategory,
+      required double score,
+      Value<int> rowid,
+    });
+typedef $$RotationHistoryTableTableUpdateCompanionBuilder =
+    RotationHistoryTableCompanion Function({
+      Value<String> tradeDate,
+      Value<String> fromCategory,
+      Value<String> toCategory,
+      Value<double> score,
+      Value<int> rowid,
+    });
+
+class $$RotationHistoryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $RotationHistoryTableTable> {
+  $$RotationHistoryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fromCategory => $composableBuilder(
+    column: $table.fromCategory,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get toCategory => $composableBuilder(
+    column: $table.toCategory,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RotationHistoryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $RotationHistoryTableTable> {
+  $$RotationHistoryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fromCategory => $composableBuilder(
+    column: $table.fromCategory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get toCategory => $composableBuilder(
+    column: $table.toCategory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RotationHistoryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RotationHistoryTableTable> {
+  $$RotationHistoryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tradeDate =>
+      $composableBuilder(column: $table.tradeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get fromCategory => $composableBuilder(
+    column: $table.fromCategory,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get toCategory => $composableBuilder(
+    column: $table.toCategory,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+}
+
+class $$RotationHistoryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RotationHistoryTableTable,
+          RotationHistoryData,
+          $$RotationHistoryTableTableFilterComposer,
+          $$RotationHistoryTableTableOrderingComposer,
+          $$RotationHistoryTableTableAnnotationComposer,
+          $$RotationHistoryTableTableCreateCompanionBuilder,
+          $$RotationHistoryTableTableUpdateCompanionBuilder,
+          (
+            RotationHistoryData,
+            BaseReferences<
+              _$AppDatabase,
+              $RotationHistoryTableTable,
+              RotationHistoryData
+            >,
+          ),
+          RotationHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$RotationHistoryTableTableTableManager(
+    _$AppDatabase db,
+    $RotationHistoryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RotationHistoryTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RotationHistoryTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RotationHistoryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tradeDate = const Value.absent(),
+                Value<String> fromCategory = const Value.absent(),
+                Value<String> toCategory = const Value.absent(),
+                Value<double> score = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RotationHistoryTableCompanion(
+                tradeDate: tradeDate,
+                fromCategory: fromCategory,
+                toCategory: toCategory,
+                score: score,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tradeDate,
+                required String fromCategory,
+                required String toCategory,
+                required double score,
+                Value<int> rowid = const Value.absent(),
+              }) => RotationHistoryTableCompanion.insert(
+                tradeDate: tradeDate,
+                fromCategory: fromCategory,
+                toCategory: toCategory,
+                score: score,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RotationHistoryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RotationHistoryTableTable,
+      RotationHistoryData,
+      $$RotationHistoryTableTableFilterComposer,
+      $$RotationHistoryTableTableOrderingComposer,
+      $$RotationHistoryTableTableAnnotationComposer,
+      $$RotationHistoryTableTableCreateCompanionBuilder,
+      $$RotationHistoryTableTableUpdateCompanionBuilder,
+      (
+        RotationHistoryData,
+        BaseReferences<
+          _$AppDatabase,
+          $RotationHistoryTableTable,
+          RotationHistoryData
+        >,
+      ),
+      RotationHistoryData,
       PrefetchHooks Function()
     >;
 
@@ -954,4 +2426,13 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$CategoryHistoryTableTableTableManager get categoryHistoryTable =>
       $$CategoryHistoryTableTableTableManager(_db, _db.categoryHistoryTable);
+  $$MainstreamHistoryTableTableTableManager get mainstreamHistoryTable =>
+      $$MainstreamHistoryTableTableTableManager(
+        _db,
+        _db.mainstreamHistoryTable,
+      );
+  $$LifecycleHistoryTableTableTableManager get lifecycleHistoryTable =>
+      $$LifecycleHistoryTableTableTableManager(_db, _db.lifecycleHistoryTable);
+  $$RotationHistoryTableTableTableManager get rotationHistoryTable =>
+      $$RotationHistoryTableTableTableManager(_db, _db.rotationHistoryTable);
 }

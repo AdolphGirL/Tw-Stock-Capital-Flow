@@ -18,6 +18,9 @@ import 'package:tw_stock_capital_flow/presentation/pages/market_sentiment_page.d
 import 'package:tw_stock_capital_flow/presentation/pages/rotation_page.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/market_heatmap.dart';
 
+// 🚀 引入資料庫與 Repository 依賴
+import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+
 class HomePage extends StatelessWidget {
   final List<CategoryUiModel> listedCategories;
   final List<CategoryUiModel> otcCategories;
@@ -31,6 +34,9 @@ class HomePage extends StatelessWidget {
   final List<MainstreamResult> mainstreams;
   final List<LifecycleResult> lifecycles;
   final MarketSentimentResult? sentiment;
+
+  // 🚀 注入歷史資料庫接口
+  final CategoryHistoryRepository historyRepository;
 
   const HomePage({
     super.key,
@@ -46,6 +52,7 @@ class HomePage extends StatelessWidget {
     required this.mainstreams,
     required this.lifecycles,
     required this.sentiment,
+    required this.historyRepository, // ⚡ 納入必要參數
   });
 
   @override
@@ -60,7 +67,7 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 28),
             _buildMarketSection(context),
             const SizedBox(height: 32),
-            _buildHeatMap(),
+            _buildHeatMap(), // ⚡ 呼叫封裝方法
             const SizedBox(height: 32),
             _buildMainstreamSection(context),
             const SizedBox(height: 24),
@@ -70,8 +77,12 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 24),
             _buildRotationSection(context),
             const SizedBox(height: 32),
+
+            // 🔥 精確檢查點：此處必須完整帶上具名參數標籤 `categories:`
+            // 🔥 修正後：補上對應的 historyRepository 具名參數
             TopHotCategories(
               categories: [...listedCategories, ...otcCategories],
+              historyRepository: historyRepository, // 👈 補上這一行
             ),
             const SizedBox(height: 40),
           ],
@@ -109,10 +120,10 @@ class HomePage extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                // 🚀 【修復點】：精確傳入 required 的 title 參數
                 builder: (_) => MainCategoryPage(
                   title: '上市市場板塊',
                   categories: listedCategories,
+                  historyRepository: historyRepository,
                 ),
               ),
             );
@@ -130,10 +141,10 @@ class HomePage extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(
-                // 🚀 【修復點】：精確傳入 required 的 title 參數
                 builder: (_) => MainCategoryPage(
                   title: '上櫃市場板塊',
                   categories: otcCategories,
+                  historyRepository: historyRepository,
                 ),
               ),
             );
@@ -149,8 +160,12 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  // 🔥 精確檢查點：確保返回的是標準實例化的 Widget，且參數都有加上具名標籤
   Widget _buildHeatMap() {
-    return MarketHeatmap(categories: [...listedCategories, ...otcCategories]);
+    return MarketHeatmap(
+      categories: [...listedCategories, ...otcCategories], // 👈 必須有標籤
+      historyRepository: historyRepository, // 👈 必須有標籤
+    );
   }
 
   Widget _buildMainstreamSection(BuildContext context) {

@@ -86,8 +86,8 @@ class StockListPage extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(vertical: 6),
                     decoration: BoxDecoration(
                       color: isPositive
-                          ? Colors.redAccent.withOpacity(0.1)
-                          : Colors.green.withOpacity(0.1),
+                          ? Colors.redAccent.withValues(alpha: 0.1)
+                          : Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(

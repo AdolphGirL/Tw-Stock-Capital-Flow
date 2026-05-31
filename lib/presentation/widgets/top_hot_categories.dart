@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 
+// 🚀 正確引入歷史紀錄 Repository 依賴
+import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+
 class TopHotCategories extends StatelessWidget {
   final List<CategoryUiModel> categories;
-  final Function(CategoryUiModel)? onCategoryTap; // 新增：點擊回調
+  final Function(CategoryUiModel)? onCategoryTap; // 可選：點擊回調
+
+  // 🚀 注入歷史資料庫接口，用以向下傳遞給二級導頁
+  final CategoryHistoryRepository historyRepository;
 
   const TopHotCategories({
     super.key,
     required this.categories,
+    required this.historyRepository, // ⚡ 納入必要參數
     this.onCategoryTap, // 可選參數
   });
 
@@ -31,7 +38,14 @@ class TopHotCategories extends StatelessWidget {
 
         ...top5.map(
           (e) => GestureDetector(
-            onTap: () => CategoryNavigation.openCategory(context, e),
+            onTap: () {
+              // 🚀 如果有外部自訂的回調就執行
+              if (onCategoryTap != null) {
+                onCategoryTap!(e);
+              }
+              // 🚀 【完美修復點】：精確傳入三個參數，完成歷史走勢依賴的無縫穿透
+              CategoryNavigation.openCategory(context, e, historyRepository);
+            },
             child: Container(
               margin: const EdgeInsets.only(bottom: 14),
               padding: const EdgeInsets.all(18),

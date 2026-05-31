@@ -11,6 +11,10 @@ import 'package:tw_stock_capital_flow/data/repositories/history_repository.dart'
 import 'package:tw_stock_capital_flow/data/services/analysis_cache_service.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/shimmer_skeleton.dart';
 
+// 🚀 正確引入本地 SQLite 資料庫與對應的歷史紀錄 Repository
+import 'package:tw_stock_capital_flow/data/database/app_database.dart';
+import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const BootstrapApp());
@@ -29,6 +33,9 @@ class _BootstrapAppState extends State<BootstrapApp> {
   AppBootstrapResult? bootstrapResult;
   bool isOfflineMode = false; // 🚀 標記目前是否進入「離線降級防禦模式」
 
+  // 🚀 宣告成員變數，用以存放歷史資料庫接口
+  CategoryHistoryRepository? _categoryHistoryRepository;
+
   @override
   void initState() {
     super.initState();
@@ -39,6 +46,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
     final storageService = StorageService();
     final calendarService = MarketCalendarService();
     final cacheService = AnalysisCacheService(storageService);
+
+    // 🚀 初始化底層 Drift SQLite 資料庫，並實例化我們的歷史 Repository
+    final db = AppDatabase();
+    _categoryHistoryRepository = CategoryHistoryRepository(db);
 
     final syncManager = SyncManager(
       storageService: storageService,
@@ -54,11 +65,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
     try {
       // 1. 同步今日最新數據 (斷網高風險點)
       final syncResult = await syncManager.syncTodayData().timeout(
-        // 🚀 【完美修正】：將 6 秒放寬至 20 秒
-        // 因為台股 1,900 多檔個股在尖峰時刻需要充分的時間進行 HTTP 下載與 JSON 解析
-        const Duration(seconds: 60), 
+        // 🚀 將 6 秒放寬至 20 秒 (已調整為 60 秒確保高峰安全)
+        const Duration(seconds: 60),
       );
-      
+
       if (syncResult.date.isNotEmpty) {
         dateKey = syncResult.date;
       }
@@ -206,6 +216,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 mainstreams: bootstrapResult!.mainstreams,
                 lifecycles: bootstrapResult!.lifecycles,
                 sentiment: bootstrapResult!.sentiment,
+                // 🚀 【完美修復點】：精確傳入 required 的 historyRepository
+                historyRepository: _categoryHistoryRepository!,
               ),
             ),
           ],
