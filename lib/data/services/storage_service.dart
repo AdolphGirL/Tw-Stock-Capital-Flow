@@ -70,6 +70,25 @@ class StorageService {
     return StockDaySnapshot.fromJson(jsonData);
   }
 
+  /// 取得本地最新可用的交易日期（按日期由新到舊排序）
+  Future<String?> getLatestAvailableDate() async {
+    try {
+      final dates = await listAvailableDates();
+
+      if (dates.isEmpty) {
+        return null;
+      }
+
+      // 確保日期是字串格式 YYYYMMDD，先排序再取最新
+      dates.sort((a, b) => b.compareTo(a)); // 降序：最新的在前面
+
+      return dates.first;
+    } catch (e) {
+      dev.log('取得最新可用日期失敗: $e', name: 'StorageService', error: e);
+      return null;
+    }
+  }
+
   Future<List<String>> listAvailableDates() async {
     final dir = await _getDailyDirectory();
 
@@ -127,8 +146,9 @@ class StorageService {
   Future<List<String>> getAllKeys() async {
     try {
       // 1. 在方法內部直接獲取原生實體，100% 免疫欄位未定義錯誤
-      final SharedPreferences prefsInstance = await SharedPreferences.getInstance();
-      
+      final SharedPreferences prefsInstance =
+          await SharedPreferences.getInstance();
+
       // 2. 呼叫原生 getKeys() 並轉為 List 丢出
       return prefsInstance.getKeys().toList();
     } catch (e) {

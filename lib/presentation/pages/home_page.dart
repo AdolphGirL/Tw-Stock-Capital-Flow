@@ -133,14 +133,18 @@ class HomePage extends StatelessWidget {
           margin: const EdgeInsets.only(top: 8),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.blueAccent.withOpacity(0.08),
+            color: Colors.blueAccent.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+            border: Border.all(color: Colors.blueAccent.withValues(alpha: 0.2)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.calendar_today, size: 12, color: Colors.blueAccent),
+              const Icon(
+                Icons.calendar_today,
+                size: 12,
+                color: Colors.blueAccent,
+              ),
               const SizedBox(width: 6),
               Text(
                 _formatTradeDate(tradeDate),
@@ -251,7 +255,7 @@ class HomePage extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => StrategyDashboardPage(
               lifecycles: lifecycles, // 傳入您的 LifecycleResult 陣列
-              tradeDate: tradeDate,   // 傳入最新資料日期
+              tradeDate: tradeDate, // 傳入最新資料日期
             ),
           ),
         );

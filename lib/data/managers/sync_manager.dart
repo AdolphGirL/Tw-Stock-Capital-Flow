@@ -85,6 +85,16 @@ class SyncManager {
         );
       }
 
+      // 🚨 新增：檢查兩個來源日期是否差異過大
+      if (listedDate.isNotEmpty &&
+          otcDate.isNotEmpty &&
+          listedDate != otcDate) {
+        dev.log(
+          '⚠️ 警告：上市與上櫃資料日期不同步！上市:$listedDate | 上櫃:$otcDate | 最終採用:$latestDate',
+          name: 'SyncManager',
+        );
+      }
+
       final allStocks = <StockData>[...listed, ...otc];
 
       dev.log('合併後總股票數: ${allStocks.length}', name: 'SyncManager');
@@ -128,11 +138,14 @@ class SyncManager {
     } catch (e, stack) {
       dev.log('同步失敗: $e', name: 'SyncManager', error: e, stackTrace: stack);
 
+      // 即使失敗，也盡量返回本地最新日期
+      final lastDate = await storageService.getLatestAvailableDate();
+
       return SyncResult(
         success: false,
         saved: false,
         message: e.toString(),
-        date: '',
+        date: lastDate ?? '',
         stockCount: 0,
         stocks: [],
       );
@@ -143,18 +156,17 @@ class SyncManager {
     required String listedDate,
     required String otcDate,
   }) {
-    if (listedDate.isEmpty && otcDate.isEmpty) {
-      return '';
-    }
+    if (listedDate.isEmpty && otcDate.isEmpty) return '';
+    if (listedDate.isEmpty) return otcDate;
+    if (otcDate.isEmpty) return listedDate;
 
-    if (listedDate.isEmpty) {
+    // 取兩個日期中「較新」的
+    if (listedDate.compareTo(otcDate) > 0) {
+      dev.log('📅 選擇上市日期（較新）: $listedDate', name: 'SyncManager');
+      return listedDate;
+    } else {
+      dev.log('📅 選擇上櫃日期（較新）: $otcDate', name: 'SyncManager');
       return otcDate;
     }
-
-    if (otcDate.isEmpty) {
-      return listedDate;
-    }
-
-    return listedDate.compareTo(otcDate) < 0 ? listedDate : otcDate;
   }
 }

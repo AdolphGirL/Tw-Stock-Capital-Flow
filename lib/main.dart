@@ -11,7 +11,7 @@ import 'package:tw_stock_capital_flow/data/repositories/history_repository.dart'
 import 'package:tw_stock_capital_flow/data/services/analysis_cache_service.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/shimmer_skeleton.dart';
 
-// 🚀 正確引入本地 SQLite 資料庫與對應的歷史紀錄 Repository
+// 正確引入本地 SQLite 資料庫與歷史紀錄 Repository
 import 'package:tw_stock_capital_flow/data/database/app_database.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 
@@ -28,15 +28,13 @@ class BootstrapApp extends StatefulWidget {
 }
 
 class _BootstrapAppState extends State<BootstrapApp> {
-  // 🚀 1. 在 State 級別宣告此變數，確保它在整個類別的任何區塊（包含 build）都能被讀寫
-  String _resolvedDate = '';
-
+  String _resolvedDate = ''; // 最終決定的交易日期（YYYYMMDD）
   bool loading = true;
   String? error;
   AppBootstrapResult? bootstrapResult;
-  bool isOfflineMode = false; // 🚀 標記目前是否進入「離線降級防禦模式」
+  bool isOfflineMode = false;
 
-  // 🚀 宣告成員變數，用以存放歷史資料庫接口
+  // 歷史資料庫 Repository
   CategoryHistoryRepository? _categoryHistoryRepository;
 
   @override
@@ -45,12 +43,21 @@ class _BootstrapAppState extends State<BootstrapApp> {
     initialize();
   }
 
+  /// 取得今天日期字串（格式：YYYYMMDD）
+  String _getTodayDateKey() {
+    return DateTime.now()
+        .toIso8601String()
+        .split('T')
+        .first
+        .replaceAll('-', '');
+  }
+
   Future<void> initialize() async {
     final storageService = StorageService();
     final calendarService = MarketCalendarService();
     final cacheService = AnalysisCacheService(storageService);
 
-    // 🚀 初始化底層 Drift SQLite 資料庫，並實例化我們的歷史 Repository
+    // 初始化 SQLite 資料庫與 Repository
     final db = AppDatabase();
     _categoryHistoryRepository = CategoryHistoryRepository(db);
 
@@ -59,30 +66,31 @@ class _BootstrapAppState extends State<BootstrapApp> {
       calendarService: calendarService,
     );
 
-    String dateKey = DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first
-        .replaceAll('-', '');
+    String resolvedDate = '';
 
     try {
-      // 1. 同步今日最新數據 (斷網高風險點)
+      // 1. 同步今日最新數據
       final syncResult = await syncManager.syncTodayData().timeout(
-        // 🚀 將 6 秒放寬至 20 秒 (已調整為 60 秒確保高峰安全)
         const Duration(seconds: 120),
       );
 
       if (syncResult.date.isNotEmpty) {
-        dateKey = syncResult.date;
+        resolvedDate = syncResult.date;
+      } else {
+        resolvedDate = await storageService.getLatestAvailableDate() ?? '';
       }
 
-      // 取得今天預期的標準日期標籤
-      _resolvedDate = dateKey;
+      // 額外保護：如果 resolvedDate 還是空的
+      if (resolvedDate.isEmpty) {
+        resolvedDate = _getTodayDateKey();
+      }
 
-      // 2. 核心快取攔截
-      final cachedResult = await cacheService.loadBootstrapCache(dateKey);
+      _resolvedDate = resolvedDate;
+
+      // 2. 嘗試讀取快取
+      final cachedResult = await cacheService.loadBootstrapCache(resolvedDate);
       if (cachedResult != null) {
-        debugPrint('🚀 [Cache Hit] 命中今日數據快取');
+        debugPrint('🚀 [Cache Hit] 命中快取: $resolvedDate');
         setState(() {
           bootstrapResult = cachedResult;
           loading = false;
@@ -90,40 +98,43 @@ class _BootstrapAppState extends State<BootstrapApp> {
         return;
       }
 
-      // 3. 標準計算流程
+      // 3. 無快取時執行標準計算流程
       final historyRepository = HistoryRepository(
         storageService: storageService,
       );
       final snapshots = await historyRepository.loadRecentSnapshots(5);
 
       if (snapshots.isEmpty) {
-        throw Exception('本機暫無任何股市快照紀錄，無法進行離線初始化');
+        throw Exception('本機無任何股市快照紀錄，無法進行初始化');
       }
 
-      // 4. 背景運算
+      // 4. 背景運算分析
       final result = await compute(BootstrapAnalyzer.analyze, snapshots);
 
-      // 5. 寫入快取
-      await cacheService.saveBootstrapCache(dateKey, result);
+      // 5. 儲存快取
+      await cacheService.saveBootstrapCache(resolvedDate, result);
 
       setState(() {
         bootstrapResult = result;
         loading = false;
       });
     } catch (e) {
-      debugPrint('⚠️ [防禦機制觸發] 網路或計算異常: $e，啟動本地全域降級防線...');
+      debugPrint('⚠️ [防禦機制觸發] 異常: $e，進入離線降級...');
 
-      // 🚀 【離線防禦核心】：不論發生何種異常，立刻嘗試去硬碟翻找過去任意一天的歷史快取結果
+      // 離線模式：優先使用本地最新日期
+      resolvedDate =
+          await storageService.getLatestAvailableDate() ?? _getTodayDateKey();
+      _resolvedDate = resolvedDate;
+
       final fallbackResult = await cacheService.tryGetAnyLatestCache();
 
       if (fallbackResult != null) {
         setState(() {
           bootstrapResult = fallbackResult;
-          isOfflineMode = true; // 成功無縫降級，標記為離線展示狀態
+          isOfflineMode = true;
           loading = false;
         });
       } else {
-        // 如果連過去歷史快取都沒有，才真正拋出白屏錯誤（通常只出現在使用者第一次安裝且完全沒網路）
         setState(() {
           error = '首次開屏需要網路同步，請檢查您的網路連線並重試。\n($e)';
           loading = false;
@@ -134,7 +145,6 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   @override
   Widget build(BuildContext context) {
-    // 🚀 優化一：等待期不再顯示簡陋的轉圈圈，改顯示微光打光的產業卡片骨架屏排版
     if (loading) {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -176,7 +186,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
       );
     }
 
-    // 🚀 優化二：如果進入離線降級，在主頁面頂部加裝一個優雅的通知條，提示用戶當前使用的是歷史離線快照
+    // 正式主畫面
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
@@ -186,7 +196,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
             if (isOfflineMode)
               Container(
                 width: double.infinity,
-                color: const Color(0xFFFFF3CD), // 柔和的警示黃
+                color: const Color(0xFFFFF3CD),
                 padding: const EdgeInsets.symmetric(
                   vertical: 8,
                   horizontal: 16,
@@ -223,7 +233,6 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 mainstreams: bootstrapResult!.mainstreams,
                 lifecycles: bootstrapResult!.lifecycles,
                 sentiment: bootstrapResult!.sentiment,
-                // 🚀 【完美修復點】：精確傳入 required 的 historyRepository
                 historyRepository: _categoryHistoryRepository!,
               ),
             ),

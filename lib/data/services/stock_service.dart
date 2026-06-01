@@ -86,7 +86,10 @@ class StockService {
           })
           .toList();
 
-      dev.log('上市資料處理完成，過濾後共 ${filtered.length} 檔', name: 'StockService');
+      dev.log(
+        '上市資料處理完成，${StockService.lastDataDate}，過濾後共 ${filtered.length} 檔',
+        name: 'StockService',
+      );
       return filtered;
     }
     return [];
@@ -157,7 +160,10 @@ class StockService {
           })
           .toList();
 
-      dev.log('上櫃資料處理完成，過濾後共 ${filtered.length} 檔', name: 'StockService');
+      dev.log(
+        '上櫃資料處理完成，${StockService.lastDataDate}，過濾後共 ${filtered.length} 檔',
+        name: 'StockService',
+      );
       return filtered;
     }
     return [];
