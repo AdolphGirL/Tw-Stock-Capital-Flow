@@ -12,7 +12,7 @@ import 'package:tw_stock_capital_flow/presentation/widgets/market_summary_card.d
 import 'package:tw_stock_capital_flow/presentation/widgets/top_hot_categories.dart';
 
 import 'package:tw_stock_capital_flow/presentation/pages/mainstream_page.dart';
-import 'package:tw_stock_capital_flow/presentation/pages/lifecycle_page.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/strategy_dashboard_page.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/main_category_page.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/market_sentiment_page.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/rotation_page.dart';
@@ -22,6 +22,8 @@ import 'package:tw_stock_capital_flow/presentation/widgets/market_heatmap.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 
 class HomePage extends StatelessWidget {
+  // 🚀 1. 宣告接收交易日期的參數
+  final String tradeDate;
   final List<CategoryUiModel> listedCategories;
   final List<CategoryUiModel> otcCategories;
   final int listedRiseCount;
@@ -40,6 +42,7 @@ class HomePage extends StatelessWidget {
 
   const HomePage({
     super.key,
+    required this.tradeDate, // 🚀 2. 標記為必填項目
     required this.listedCategories,
     required this.otcCategories,
     required this.listedRiseCount,
@@ -55,6 +58,14 @@ class HomePage extends StatelessWidget {
     required this.historyRepository, // ⚡ 納入必要參數
   });
 
+  // 🚀 3. 建立一個小工具方法：將資料庫的 20260531 轉化為交易者易讀的 2026-05-31
+  String _formatTradeDate(String rawDate) {
+    if (rawDate.length == 8) {
+      return '${rawDate.substring(0, 4)}-${rawDate.substring(4, 6)}-${rawDate.substring(6, 8)}';
+    }
+    return rawDate; // 如果格式不符則原樣回傳
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,7 +74,7 @@ class HomePage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            _buildHeader(),
+            _buildHeader(), // ⚡ 內部已整合動態日期顯示
             const SizedBox(height: 28),
             _buildMarketSection(context),
             const SizedBox(height: 32),
@@ -91,22 +102,57 @@ class HomePage extends StatelessWidget {
     );
   }
 
+  // 🚀 優化後的 Header：並列排版，右側自動長出精準的數據日期標籤
   Widget _buildHeader() {
-    return Column(
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          '台股資金流',
-          style: TextStyle(
-            fontSize: 36,
-            fontWeight: FontWeight.w900,
-            letterSpacing: -1,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '台股資金流',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                '市場主流・資金輪動・情緒週期',
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 10),
-        Text(
-          '市場主流・資金輪動・情緒週期',
-          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+        // 🚀 新增：交易日期晶片標籤（根據實際抓取到的資料日期為主）
+        Container(
+          margin: const EdgeInsets.only(top: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: Colors.blueAccent.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.blueAccent.withOpacity(0.2)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.calendar_today, size: 12, color: Colors.blueAccent),
+              const SizedBox(width: 6),
+              Text(
+                _formatTradeDate(tradeDate),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: Colors.blueAccent,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace', // 確保數字等寬好看
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -198,10 +244,15 @@ class HomePage extends StatelessWidget {
       gradient: const [Color(0xff614385), Color(0xff516395)],
       icon: Icons.timeline,
       onTap: () {
+        // 🚀 修改前：直接跳轉到單純的 LifecyclePage
+        // 🚀 修改後：直接穿透進入剛寫好的「七期動量續航決策看板」
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => LifecyclePage(lifecycles: lifecycles),
+            builder: (_) => StrategyDashboardPage(
+              lifecycles: lifecycles, // 傳入您的 LifecycleResult 陣列
+              tradeDate: tradeDate,   // 傳入最新資料日期
+            ),
           ),
         );
       },

@@ -28,6 +28,9 @@ class BootstrapApp extends StatefulWidget {
 }
 
 class _BootstrapAppState extends State<BootstrapApp> {
+  // 🚀 1. 在 State 級別宣告此變數，確保它在整個類別的任何區塊（包含 build）都能被讀寫
+  String _resolvedDate = '';
+
   bool loading = true;
   String? error;
   AppBootstrapResult? bootstrapResult;
@@ -66,12 +69,15 @@ class _BootstrapAppState extends State<BootstrapApp> {
       // 1. 同步今日最新數據 (斷網高風險點)
       final syncResult = await syncManager.syncTodayData().timeout(
         // 🚀 將 6 秒放寬至 20 秒 (已調整為 60 秒確保高峰安全)
-        const Duration(seconds: 60),
+        const Duration(seconds: 120),
       );
 
       if (syncResult.date.isNotEmpty) {
         dateKey = syncResult.date;
       }
+
+      // 取得今天預期的標準日期標籤
+      _resolvedDate = dateKey;
 
       // 2. 核心快取攔截
       final cachedResult = await cacheService.loadBootstrapCache(dateKey);
@@ -204,6 +210,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
               ),
             Expanded(
               child: HomePage(
+                tradeDate: _resolvedDate,
                 listedCategories: bootstrapResult!.listedCategories,
                 otcCategories: bootstrapResult!.otcCategories,
                 listedRiseCount: bootstrapResult!.listedRiseCount,
