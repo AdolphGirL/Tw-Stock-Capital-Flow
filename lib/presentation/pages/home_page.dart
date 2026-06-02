@@ -15,7 +15,8 @@ import 'package:tw_stock_capital_flow/presentation/pages/mainstream_page.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/strategy_dashboard_page.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/main_category_page.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/market_sentiment_page.dart';
-import 'package:tw_stock_capital_flow/presentation/pages/rotation_page.dart';
+// import 'package:tw_stock_capital_flow/presentation/pages/rotation_page.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/leading_indicator_page.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/market_heatmap.dart';
 
 // 🚀 引入資料庫與 Repository 依賴
@@ -295,7 +296,7 @@ class HomePage extends StatelessWidget {
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => RotationPage(rotations: rotations)),
+          MaterialPageRoute(builder: (_) => LeadingIndicatorPage(rotations: rotations)),
         );
       },
     );
