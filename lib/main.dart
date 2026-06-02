@@ -4,7 +4,7 @@ import 'package:tw_stock_capital_flow/presentation/theme/app_theme.dart';
 import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
 import 'package:tw_stock_capital_flow/data/services/market_calendar_service.dart';
 import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
-import 'package:tw_stock_capital_flow/presentation/pages/home_page.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/main_navigation_container.dart'; // 🚀 引入全新導航控制外殼
 import 'package:tw_stock_capital_flow/domain/usecases/app_bootstrap_result.dart';
 import 'package:tw_stock_capital_flow/domain/usecases/bootstrap_analyzer.dart';
 import 'package:tw_stock_capital_flow/data/repositories/history_repository.dart';
@@ -186,7 +186,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
       );
     }
 
-    // 正式主畫面
+    // 🟢 正式主畫面：全面由標籤頁分流系統接管
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
@@ -219,7 +219,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 ),
               ),
             Expanded(
-              child: HomePage(
+              child: MainNavigationContainer(
                 tradeDate: _resolvedDate,
                 listedCategories: bootstrapResult!.listedCategories,
                 otcCategories: bootstrapResult!.otcCategories,
@@ -233,7 +233,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 mainstreams: bootstrapResult!.mainstreams,
                 lifecycles: bootstrapResult!.lifecycles,
                 sentiment: bootstrapResult!.sentiment,
-                historyRepository: _categoryHistoryRepository!,
+                historyRepository: _categoryHistoryRepository!, // 注入本地歷史紀錄儲存庫
               ),
             ),
           ],
