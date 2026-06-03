@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/category_card.dart';
 // 🚀 修正路由對接：根據您的描述，點擊後應導向 SubCategoryPage，而非直接到 StockListPage
@@ -74,7 +75,7 @@ class _MainCategoryPageState extends State<MainCategoryPage> {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
       body: ListView.builder(
-        cacheExtent: 300,
+        // scrollCacheExtent: const ScrollCacheExtent.dynamic(300.0)
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         itemCount: widget.categories.length,

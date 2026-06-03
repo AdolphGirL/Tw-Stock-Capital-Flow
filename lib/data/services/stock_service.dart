@@ -34,26 +34,28 @@ class StockService {
 
   static Future<List<StockData>> fetchListed() async {
     dev.log('抓取上市資料中...', name: 'StockService');
-    final response = await http.get(
-      Uri.parse('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL'),
-    );
+    try {
+      final data = await _fetchJsonWithRetry(
+        'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL',
+      );
 
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
+      if (data.isEmpty) {
+        return [];
+      }
 
-      if (data.isNotEmpty && data[0]['Date'] != null) {
-        String rawDate = data[0]['Date'].toString(); // 假設為 "20260227"
+      if (data[0]['Date'] != null) {
+        String rawDate = data[0]['Date'].toString();
+
         if (rawDate.length == 8) {
           int year = int.parse(rawDate.substring(0, 4));
           String monthDay = rawDate.substring(4);
-          int rocYear = year - 1911; // 西元轉民國
-          lastDataDate = "$rocYear$monthDay"; // 結果為 "1150227"
+          int rocYear = year - 1911;
+          lastDataDate = "$rocYear$monthDay";
         } else {
           lastDataDate = rawDate;
         }
       }
 
-      // 修正過濾邏輯：長度為 4 且 非 00 開頭
       final filtered = data
           .where((item) {
             final String code = item['Code'] ?? '';
@@ -62,21 +64,33 @@ class StockService {
           .map((item) {
             final code = item['Code'];
             final map = _mapping[code];
-            final close = double.tryParse(item['ClosingPrice']) ?? 0;
-            final change = double.tryParse(item['Change']) ?? 0;
-            final open = double.tryParse(item['OpeningPrice']) ?? close;
-            final volume = int.tryParse(item['TradeVolume'] ?? '0') ?? 0;
-            final value = int.tryParse(item['TradeValue'] ?? '0') ?? 0;
+
+            final close =
+                double.tryParse(item['ClosingPrice']?.toString() ?? '') ?? 0;
+
+            final change =
+                double.tryParse(item['Change']?.toString() ?? '') ?? 0;
+
+            final open =
+                double.tryParse(item['OpeningPrice']?.toString() ?? '') ??
+                close;
+
+            final volume =
+                int.tryParse(item['TradeVolume']?.toString() ?? '0') ?? 0;
+
+            final value =
+                int.tryParse(item['TradeValue']?.toString() ?? '0') ?? 0;
 
             return StockData(
               code: code,
               name: item['Name'],
               market: MarketType.listed,
               mainCategory: map?['main'] ?? '其他',
-              subCategory: map?['sub'] ?? '其他', // 確保細分類被正確帶入
+              subCategory: map?['sub'] ?? '其他',
               open: open,
-              high: double.tryParse(item['HighestPrice']) ?? 0,
-              low: double.tryParse(item['LowestPrice']) ?? 0,
+              high:
+                  double.tryParse(item['HighestPrice']?.toString() ?? '') ?? 0,
+              low: double.tryParse(item['LowestPrice']?.toString() ?? '') ?? 0,
               close: close,
               change: change,
               changePercent: open != 0 ? (change / open) * 100 : 0,
@@ -87,70 +101,87 @@ class StockService {
           .toList();
 
       dev.log(
-        '上市資料處理完成，${StockService.lastDataDate}，過濾後共 ${filtered.length} 檔',
+        '上市資料處理完成，${StockService.lastDataDate}，共 ${filtered.length} 檔',
         name: 'StockService',
       );
+
       return filtered;
+    } catch (e, stack) {
+      dev.log(
+        'fetchListed 發生例外',
+        name: 'StockService',
+        error: e,
+        stackTrace: stack,
+      );
+
+      return [];
     }
-    return [];
   }
 
   static Future<List<StockData>> fetchOTC() async {
     dev.log('抓取上櫃資料中...', name: 'StockService');
-    final response = await http.get(
-      Uri.parse(
+    try {
+      final data = await _fetchJsonWithRetry(
         'https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes',
-      ),
-    );
+      );
 
-    if (response.statusCode == 200) {
-      List<dynamic> data = json.decode(response.body);
+      if (data.isEmpty) {
+        return [];
+      }
 
-      if (data.isNotEmpty && data[0]['Date'] != null) {
-        String rawDate = data[0]['Date'].toString(); // 假設為 "20260227"
+      if (data[0]['Date'] != null) {
+        String rawDate = data[0]['Date'].toString();
+
         if (rawDate.length == 8) {
           int year = int.parse(rawDate.substring(0, 4));
           String monthDay = rawDate.substring(4);
-          int rocYear = year - 1911; // 西元轉民國
-          lastDataDate = "$rocYear$monthDay"; // 結果為 "1150227"
+          int rocYear = year - 1911;
+          lastDataDate = "$rocYear$monthDay";
         } else {
           lastDataDate = rawDate;
         }
       }
 
-      // 修正過濾邏輯：長度為 4 且 非 00 開頭
       final filtered = data
           .where((item) {
-            final String code = item['SecuritiesCompanyCode'] ?? '';
+            final String code = item['SecuritiesCompanyCode']?.toString() ?? '';
+
             return code.length == 4 && !code.startsWith('00');
           })
           .map((item) {
             final code = item['SecuritiesCompanyCode'];
             final map = _mapping[code];
-            final close = double.tryParse(item['Close']) ?? 0;
+
+            final close = double.tryParse(item['Close']?.toString() ?? '') ?? 0;
+
             final change =
                 double.tryParse(
                   item['Change']?.toString().replaceAll('+', '').trim() ?? '0',
                 ) ??
                 0;
-            final open = double.tryParse(item['Open']) ?? close;
+
+            final open =
+                double.tryParse(item['Open']?.toString() ?? '') ?? close;
+
             final volume =
                 int.tryParse(item['TradingShares']?.toString().trim() ?? '0') ??
                 0;
+
             final value =
                 int.tryParse(
                   item['TransactionAmount']?.toString().trim() ?? '0',
                 ) ??
                 0;
+
             return StockData(
               code: code,
               name: item['CompanyName'],
               market: MarketType.otc,
               mainCategory: map?['main'] ?? '其他',
-              subCategory: map?['sub'] ?? '其他', // 確保細分類被正確帶入
+              subCategory: map?['sub'] ?? '其他',
               open: open,
-              high: double.tryParse(item['High']) ?? 0,
-              low: double.tryParse(item['Low']) ?? 0,
+              high: double.tryParse(item['High']?.toString() ?? '') ?? 0,
+              low: double.tryParse(item['Low']?.toString() ?? '') ?? 0,
               close: close,
               change: change,
               changePercent: open != 0 ? (change / open) * 100 : 0,
@@ -161,11 +192,76 @@ class StockService {
           .toList();
 
       dev.log(
-        '上櫃資料處理完成，${StockService.lastDataDate}，過濾後共 ${filtered.length} 檔',
+        '上櫃資料處理完成，${StockService.lastDataDate}，共 ${filtered.length} 檔',
         name: 'StockService',
       );
+
       return filtered;
+    } catch (e, stack) {
+      dev.log(
+        'fetchOTC 發生例外',
+        name: 'StockService',
+        error: e,
+        stackTrace: stack,
+      );
+
+      return [];
     }
-    return [];
+  }
+
+  static Future<List<dynamic>> _fetchJsonWithRetry(
+    String url, {
+    int maxRetry = 3,
+  }) async {
+    final client = http.Client();
+
+    try {
+      for (int attempt = 1; attempt <= maxRetry; attempt++) {
+        try {
+          dev.log('開始請求 [$attempt/$maxRetry] $url', name: 'StockService');
+
+          final request = http.Request('GET', Uri.parse(url));
+
+          final streamedResponse = await client.send(request);
+
+          if (streamedResponse.statusCode == 200) {
+            final responseBody = await streamedResponse.stream.bytesToString();
+
+            final decoded = json.decode(responseBody);
+
+            if (decoded is List<dynamic>) {
+              dev.log('請求成功，共 ${decoded.length} 筆', name: 'StockService');
+              return decoded;
+            }
+
+            dev.log('資料格式異常，不是 List', name: 'StockService');
+
+            return [];
+          }
+
+          dev.log(
+            'HTTP Error: ${streamedResponse.statusCode}',
+            name: 'StockService',
+          );
+        } catch (e, stack) {
+          dev.log(
+            '第 $attempt 次請求失敗',
+            name: 'StockService',
+            error: e,
+            stackTrace: stack,
+          );
+        }
+
+        if (attempt < maxRetry) {
+          await Future.delayed(Duration(seconds: attempt));
+        }
+      }
+
+      dev.log('重試 $maxRetry 次後仍失敗：$url', name: 'StockService');
+
+      return [];
+    } finally {
+      client.close();
+    }
   }
 }

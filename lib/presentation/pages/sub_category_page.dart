@@ -225,7 +225,7 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.01),
+            color: Colors.black.withValues(alpha: 0.01),
             spreadRadius: 1,
             blurRadius: 10,
           ),
@@ -251,8 +251,8 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: hasHistory
-                      ? Colors.blueAccent.withOpacity(0.08)
-                      : Colors.orangeAccent.withOpacity(0.08),
+                      ? Colors.blueAccent.withValues(alpha: 0.08)
+                      : Colors.orangeAccent.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -488,8 +488,8 @@ class CategoryTrendPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Colors.blueAccent.withOpacity(0.15),
-          Colors.blueAccent.withOpacity(0.00),
+          Colors.blueAccent.withValues(alpha: 0.15),
+          Colors.blueAccent.withValues(alpha: 0.00),
         ],
       ).createShader(Rect.fromLTRB(0, 0, width, height));
     canvas.drawPath(shadowPath, shadowPaint);
@@ -513,7 +513,7 @@ class CategoryTrendPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     // 🟢 修正點：使用相容性最高、最穩定的 withOpacity(0.2) 宣告光暈
     final Paint dotHalo = Paint()
-      ..color = Colors.blue.withOpacity(0.2)
+      ..color = Colors.blue.withValues(alpha: 0.2)
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(points.last, 7, dotHalo);
