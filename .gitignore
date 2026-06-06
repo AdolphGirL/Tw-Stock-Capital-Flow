@@ -98,3 +98,6 @@ local.properties
 # Other
 coverage/
 app.*.symbols
+
+.codegraph/
+.gemini/
