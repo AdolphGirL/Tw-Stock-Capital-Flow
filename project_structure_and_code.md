@@ -1,111 +1,116 @@
-Directory structure:
-└── tw_stock_capital_flow/
-    └── lib/
-        ├── main.dart
-        ├── core/
-        │   ├── constants/
-        │   │   └── app_constants.dart
-        │   ├── extensions/
-        │   │   ├── list_extension.dart
-        │   │   └── market_type_extension.dart
-        │   ├── navigation/
-        │   │   └── category_navigation.dart
-        │   └── utils/
-        │       └── date_utils.dart
-        ├── data/
-        │   ├── database/
-        │   │   ├── app_database.dart
-        │   │   └── tables/
-        │   │       ├── category_history_table.dart
-        │   │       ├── lifecycle_history_table.dart
-        │   │       ├── mainstream_history_table.dart
-        │   │       └── rotation_history_table.dart
-        │   ├── history/
-        │   │   └── repositories/
-        │   │       └── category_history_repository.dart
-        │   ├── managers/
-        │   │   └── sync_manager.dart
-        │   ├── models/
-        │   │   ├── analysis_snapshot.dart
-        │   │   ├── flow_signal.dart
-        │   │   ├── rotation_result.dart
-        │   │   ├── stock_data.dart
-        │   │   ├── stock_day_snapshot.dart
-        │   │   └── stock_score.dart
-        │   ├── repositories/
-        │   │   └── history_repository.dart
-        │   └── services/
-        │       ├── analysis_cache_service.dart
-        │       ├── capital_flow_analyzer.dart
-        │       ├── market_calendar_service.dart
-        │       ├── stock_service.dart
-        │       └── storage_service.dart
-        ├── domain/
-        │   ├── analysers/
-        │   │   └── rotation_leading_analyser.dart
-        │   ├── engines/
-        │   │   ├── abnormal_money_engine.dart
-        │   │   ├── capital_flow_engine.dart
-        │   │   ├── lifecycle_engine.dart
-        │   │   ├── mainstream_engine.dart
-        │   │   ├── market_sentiment_engine.dart
-        │   │   ├── rotation_engine.dart
-        │   │   └── trend_metrics_engine.dart
-        │   ├── enums/
-        │   │   ├── lifecycle_stage.dart
-        │   │   └── sentiment_level.dart
-        │   ├── models/
-        │   │   ├── abnormal_money_result.dart
-        │   │   ├── leading_indicator_result.dart
-        │   │   ├── lifecycle_result.dart
-        │   │   ├── lifecycle_timeline.dart
-        │   │   ├── mainstream_result.dart
-        │   │   ├── market_sentiment_result.dart
-        │   │   ├── strategy_signal.dart
-        │   │   └── trend_metrics.dart
-        │   ├── strategies/
-        │   │   └── momentum_strategy.dart
-        │   └── usecases/
-        │       ├── app_bootstrap_result.dart
-        │       ├── app_bootstrapper.dart
-        │       └── bootstrap_analyzer.dart
-        └── presentation/
-            ├── enums/
-            │   └── category_sort_type.dart
-            ├── models/
-            │   └── category_ui_model.dart
-            ├── pages/
-            │   ├── home_page.dart
-            │   ├── leading_indicator_page.dart
-            │   ├── lifecycle_page.dart
-            │   ├── main_category_page.dart
-            │   ├── main_navigation_container.dart
-            │   ├── mainstream_page.dart
-            │   ├── market_sentiment_page.dart
-            │   ├── rotation_page.dart
-            │   ├── strategy_dashboard_page.dart
-            │   └── sub_category_page.dart
-            ├── theme/
-            │   └── app_theme.dart
-            └── widgets/
-                ├── category_card.dart
-                ├── empty_view.dart
-                ├── home_section_card.dart
-                ├── hot_badge.dart
-                ├── lifecycle_card.dart
-                ├── mainstream_card.dart
-                ├── market_heatmap.dart
-                ├── market_summary_card.dart
-                ├── rotation_flow_card.dart
-                ├── section_title.dart
-                ├── shimmer_skeleton.dart
-                ├── stock_tile.dart
-                ├── top_hot_categories.dart
-                └── trend_sparkline.dart
+## Project Structure
 
-================================================
-FILE: lib/main.dart
-================================================
+lib/
+    main.dart
+    core/
+        constants/
+            app_constants.dart
+        extensions/
+            list_extension.dart
+            market_type_extension.dart
+        navigation/
+            category_navigation.dart
+        utils/
+            date_utils.dart
+    data/
+        database/
+            app_database.dart
+            app_database.g.dart
+            dao/
+            tables/
+                category_history_table.dart
+                lifecycle_history_table.dart
+                mainstream_history_table.dart
+                rotation_history_table.dart
+        history/
+            repositories/
+                category_history_repository.dart
+        managers/
+            sync_manager.dart
+        models/
+            analysis_snapshot.dart
+            flow_signal.dart
+            rotation_result.dart
+            stock_data.dart
+            stock_day_snapshot.dart
+            stock_score.dart
+        repositories/
+            history_repository.dart
+        services/
+            analysis_cache_service.dart
+            capital_flow_analyzer.dart
+            market_calendar_service.dart
+            stock_service.dart
+            storage_service.dart
+    domain/
+        analysers/
+            rotation_leading_analyser.dart
+        engines/
+            abnormal_money_engine.dart
+            capital_flow_engine.dart
+            lifecycle_engine.dart
+            mainstream_engine.dart
+            market_sentiment_engine.dart
+            rotation_engine.dart
+            trend_metrics_engine.dart
+        enums/
+            lifecycle_stage.dart
+            sentiment_level.dart
+        models/
+            abnormal_money_result.dart
+            leading_indicator_result.dart
+            lifecycle_result.dart
+            lifecycle_timeline.dart
+            mainstream_result.dart
+            market_sentiment_result.dart
+            strategy_signal.dart
+            trend_metrics.dart
+        strategies/
+            momentum_strategy.dart
+        usecases/
+            app_bootstrapper.dart
+            app_bootstrap_result.dart
+            bootstrap_analyzer.dart
+    presentation/
+        enums/
+            category_sort_type.dart
+        mappers/
+        models/
+            category_ui_model.dart
+        pages/
+            home_page.dart
+            leading_indicator_page.dart
+            lifecycle_page.dart
+            mainstream_page.dart
+            main_category_page.dart
+            main_navigation_container.dart
+            market_sentiment_page.dart
+            rotation_page.dart
+            strategy_dashboard_page.dart
+            sub_category_page.dart
+        theme/
+            app_theme.dart
+        widgets/
+            category_card.dart
+            empty_view.dart
+            home_section_card.dart
+            hot_badge.dart
+            lifecycle_card.dart
+            mainstream_card.dart
+            market_heatmap.dart
+            market_summary_card.dart
+            rotation_flow_card.dart
+            section_title.dart
+            shimmer_skeleton.dart
+            stock_tile.dart
+            top_hot_categories.dart
+            trend_sparkline.dart
+
+## Source Code
+
+### lib\main.dart
+
+`dart
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:tw_stock_capital_flow/presentation/theme/app_theme.dart';
@@ -351,11 +356,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
   }
 }
 
+`
 
+### lib\core\constants\app_constants.dart
 
-================================================
-FILE: lib/core/constants/app_constants.dart
-================================================
+`dart
 class AppConstants {
   static const String dailyFolder = 'daily';
 
@@ -364,11 +369,11 @@ class AppConstants {
   static const int minSubCategoryStockCount = 3;
 }
 
+`
 
+### lib\core\extensions\list_extension.dart
 
-================================================
-FILE: lib/core/extensions/list_extension.dart
-================================================
+`dart
 extension AverageExtension on List<double> {
   double average() {
     if (isEmpty) {
@@ -379,11 +384,11 @@ extension AverageExtension on List<double> {
   }
 }
 
+`
 
+### lib\core\extensions\market_type_extension.dart
 
-================================================
-FILE: lib/core/extensions/market_type_extension.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
 extension MarketTypeExtension on MarketType {
@@ -408,11 +413,11 @@ extension MarketTypeExtension on MarketType {
   }
 }
 
+`
 
+### lib\core\navigation\category_navigation.dart
 
-================================================
-FILE: lib/core/navigation/category_navigation.dart
-================================================
+`dart
 // lib/core/navigation/category_navigation.dart
 
 import 'package:flutter/material.dart';
@@ -667,11 +672,11 @@ class CategoryNavigation {
   }
 }
 
+`
 
+### lib\core\utils\date_utils.dart
 
-================================================
-FILE: lib/core/utils/date_utils.dart
-================================================
+`dart
 class AppDateUtils {
   static int compareRocDate(String a, String b) {
     return a.compareTo(b);
@@ -686,11 +691,11 @@ class AppDateUtils {
   }
 }
 
+`
 
+### lib\data\database\app_database.dart
 
-================================================
-FILE: lib/data/database/app_database.dart
-================================================
+`dart
 import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
@@ -752,11 +757,2455 @@ LazyDatabase _openConnection() {
   });
 }
 
+`
 
+### lib\data\database\app_database.g.dart
 
-================================================
-FILE: lib/data/database/tables/category_history_table.dart
-================================================
+`dart
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'app_database.dart';
+
+// ignore_for_file: type=lint
+class $CategoryHistoryTableTable extends CategoryHistoryTable
+    with TableInfo<$CategoryHistoryTableTable, CategoryHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CategoryHistoryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tradeDateMeta = const VerificationMeta(
+    'tradeDate',
+  );
+  @override
+  late final GeneratedColumn<String> tradeDate = GeneratedColumn<String>(
+    'trade_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryNameMeta = const VerificationMeta(
+    'categoryName',
+  );
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+    'category_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<double> score = GeneratedColumn<double>(
+    'score',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hotScoreMeta = const VerificationMeta(
+    'hotScore',
+  );
+  @override
+  late final GeneratedColumn<double> hotScore = GeneratedColumn<double>(
+    'hot_score',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _persistenceMeta = const VerificationMeta(
+    'persistence',
+  );
+  @override
+  late final GeneratedColumn<double> persistence = GeneratedColumn<double>(
+    'persistence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _trendStrengthMeta = const VerificationMeta(
+    'trendStrength',
+  );
+  @override
+  late final GeneratedColumn<double> trendStrength = GeneratedColumn<double>(
+    'trend_strength',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _riseCountMeta = const VerificationMeta(
+    'riseCount',
+  );
+  @override
+  late final GeneratedColumn<int> riseCount = GeneratedColumn<int>(
+    'rise_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fallCountMeta = const VerificationMeta(
+    'fallCount',
+  );
+  @override
+  late final GeneratedColumn<int> fallCount = GeneratedColumn<int>(
+    'fall_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _totalCountMeta = const VerificationMeta(
+    'totalCount',
+  );
+  @override
+  late final GeneratedColumn<int> totalCount = GeneratedColumn<int>(
+    'total_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    tradeDate,
+    categoryName,
+    score,
+    hotScore,
+    persistence,
+    trendStrength,
+    riseCount,
+    fallCount,
+    totalCount,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'category_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CategoryHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('trade_date')) {
+      context.handle(
+        _tradeDateMeta,
+        tradeDate.isAcceptableOrUnknown(data['trade_date']!, _tradeDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeDateMeta);
+    }
+    if (data.containsKey('category_name')) {
+      context.handle(
+        _categoryNameMeta,
+        categoryName.isAcceptableOrUnknown(
+          data['category_name']!,
+          _categoryNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryNameMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoreMeta);
+    }
+    if (data.containsKey('hot_score')) {
+      context.handle(
+        _hotScoreMeta,
+        hotScore.isAcceptableOrUnknown(data['hot_score']!, _hotScoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hotScoreMeta);
+    }
+    if (data.containsKey('persistence')) {
+      context.handle(
+        _persistenceMeta,
+        persistence.isAcceptableOrUnknown(
+          data['persistence']!,
+          _persistenceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_persistenceMeta);
+    }
+    if (data.containsKey('trend_strength')) {
+      context.handle(
+        _trendStrengthMeta,
+        trendStrength.isAcceptableOrUnknown(
+          data['trend_strength']!,
+          _trendStrengthMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_trendStrengthMeta);
+    }
+    if (data.containsKey('rise_count')) {
+      context.handle(
+        _riseCountMeta,
+        riseCount.isAcceptableOrUnknown(data['rise_count']!, _riseCountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_riseCountMeta);
+    }
+    if (data.containsKey('fall_count')) {
+      context.handle(
+        _fallCountMeta,
+        fallCount.isAcceptableOrUnknown(data['fall_count']!, _fallCountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fallCountMeta);
+    }
+    if (data.containsKey('total_count')) {
+      context.handle(
+        _totalCountMeta,
+        totalCount.isAcceptableOrUnknown(data['total_count']!, _totalCountMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_totalCountMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tradeDate, categoryName};
+  @override
+  CategoryHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CategoryHistoryData(
+      tradeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trade_date'],
+      )!,
+      categoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_name'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}score'],
+      )!,
+      hotScore: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}hot_score'],
+      )!,
+      persistence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}persistence'],
+      )!,
+      trendStrength: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}trend_strength'],
+      )!,
+      riseCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rise_count'],
+      )!,
+      fallCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}fall_count'],
+      )!,
+      totalCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}total_count'],
+      )!,
+    );
+  }
+
+  @override
+  $CategoryHistoryTableTable createAlias(String alias) {
+    return $CategoryHistoryTableTable(attachedDatabase, alias);
+  }
+}
+
+class CategoryHistoryData extends DataClass
+    implements Insertable<CategoryHistoryData> {
+  final String tradeDate;
+  final String categoryName;
+  final double score;
+  final double hotScore;
+  final double persistence;
+  final double trendStrength;
+  final int riseCount;
+  final int fallCount;
+  final int totalCount;
+  const CategoryHistoryData({
+    required this.tradeDate,
+    required this.categoryName,
+    required this.score,
+    required this.hotScore,
+    required this.persistence,
+    required this.trendStrength,
+    required this.riseCount,
+    required this.fallCount,
+    required this.totalCount,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['trade_date'] = Variable<String>(tradeDate);
+    map['category_name'] = Variable<String>(categoryName);
+    map['score'] = Variable<double>(score);
+    map['hot_score'] = Variable<double>(hotScore);
+    map['persistence'] = Variable<double>(persistence);
+    map['trend_strength'] = Variable<double>(trendStrength);
+    map['rise_count'] = Variable<int>(riseCount);
+    map['fall_count'] = Variable<int>(fallCount);
+    map['total_count'] = Variable<int>(totalCount);
+    return map;
+  }
+
+  CategoryHistoryTableCompanion toCompanion(bool nullToAbsent) {
+    return CategoryHistoryTableCompanion(
+      tradeDate: Value(tradeDate),
+      categoryName: Value(categoryName),
+      score: Value(score),
+      hotScore: Value(hotScore),
+      persistence: Value(persistence),
+      trendStrength: Value(trendStrength),
+      riseCount: Value(riseCount),
+      fallCount: Value(fallCount),
+      totalCount: Value(totalCount),
+    );
+  }
+
+  factory CategoryHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CategoryHistoryData(
+      tradeDate: serializer.fromJson<String>(json['tradeDate']),
+      categoryName: serializer.fromJson<String>(json['categoryName']),
+      score: serializer.fromJson<double>(json['score']),
+      hotScore: serializer.fromJson<double>(json['hotScore']),
+      persistence: serializer.fromJson<double>(json['persistence']),
+      trendStrength: serializer.fromJson<double>(json['trendStrength']),
+      riseCount: serializer.fromJson<int>(json['riseCount']),
+      fallCount: serializer.fromJson<int>(json['fallCount']),
+      totalCount: serializer.fromJson<int>(json['totalCount']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tradeDate': serializer.toJson<String>(tradeDate),
+      'categoryName': serializer.toJson<String>(categoryName),
+      'score': serializer.toJson<double>(score),
+      'hotScore': serializer.toJson<double>(hotScore),
+      'persistence': serializer.toJson<double>(persistence),
+      'trendStrength': serializer.toJson<double>(trendStrength),
+      'riseCount': serializer.toJson<int>(riseCount),
+      'fallCount': serializer.toJson<int>(fallCount),
+      'totalCount': serializer.toJson<int>(totalCount),
+    };
+  }
+
+  CategoryHistoryData copyWith({
+    String? tradeDate,
+    String? categoryName,
+    double? score,
+    double? hotScore,
+    double? persistence,
+    double? trendStrength,
+    int? riseCount,
+    int? fallCount,
+    int? totalCount,
+  }) => CategoryHistoryData(
+    tradeDate: tradeDate ?? this.tradeDate,
+    categoryName: categoryName ?? this.categoryName,
+    score: score ?? this.score,
+    hotScore: hotScore ?? this.hotScore,
+    persistence: persistence ?? this.persistence,
+    trendStrength: trendStrength ?? this.trendStrength,
+    riseCount: riseCount ?? this.riseCount,
+    fallCount: fallCount ?? this.fallCount,
+    totalCount: totalCount ?? this.totalCount,
+  );
+  CategoryHistoryData copyWithCompanion(CategoryHistoryTableCompanion data) {
+    return CategoryHistoryData(
+      tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      score: data.score.present ? data.score.value : this.score,
+      hotScore: data.hotScore.present ? data.hotScore.value : this.hotScore,
+      persistence: data.persistence.present
+          ? data.persistence.value
+          : this.persistence,
+      trendStrength: data.trendStrength.present
+          ? data.trendStrength.value
+          : this.trendStrength,
+      riseCount: data.riseCount.present ? data.riseCount.value : this.riseCount,
+      fallCount: data.fallCount.present ? data.fallCount.value : this.fallCount,
+      totalCount: data.totalCount.present
+          ? data.totalCount.value
+          : this.totalCount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryHistoryData(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('score: $score, ')
+          ..write('hotScore: $hotScore, ')
+          ..write('persistence: $persistence, ')
+          ..write('trendStrength: $trendStrength, ')
+          ..write('riseCount: $riseCount, ')
+          ..write('fallCount: $fallCount, ')
+          ..write('totalCount: $totalCount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    tradeDate,
+    categoryName,
+    score,
+    hotScore,
+    persistence,
+    trendStrength,
+    riseCount,
+    fallCount,
+    totalCount,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CategoryHistoryData &&
+          other.tradeDate == this.tradeDate &&
+          other.categoryName == this.categoryName &&
+          other.score == this.score &&
+          other.hotScore == this.hotScore &&
+          other.persistence == this.persistence &&
+          other.trendStrength == this.trendStrength &&
+          other.riseCount == this.riseCount &&
+          other.fallCount == this.fallCount &&
+          other.totalCount == this.totalCount);
+}
+
+class CategoryHistoryTableCompanion
+    extends UpdateCompanion<CategoryHistoryData> {
+  final Value<String> tradeDate;
+  final Value<String> categoryName;
+  final Value<double> score;
+  final Value<double> hotScore;
+  final Value<double> persistence;
+  final Value<double> trendStrength;
+  final Value<int> riseCount;
+  final Value<int> fallCount;
+  final Value<int> totalCount;
+  final Value<int> rowid;
+  const CategoryHistoryTableCompanion({
+    this.tradeDate = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    this.score = const Value.absent(),
+    this.hotScore = const Value.absent(),
+    this.persistence = const Value.absent(),
+    this.trendStrength = const Value.absent(),
+    this.riseCount = const Value.absent(),
+    this.fallCount = const Value.absent(),
+    this.totalCount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CategoryHistoryTableCompanion.insert({
+    required String tradeDate,
+    required String categoryName,
+    required double score,
+    required double hotScore,
+    required double persistence,
+    required double trendStrength,
+    required int riseCount,
+    required int fallCount,
+    required int totalCount,
+    this.rowid = const Value.absent(),
+  }) : tradeDate = Value(tradeDate),
+       categoryName = Value(categoryName),
+       score = Value(score),
+       hotScore = Value(hotScore),
+       persistence = Value(persistence),
+       trendStrength = Value(trendStrength),
+       riseCount = Value(riseCount),
+       fallCount = Value(fallCount),
+       totalCount = Value(totalCount);
+  static Insertable<CategoryHistoryData> custom({
+    Expression<String>? tradeDate,
+    Expression<String>? categoryName,
+    Expression<double>? score,
+    Expression<double>? hotScore,
+    Expression<double>? persistence,
+    Expression<double>? trendStrength,
+    Expression<int>? riseCount,
+    Expression<int>? fallCount,
+    Expression<int>? totalCount,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tradeDate != null) 'trade_date': tradeDate,
+      if (categoryName != null) 'category_name': categoryName,
+      if (score != null) 'score': score,
+      if (hotScore != null) 'hot_score': hotScore,
+      if (persistence != null) 'persistence': persistence,
+      if (trendStrength != null) 'trend_strength': trendStrength,
+      if (riseCount != null) 'rise_count': riseCount,
+      if (fallCount != null) 'fall_count': fallCount,
+      if (totalCount != null) 'total_count': totalCount,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CategoryHistoryTableCompanion copyWith({
+    Value<String>? tradeDate,
+    Value<String>? categoryName,
+    Value<double>? score,
+    Value<double>? hotScore,
+    Value<double>? persistence,
+    Value<double>? trendStrength,
+    Value<int>? riseCount,
+    Value<int>? fallCount,
+    Value<int>? totalCount,
+    Value<int>? rowid,
+  }) {
+    return CategoryHistoryTableCompanion(
+      tradeDate: tradeDate ?? this.tradeDate,
+      categoryName: categoryName ?? this.categoryName,
+      score: score ?? this.score,
+      hotScore: hotScore ?? this.hotScore,
+      persistence: persistence ?? this.persistence,
+      trendStrength: trendStrength ?? this.trendStrength,
+      riseCount: riseCount ?? this.riseCount,
+      fallCount: fallCount ?? this.fallCount,
+      totalCount: totalCount ?? this.totalCount,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tradeDate.present) {
+      map['trade_date'] = Variable<String>(tradeDate.value);
+    }
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<double>(score.value);
+    }
+    if (hotScore.present) {
+      map['hot_score'] = Variable<double>(hotScore.value);
+    }
+    if (persistence.present) {
+      map['persistence'] = Variable<double>(persistence.value);
+    }
+    if (trendStrength.present) {
+      map['trend_strength'] = Variable<double>(trendStrength.value);
+    }
+    if (riseCount.present) {
+      map['rise_count'] = Variable<int>(riseCount.value);
+    }
+    if (fallCount.present) {
+      map['fall_count'] = Variable<int>(fallCount.value);
+    }
+    if (totalCount.present) {
+      map['total_count'] = Variable<int>(totalCount.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CategoryHistoryTableCompanion(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('score: $score, ')
+          ..write('hotScore: $hotScore, ')
+          ..write('persistence: $persistence, ')
+          ..write('trendStrength: $trendStrength, ')
+          ..write('riseCount: $riseCount, ')
+          ..write('fallCount: $fallCount, ')
+          ..write('totalCount: $totalCount, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MainstreamHistoryTableTable extends MainstreamHistoryTable
+    with TableInfo<$MainstreamHistoryTableTable, MainstreamHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MainstreamHistoryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tradeDateMeta = const VerificationMeta(
+    'tradeDate',
+  );
+  @override
+  late final GeneratedColumn<String> tradeDate = GeneratedColumn<String>(
+    'trade_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryNameMeta = const VerificationMeta(
+    'categoryName',
+  );
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+    'category_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rankNoMeta = const VerificationMeta('rankNo');
+  @override
+  late final GeneratedColumn<int> rankNo = GeneratedColumn<int>(
+    'rank_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<double> score = GeneratedColumn<double>(
+    'score',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    tradeDate,
+    categoryName,
+    rankNo,
+    score,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'mainstream_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MainstreamHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('trade_date')) {
+      context.handle(
+        _tradeDateMeta,
+        tradeDate.isAcceptableOrUnknown(data['trade_date']!, _tradeDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeDateMeta);
+    }
+    if (data.containsKey('category_name')) {
+      context.handle(
+        _categoryNameMeta,
+        categoryName.isAcceptableOrUnknown(
+          data['category_name']!,
+          _categoryNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryNameMeta);
+    }
+    if (data.containsKey('rank_no')) {
+      context.handle(
+        _rankNoMeta,
+        rankNo.isAcceptableOrUnknown(data['rank_no']!, _rankNoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_rankNoMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoreMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tradeDate, categoryName};
+  @override
+  MainstreamHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MainstreamHistoryData(
+      tradeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trade_date'],
+      )!,
+      categoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_name'],
+      )!,
+      rankNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rank_no'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}score'],
+      )!,
+    );
+  }
+
+  @override
+  $MainstreamHistoryTableTable createAlias(String alias) {
+    return $MainstreamHistoryTableTable(attachedDatabase, alias);
+  }
+}
+
+class MainstreamHistoryData extends DataClass
+    implements Insertable<MainstreamHistoryData> {
+  final String tradeDate;
+  final String categoryName;
+  final int rankNo;
+  final double score;
+  const MainstreamHistoryData({
+    required this.tradeDate,
+    required this.categoryName,
+    required this.rankNo,
+    required this.score,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['trade_date'] = Variable<String>(tradeDate);
+    map['category_name'] = Variable<String>(categoryName);
+    map['rank_no'] = Variable<int>(rankNo);
+    map['score'] = Variable<double>(score);
+    return map;
+  }
+
+  MainstreamHistoryTableCompanion toCompanion(bool nullToAbsent) {
+    return MainstreamHistoryTableCompanion(
+      tradeDate: Value(tradeDate),
+      categoryName: Value(categoryName),
+      rankNo: Value(rankNo),
+      score: Value(score),
+    );
+  }
+
+  factory MainstreamHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MainstreamHistoryData(
+      tradeDate: serializer.fromJson<String>(json['tradeDate']),
+      categoryName: serializer.fromJson<String>(json['categoryName']),
+      rankNo: serializer.fromJson<int>(json['rankNo']),
+      score: serializer.fromJson<double>(json['score']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tradeDate': serializer.toJson<String>(tradeDate),
+      'categoryName': serializer.toJson<String>(categoryName),
+      'rankNo': serializer.toJson<int>(rankNo),
+      'score': serializer.toJson<double>(score),
+    };
+  }
+
+  MainstreamHistoryData copyWith({
+    String? tradeDate,
+    String? categoryName,
+    int? rankNo,
+    double? score,
+  }) => MainstreamHistoryData(
+    tradeDate: tradeDate ?? this.tradeDate,
+    categoryName: categoryName ?? this.categoryName,
+    rankNo: rankNo ?? this.rankNo,
+    score: score ?? this.score,
+  );
+  MainstreamHistoryData copyWithCompanion(
+    MainstreamHistoryTableCompanion data,
+  ) {
+    return MainstreamHistoryData(
+      tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      rankNo: data.rankNo.present ? data.rankNo.value : this.rankNo,
+      score: data.score.present ? data.score.value : this.score,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MainstreamHistoryData(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('rankNo: $rankNo, ')
+          ..write('score: $score')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tradeDate, categoryName, rankNo, score);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MainstreamHistoryData &&
+          other.tradeDate == this.tradeDate &&
+          other.categoryName == this.categoryName &&
+          other.rankNo == this.rankNo &&
+          other.score == this.score);
+}
+
+class MainstreamHistoryTableCompanion
+    extends UpdateCompanion<MainstreamHistoryData> {
+  final Value<String> tradeDate;
+  final Value<String> categoryName;
+  final Value<int> rankNo;
+  final Value<double> score;
+  final Value<int> rowid;
+  const MainstreamHistoryTableCompanion({
+    this.tradeDate = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    this.rankNo = const Value.absent(),
+    this.score = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MainstreamHistoryTableCompanion.insert({
+    required String tradeDate,
+    required String categoryName,
+    required int rankNo,
+    required double score,
+    this.rowid = const Value.absent(),
+  }) : tradeDate = Value(tradeDate),
+       categoryName = Value(categoryName),
+       rankNo = Value(rankNo),
+       score = Value(score);
+  static Insertable<MainstreamHistoryData> custom({
+    Expression<String>? tradeDate,
+    Expression<String>? categoryName,
+    Expression<int>? rankNo,
+    Expression<double>? score,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tradeDate != null) 'trade_date': tradeDate,
+      if (categoryName != null) 'category_name': categoryName,
+      if (rankNo != null) 'rank_no': rankNo,
+      if (score != null) 'score': score,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MainstreamHistoryTableCompanion copyWith({
+    Value<String>? tradeDate,
+    Value<String>? categoryName,
+    Value<int>? rankNo,
+    Value<double>? score,
+    Value<int>? rowid,
+  }) {
+    return MainstreamHistoryTableCompanion(
+      tradeDate: tradeDate ?? this.tradeDate,
+      categoryName: categoryName ?? this.categoryName,
+      rankNo: rankNo ?? this.rankNo,
+      score: score ?? this.score,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tradeDate.present) {
+      map['trade_date'] = Variable<String>(tradeDate.value);
+    }
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (rankNo.present) {
+      map['rank_no'] = Variable<int>(rankNo.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<double>(score.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MainstreamHistoryTableCompanion(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('rankNo: $rankNo, ')
+          ..write('score: $score, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $LifecycleHistoryTableTable extends LifecycleHistoryTable
+    with TableInfo<$LifecycleHistoryTableTable, LifecycleHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LifecycleHistoryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tradeDateMeta = const VerificationMeta(
+    'tradeDate',
+  );
+  @override
+  late final GeneratedColumn<String> tradeDate = GeneratedColumn<String>(
+    'trade_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryNameMeta = const VerificationMeta(
+    'categoryName',
+  );
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+    'category_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _stageMeta = const VerificationMeta('stage');
+  @override
+  late final GeneratedColumn<String> stage = GeneratedColumn<String>(
+    'stage',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [tradeDate, categoryName, stage];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'lifecycle_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LifecycleHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('trade_date')) {
+      context.handle(
+        _tradeDateMeta,
+        tradeDate.isAcceptableOrUnknown(data['trade_date']!, _tradeDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeDateMeta);
+    }
+    if (data.containsKey('category_name')) {
+      context.handle(
+        _categoryNameMeta,
+        categoryName.isAcceptableOrUnknown(
+          data['category_name']!,
+          _categoryNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryNameMeta);
+    }
+    if (data.containsKey('stage')) {
+      context.handle(
+        _stageMeta,
+        stage.isAcceptableOrUnknown(data['stage']!, _stageMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stageMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tradeDate, categoryName};
+  @override
+  LifecycleHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LifecycleHistoryData(
+      tradeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trade_date'],
+      )!,
+      categoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_name'],
+      )!,
+      stage: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stage'],
+      )!,
+    );
+  }
+
+  @override
+  $LifecycleHistoryTableTable createAlias(String alias) {
+    return $LifecycleHistoryTableTable(attachedDatabase, alias);
+  }
+}
+
+class LifecycleHistoryData extends DataClass
+    implements Insertable<LifecycleHistoryData> {
+  final String tradeDate;
+  final String categoryName;
+  final String stage;
+  const LifecycleHistoryData({
+    required this.tradeDate,
+    required this.categoryName,
+    required this.stage,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['trade_date'] = Variable<String>(tradeDate);
+    map['category_name'] = Variable<String>(categoryName);
+    map['stage'] = Variable<String>(stage);
+    return map;
+  }
+
+  LifecycleHistoryTableCompanion toCompanion(bool nullToAbsent) {
+    return LifecycleHistoryTableCompanion(
+      tradeDate: Value(tradeDate),
+      categoryName: Value(categoryName),
+      stage: Value(stage),
+    );
+  }
+
+  factory LifecycleHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LifecycleHistoryData(
+      tradeDate: serializer.fromJson<String>(json['tradeDate']),
+      categoryName: serializer.fromJson<String>(json['categoryName']),
+      stage: serializer.fromJson<String>(json['stage']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tradeDate': serializer.toJson<String>(tradeDate),
+      'categoryName': serializer.toJson<String>(categoryName),
+      'stage': serializer.toJson<String>(stage),
+    };
+  }
+
+  LifecycleHistoryData copyWith({
+    String? tradeDate,
+    String? categoryName,
+    String? stage,
+  }) => LifecycleHistoryData(
+    tradeDate: tradeDate ?? this.tradeDate,
+    categoryName: categoryName ?? this.categoryName,
+    stage: stage ?? this.stage,
+  );
+  LifecycleHistoryData copyWithCompanion(LifecycleHistoryTableCompanion data) {
+    return LifecycleHistoryData(
+      tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      stage: data.stage.present ? data.stage.value : this.stage,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LifecycleHistoryData(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('stage: $stage')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tradeDate, categoryName, stage);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LifecycleHistoryData &&
+          other.tradeDate == this.tradeDate &&
+          other.categoryName == this.categoryName &&
+          other.stage == this.stage);
+}
+
+class LifecycleHistoryTableCompanion
+    extends UpdateCompanion<LifecycleHistoryData> {
+  final Value<String> tradeDate;
+  final Value<String> categoryName;
+  final Value<String> stage;
+  final Value<int> rowid;
+  const LifecycleHistoryTableCompanion({
+    this.tradeDate = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    this.stage = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LifecycleHistoryTableCompanion.insert({
+    required String tradeDate,
+    required String categoryName,
+    required String stage,
+    this.rowid = const Value.absent(),
+  }) : tradeDate = Value(tradeDate),
+       categoryName = Value(categoryName),
+       stage = Value(stage);
+  static Insertable<LifecycleHistoryData> custom({
+    Expression<String>? tradeDate,
+    Expression<String>? categoryName,
+    Expression<String>? stage,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tradeDate != null) 'trade_date': tradeDate,
+      if (categoryName != null) 'category_name': categoryName,
+      if (stage != null) 'stage': stage,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LifecycleHistoryTableCompanion copyWith({
+    Value<String>? tradeDate,
+    Value<String>? categoryName,
+    Value<String>? stage,
+    Value<int>? rowid,
+  }) {
+    return LifecycleHistoryTableCompanion(
+      tradeDate: tradeDate ?? this.tradeDate,
+      categoryName: categoryName ?? this.categoryName,
+      stage: stage ?? this.stage,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tradeDate.present) {
+      map['trade_date'] = Variable<String>(tradeDate.value);
+    }
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (stage.present) {
+      map['stage'] = Variable<String>(stage.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LifecycleHistoryTableCompanion(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('stage: $stage, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RotationHistoryTableTable extends RotationHistoryTable
+    with TableInfo<$RotationHistoryTableTable, RotationHistoryData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RotationHistoryTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _tradeDateMeta = const VerificationMeta(
+    'tradeDate',
+  );
+  @override
+  late final GeneratedColumn<String> tradeDate = GeneratedColumn<String>(
+    'trade_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fromCategoryMeta = const VerificationMeta(
+    'fromCategory',
+  );
+  @override
+  late final GeneratedColumn<String> fromCategory = GeneratedColumn<String>(
+    'from_category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _toCategoryMeta = const VerificationMeta(
+    'toCategory',
+  );
+  @override
+  late final GeneratedColumn<String> toCategory = GeneratedColumn<String>(
+    'to_category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoreMeta = const VerificationMeta('score');
+  @override
+  late final GeneratedColumn<double> score = GeneratedColumn<double>(
+    'score',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    tradeDate,
+    fromCategory,
+    toCategory,
+    score,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'rotation_history';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RotationHistoryData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('trade_date')) {
+      context.handle(
+        _tradeDateMeta,
+        tradeDate.isAcceptableOrUnknown(data['trade_date']!, _tradeDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tradeDateMeta);
+    }
+    if (data.containsKey('from_category')) {
+      context.handle(
+        _fromCategoryMeta,
+        fromCategory.isAcceptableOrUnknown(
+          data['from_category']!,
+          _fromCategoryMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_fromCategoryMeta);
+    }
+    if (data.containsKey('to_category')) {
+      context.handle(
+        _toCategoryMeta,
+        toCategory.isAcceptableOrUnknown(data['to_category']!, _toCategoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_toCategoryMeta);
+    }
+    if (data.containsKey('score')) {
+      context.handle(
+        _scoreMeta,
+        score.isAcceptableOrUnknown(data['score']!, _scoreMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoreMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {tradeDate, fromCategory, toCategory};
+  @override
+  RotationHistoryData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RotationHistoryData(
+      tradeDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trade_date'],
+      )!,
+      fromCategory: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}from_category'],
+      )!,
+      toCategory: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}to_category'],
+      )!,
+      score: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}score'],
+      )!,
+    );
+  }
+
+  @override
+  $RotationHistoryTableTable createAlias(String alias) {
+    return $RotationHistoryTableTable(attachedDatabase, alias);
+  }
+}
+
+class RotationHistoryData extends DataClass
+    implements Insertable<RotationHistoryData> {
+  final String tradeDate;
+  final String fromCategory;
+  final String toCategory;
+  final double score;
+  const RotationHistoryData({
+    required this.tradeDate,
+    required this.fromCategory,
+    required this.toCategory,
+    required this.score,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['trade_date'] = Variable<String>(tradeDate);
+    map['from_category'] = Variable<String>(fromCategory);
+    map['to_category'] = Variable<String>(toCategory);
+    map['score'] = Variable<double>(score);
+    return map;
+  }
+
+  RotationHistoryTableCompanion toCompanion(bool nullToAbsent) {
+    return RotationHistoryTableCompanion(
+      tradeDate: Value(tradeDate),
+      fromCategory: Value(fromCategory),
+      toCategory: Value(toCategory),
+      score: Value(score),
+    );
+  }
+
+  factory RotationHistoryData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RotationHistoryData(
+      tradeDate: serializer.fromJson<String>(json['tradeDate']),
+      fromCategory: serializer.fromJson<String>(json['fromCategory']),
+      toCategory: serializer.fromJson<String>(json['toCategory']),
+      score: serializer.fromJson<double>(json['score']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'tradeDate': serializer.toJson<String>(tradeDate),
+      'fromCategory': serializer.toJson<String>(fromCategory),
+      'toCategory': serializer.toJson<String>(toCategory),
+      'score': serializer.toJson<double>(score),
+    };
+  }
+
+  RotationHistoryData copyWith({
+    String? tradeDate,
+    String? fromCategory,
+    String? toCategory,
+    double? score,
+  }) => RotationHistoryData(
+    tradeDate: tradeDate ?? this.tradeDate,
+    fromCategory: fromCategory ?? this.fromCategory,
+    toCategory: toCategory ?? this.toCategory,
+    score: score ?? this.score,
+  );
+  RotationHistoryData copyWithCompanion(RotationHistoryTableCompanion data) {
+    return RotationHistoryData(
+      tradeDate: data.tradeDate.present ? data.tradeDate.value : this.tradeDate,
+      fromCategory: data.fromCategory.present
+          ? data.fromCategory.value
+          : this.fromCategory,
+      toCategory: data.toCategory.present
+          ? data.toCategory.value
+          : this.toCategory,
+      score: data.score.present ? data.score.value : this.score,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RotationHistoryData(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('fromCategory: $fromCategory, ')
+          ..write('toCategory: $toCategory, ')
+          ..write('score: $score')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(tradeDate, fromCategory, toCategory, score);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RotationHistoryData &&
+          other.tradeDate == this.tradeDate &&
+          other.fromCategory == this.fromCategory &&
+          other.toCategory == this.toCategory &&
+          other.score == this.score);
+}
+
+class RotationHistoryTableCompanion
+    extends UpdateCompanion<RotationHistoryData> {
+  final Value<String> tradeDate;
+  final Value<String> fromCategory;
+  final Value<String> toCategory;
+  final Value<double> score;
+  final Value<int> rowid;
+  const RotationHistoryTableCompanion({
+    this.tradeDate = const Value.absent(),
+    this.fromCategory = const Value.absent(),
+    this.toCategory = const Value.absent(),
+    this.score = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RotationHistoryTableCompanion.insert({
+    required String tradeDate,
+    required String fromCategory,
+    required String toCategory,
+    required double score,
+    this.rowid = const Value.absent(),
+  }) : tradeDate = Value(tradeDate),
+       fromCategory = Value(fromCategory),
+       toCategory = Value(toCategory),
+       score = Value(score);
+  static Insertable<RotationHistoryData> custom({
+    Expression<String>? tradeDate,
+    Expression<String>? fromCategory,
+    Expression<String>? toCategory,
+    Expression<double>? score,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (tradeDate != null) 'trade_date': tradeDate,
+      if (fromCategory != null) 'from_category': fromCategory,
+      if (toCategory != null) 'to_category': toCategory,
+      if (score != null) 'score': score,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RotationHistoryTableCompanion copyWith({
+    Value<String>? tradeDate,
+    Value<String>? fromCategory,
+    Value<String>? toCategory,
+    Value<double>? score,
+    Value<int>? rowid,
+  }) {
+    return RotationHistoryTableCompanion(
+      tradeDate: tradeDate ?? this.tradeDate,
+      fromCategory: fromCategory ?? this.fromCategory,
+      toCategory: toCategory ?? this.toCategory,
+      score: score ?? this.score,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (tradeDate.present) {
+      map['trade_date'] = Variable<String>(tradeDate.value);
+    }
+    if (fromCategory.present) {
+      map['from_category'] = Variable<String>(fromCategory.value);
+    }
+    if (toCategory.present) {
+      map['to_category'] = Variable<String>(toCategory.value);
+    }
+    if (score.present) {
+      map['score'] = Variable<double>(score.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RotationHistoryTableCompanion(')
+          ..write('tradeDate: $tradeDate, ')
+          ..write('fromCategory: $fromCategory, ')
+          ..write('toCategory: $toCategory, ')
+          ..write('score: $score, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+abstract class _$AppDatabase extends GeneratedDatabase {
+  _$AppDatabase(QueryExecutor e) : super(e);
+  $AppDatabaseManager get managers => $AppDatabaseManager(this);
+  late final $CategoryHistoryTableTable categoryHistoryTable =
+      $CategoryHistoryTableTable(this);
+  late final $MainstreamHistoryTableTable mainstreamHistoryTable =
+      $MainstreamHistoryTableTable(this);
+  late final $LifecycleHistoryTableTable lifecycleHistoryTable =
+      $LifecycleHistoryTableTable(this);
+  late final $RotationHistoryTableTable rotationHistoryTable =
+      $RotationHistoryTableTable(this);
+  @override
+  Iterable<TableInfo<Table, Object?>> get allTables =>
+      allSchemaEntities.whereType<TableInfo<Table, Object?>>();
+  @override
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    categoryHistoryTable,
+    mainstreamHistoryTable,
+    lifecycleHistoryTable,
+    rotationHistoryTable,
+  ];
+}
+
+typedef $$CategoryHistoryTableTableCreateCompanionBuilder =
+    CategoryHistoryTableCompanion Function({
+      required String tradeDate,
+      required String categoryName,
+      required double score,
+      required double hotScore,
+      required double persistence,
+      required double trendStrength,
+      required int riseCount,
+      required int fallCount,
+      required int totalCount,
+      Value<int> rowid,
+    });
+typedef $$CategoryHistoryTableTableUpdateCompanionBuilder =
+    CategoryHistoryTableCompanion Function({
+      Value<String> tradeDate,
+      Value<String> categoryName,
+      Value<double> score,
+      Value<double> hotScore,
+      Value<double> persistence,
+      Value<double> trendStrength,
+      Value<int> riseCount,
+      Value<int> fallCount,
+      Value<int> totalCount,
+      Value<int> rowid,
+    });
+
+class $$CategoryHistoryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $CategoryHistoryTableTable> {
+  $$CategoryHistoryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get hotScore => $composableBuilder(
+    column: $table.hotScore,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get persistence => $composableBuilder(
+    column: $table.persistence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get trendStrength => $composableBuilder(
+    column: $table.trendStrength,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get riseCount => $composableBuilder(
+    column: $table.riseCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get fallCount => $composableBuilder(
+    column: $table.fallCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get totalCount => $composableBuilder(
+    column: $table.totalCount,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CategoryHistoryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $CategoryHistoryTableTable> {
+  $$CategoryHistoryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get hotScore => $composableBuilder(
+    column: $table.hotScore,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get persistence => $composableBuilder(
+    column: $table.persistence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get trendStrength => $composableBuilder(
+    column: $table.trendStrength,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get riseCount => $composableBuilder(
+    column: $table.riseCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get fallCount => $composableBuilder(
+    column: $table.fallCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get totalCount => $composableBuilder(
+    column: $table.totalCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CategoryHistoryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CategoryHistoryTableTable> {
+  $$CategoryHistoryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tradeDate =>
+      $composableBuilder(column: $table.tradeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+
+  GeneratedColumn<double> get hotScore =>
+      $composableBuilder(column: $table.hotScore, builder: (column) => column);
+
+  GeneratedColumn<double> get persistence => $composableBuilder(
+    column: $table.persistence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get trendStrength => $composableBuilder(
+    column: $table.trendStrength,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get riseCount =>
+      $composableBuilder(column: $table.riseCount, builder: (column) => column);
+
+  GeneratedColumn<int> get fallCount =>
+      $composableBuilder(column: $table.fallCount, builder: (column) => column);
+
+  GeneratedColumn<int> get totalCount => $composableBuilder(
+    column: $table.totalCount,
+    builder: (column) => column,
+  );
+}
+
+class $$CategoryHistoryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CategoryHistoryTableTable,
+          CategoryHistoryData,
+          $$CategoryHistoryTableTableFilterComposer,
+          $$CategoryHistoryTableTableOrderingComposer,
+          $$CategoryHistoryTableTableAnnotationComposer,
+          $$CategoryHistoryTableTableCreateCompanionBuilder,
+          $$CategoryHistoryTableTableUpdateCompanionBuilder,
+          (
+            CategoryHistoryData,
+            BaseReferences<
+              _$AppDatabase,
+              $CategoryHistoryTableTable,
+              CategoryHistoryData
+            >,
+          ),
+          CategoryHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$CategoryHistoryTableTableTableManager(
+    _$AppDatabase db,
+    $CategoryHistoryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CategoryHistoryTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CategoryHistoryTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$CategoryHistoryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tradeDate = const Value.absent(),
+                Value<String> categoryName = const Value.absent(),
+                Value<double> score = const Value.absent(),
+                Value<double> hotScore = const Value.absent(),
+                Value<double> persistence = const Value.absent(),
+                Value<double> trendStrength = const Value.absent(),
+                Value<int> riseCount = const Value.absent(),
+                Value<int> fallCount = const Value.absent(),
+                Value<int> totalCount = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryHistoryTableCompanion(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                score: score,
+                hotScore: hotScore,
+                persistence: persistence,
+                trendStrength: trendStrength,
+                riseCount: riseCount,
+                fallCount: fallCount,
+                totalCount: totalCount,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tradeDate,
+                required String categoryName,
+                required double score,
+                required double hotScore,
+                required double persistence,
+                required double trendStrength,
+                required int riseCount,
+                required int fallCount,
+                required int totalCount,
+                Value<int> rowid = const Value.absent(),
+              }) => CategoryHistoryTableCompanion.insert(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                score: score,
+                hotScore: hotScore,
+                persistence: persistence,
+                trendStrength: trendStrength,
+                riseCount: riseCount,
+                fallCount: fallCount,
+                totalCount: totalCount,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CategoryHistoryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CategoryHistoryTableTable,
+      CategoryHistoryData,
+      $$CategoryHistoryTableTableFilterComposer,
+      $$CategoryHistoryTableTableOrderingComposer,
+      $$CategoryHistoryTableTableAnnotationComposer,
+      $$CategoryHistoryTableTableCreateCompanionBuilder,
+      $$CategoryHistoryTableTableUpdateCompanionBuilder,
+      (
+        CategoryHistoryData,
+        BaseReferences<
+          _$AppDatabase,
+          $CategoryHistoryTableTable,
+          CategoryHistoryData
+        >,
+      ),
+      CategoryHistoryData,
+      PrefetchHooks Function()
+    >;
+typedef $$MainstreamHistoryTableTableCreateCompanionBuilder =
+    MainstreamHistoryTableCompanion Function({
+      required String tradeDate,
+      required String categoryName,
+      required int rankNo,
+      required double score,
+      Value<int> rowid,
+    });
+typedef $$MainstreamHistoryTableTableUpdateCompanionBuilder =
+    MainstreamHistoryTableCompanion Function({
+      Value<String> tradeDate,
+      Value<String> categoryName,
+      Value<int> rankNo,
+      Value<double> score,
+      Value<int> rowid,
+    });
+
+class $$MainstreamHistoryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $MainstreamHistoryTableTable> {
+  $$MainstreamHistoryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get rankNo => $composableBuilder(
+    column: $table.rankNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$MainstreamHistoryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $MainstreamHistoryTableTable> {
+  $$MainstreamHistoryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rankNo => $composableBuilder(
+    column: $table.rankNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$MainstreamHistoryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $MainstreamHistoryTableTable> {
+  $$MainstreamHistoryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tradeDate =>
+      $composableBuilder(column: $table.tradeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get rankNo =>
+      $composableBuilder(column: $table.rankNo, builder: (column) => column);
+
+  GeneratedColumn<double> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+}
+
+class $$MainstreamHistoryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MainstreamHistoryTableTable,
+          MainstreamHistoryData,
+          $$MainstreamHistoryTableTableFilterComposer,
+          $$MainstreamHistoryTableTableOrderingComposer,
+          $$MainstreamHistoryTableTableAnnotationComposer,
+          $$MainstreamHistoryTableTableCreateCompanionBuilder,
+          $$MainstreamHistoryTableTableUpdateCompanionBuilder,
+          (
+            MainstreamHistoryData,
+            BaseReferences<
+              _$AppDatabase,
+              $MainstreamHistoryTableTable,
+              MainstreamHistoryData
+            >,
+          ),
+          MainstreamHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$MainstreamHistoryTableTableTableManager(
+    _$AppDatabase db,
+    $MainstreamHistoryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MainstreamHistoryTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$MainstreamHistoryTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$MainstreamHistoryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tradeDate = const Value.absent(),
+                Value<String> categoryName = const Value.absent(),
+                Value<int> rankNo = const Value.absent(),
+                Value<double> score = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MainstreamHistoryTableCompanion(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                rankNo: rankNo,
+                score: score,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tradeDate,
+                required String categoryName,
+                required int rankNo,
+                required double score,
+                Value<int> rowid = const Value.absent(),
+              }) => MainstreamHistoryTableCompanion.insert(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                rankNo: rankNo,
+                score: score,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$MainstreamHistoryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MainstreamHistoryTableTable,
+      MainstreamHistoryData,
+      $$MainstreamHistoryTableTableFilterComposer,
+      $$MainstreamHistoryTableTableOrderingComposer,
+      $$MainstreamHistoryTableTableAnnotationComposer,
+      $$MainstreamHistoryTableTableCreateCompanionBuilder,
+      $$MainstreamHistoryTableTableUpdateCompanionBuilder,
+      (
+        MainstreamHistoryData,
+        BaseReferences<
+          _$AppDatabase,
+          $MainstreamHistoryTableTable,
+          MainstreamHistoryData
+        >,
+      ),
+      MainstreamHistoryData,
+      PrefetchHooks Function()
+    >;
+typedef $$LifecycleHistoryTableTableCreateCompanionBuilder =
+    LifecycleHistoryTableCompanion Function({
+      required String tradeDate,
+      required String categoryName,
+      required String stage,
+      Value<int> rowid,
+    });
+typedef $$LifecycleHistoryTableTableUpdateCompanionBuilder =
+    LifecycleHistoryTableCompanion Function({
+      Value<String> tradeDate,
+      Value<String> categoryName,
+      Value<String> stage,
+      Value<int> rowid,
+    });
+
+class $$LifecycleHistoryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $LifecycleHistoryTableTable> {
+  $$LifecycleHistoryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LifecycleHistoryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $LifecycleHistoryTableTable> {
+  $$LifecycleHistoryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stage => $composableBuilder(
+    column: $table.stage,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LifecycleHistoryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LifecycleHistoryTableTable> {
+  $$LifecycleHistoryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tradeDate =>
+      $composableBuilder(column: $table.tradeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get stage =>
+      $composableBuilder(column: $table.stage, builder: (column) => column);
+}
+
+class $$LifecycleHistoryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LifecycleHistoryTableTable,
+          LifecycleHistoryData,
+          $$LifecycleHistoryTableTableFilterComposer,
+          $$LifecycleHistoryTableTableOrderingComposer,
+          $$LifecycleHistoryTableTableAnnotationComposer,
+          $$LifecycleHistoryTableTableCreateCompanionBuilder,
+          $$LifecycleHistoryTableTableUpdateCompanionBuilder,
+          (
+            LifecycleHistoryData,
+            BaseReferences<
+              _$AppDatabase,
+              $LifecycleHistoryTableTable,
+              LifecycleHistoryData
+            >,
+          ),
+          LifecycleHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$LifecycleHistoryTableTableTableManager(
+    _$AppDatabase db,
+    $LifecycleHistoryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LifecycleHistoryTableTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LifecycleHistoryTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LifecycleHistoryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tradeDate = const Value.absent(),
+                Value<String> categoryName = const Value.absent(),
+                Value<String> stage = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LifecycleHistoryTableCompanion(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                stage: stage,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tradeDate,
+                required String categoryName,
+                required String stage,
+                Value<int> rowid = const Value.absent(),
+              }) => LifecycleHistoryTableCompanion.insert(
+                tradeDate: tradeDate,
+                categoryName: categoryName,
+                stage: stage,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LifecycleHistoryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LifecycleHistoryTableTable,
+      LifecycleHistoryData,
+      $$LifecycleHistoryTableTableFilterComposer,
+      $$LifecycleHistoryTableTableOrderingComposer,
+      $$LifecycleHistoryTableTableAnnotationComposer,
+      $$LifecycleHistoryTableTableCreateCompanionBuilder,
+      $$LifecycleHistoryTableTableUpdateCompanionBuilder,
+      (
+        LifecycleHistoryData,
+        BaseReferences<
+          _$AppDatabase,
+          $LifecycleHistoryTableTable,
+          LifecycleHistoryData
+        >,
+      ),
+      LifecycleHistoryData,
+      PrefetchHooks Function()
+    >;
+typedef $$RotationHistoryTableTableCreateCompanionBuilder =
+    RotationHistoryTableCompanion Function({
+      required String tradeDate,
+      required String fromCategory,
+      required String toCategory,
+      required double score,
+      Value<int> rowid,
+    });
+typedef $$RotationHistoryTableTableUpdateCompanionBuilder =
+    RotationHistoryTableCompanion Function({
+      Value<String> tradeDate,
+      Value<String> fromCategory,
+      Value<String> toCategory,
+      Value<double> score,
+      Value<int> rowid,
+    });
+
+class $$RotationHistoryTableTableFilterComposer
+    extends Composer<_$AppDatabase, $RotationHistoryTableTable> {
+  $$RotationHistoryTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fromCategory => $composableBuilder(
+    column: $table.fromCategory,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get toCategory => $composableBuilder(
+    column: $table.toCategory,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RotationHistoryTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $RotationHistoryTableTable> {
+  $$RotationHistoryTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get tradeDate => $composableBuilder(
+    column: $table.tradeDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fromCategory => $composableBuilder(
+    column: $table.fromCategory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get toCategory => $composableBuilder(
+    column: $table.toCategory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get score => $composableBuilder(
+    column: $table.score,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RotationHistoryTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RotationHistoryTableTable> {
+  $$RotationHistoryTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get tradeDate =>
+      $composableBuilder(column: $table.tradeDate, builder: (column) => column);
+
+  GeneratedColumn<String> get fromCategory => $composableBuilder(
+    column: $table.fromCategory,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get toCategory => $composableBuilder(
+    column: $table.toCategory,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get score =>
+      $composableBuilder(column: $table.score, builder: (column) => column);
+}
+
+class $$RotationHistoryTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RotationHistoryTableTable,
+          RotationHistoryData,
+          $$RotationHistoryTableTableFilterComposer,
+          $$RotationHistoryTableTableOrderingComposer,
+          $$RotationHistoryTableTableAnnotationComposer,
+          $$RotationHistoryTableTableCreateCompanionBuilder,
+          $$RotationHistoryTableTableUpdateCompanionBuilder,
+          (
+            RotationHistoryData,
+            BaseReferences<
+              _$AppDatabase,
+              $RotationHistoryTableTable,
+              RotationHistoryData
+            >,
+          ),
+          RotationHistoryData,
+          PrefetchHooks Function()
+        > {
+  $$RotationHistoryTableTableTableManager(
+    _$AppDatabase db,
+    $RotationHistoryTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RotationHistoryTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RotationHistoryTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$RotationHistoryTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> tradeDate = const Value.absent(),
+                Value<String> fromCategory = const Value.absent(),
+                Value<String> toCategory = const Value.absent(),
+                Value<double> score = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RotationHistoryTableCompanion(
+                tradeDate: tradeDate,
+                fromCategory: fromCategory,
+                toCategory: toCategory,
+                score: score,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String tradeDate,
+                required String fromCategory,
+                required String toCategory,
+                required double score,
+                Value<int> rowid = const Value.absent(),
+              }) => RotationHistoryTableCompanion.insert(
+                tradeDate: tradeDate,
+                fromCategory: fromCategory,
+                toCategory: toCategory,
+                score: score,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RotationHistoryTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RotationHistoryTableTable,
+      RotationHistoryData,
+      $$RotationHistoryTableTableFilterComposer,
+      $$RotationHistoryTableTableOrderingComposer,
+      $$RotationHistoryTableTableAnnotationComposer,
+      $$RotationHistoryTableTableCreateCompanionBuilder,
+      $$RotationHistoryTableTableUpdateCompanionBuilder,
+      (
+        RotationHistoryData,
+        BaseReferences<
+          _$AppDatabase,
+          $RotationHistoryTableTable,
+          RotationHistoryData
+        >,
+      ),
+      RotationHistoryData,
+      PrefetchHooks Function()
+    >;
+
+class $AppDatabaseManager {
+  final _$AppDatabase _db;
+  $AppDatabaseManager(this._db);
+  $$CategoryHistoryTableTableTableManager get categoryHistoryTable =>
+      $$CategoryHistoryTableTableTableManager(_db, _db.categoryHistoryTable);
+  $$MainstreamHistoryTableTableTableManager get mainstreamHistoryTable =>
+      $$MainstreamHistoryTableTableTableManager(
+        _db,
+        _db.mainstreamHistoryTable,
+      );
+  $$LifecycleHistoryTableTableTableManager get lifecycleHistoryTable =>
+      $$LifecycleHistoryTableTableTableManager(_db, _db.lifecycleHistoryTable);
+  $$RotationHistoryTableTableTableManager get rotationHistoryTable =>
+      $$RotationHistoryTableTableTableManager(_db, _db.rotationHistoryTable);
+}
+
+`
+
+### lib\data\database\tables\category_history_table.dart
+
+`dart
 import 'package:drift/drift.dart';
 
 @DataClassName('CategoryHistoryData')
@@ -784,11 +3233,11 @@ class CategoryHistoryTable extends Table {
   Set<Column> get primaryKey => {tradeDate, categoryName};
 }
 
+`
 
+### lib\data\database\tables\lifecycle_history_table.dart
 
-================================================
-FILE: lib/data/database/tables/lifecycle_history_table.dart
-================================================
+`dart
 import 'package:drift/drift.dart';
 
 @DataClassName('LifecycleHistoryData')
@@ -809,11 +3258,11 @@ class LifecycleHistoryTable extends Table {
   Set<Column> get primaryKey => {tradeDate, categoryName};
 }
 
+`
 
+### lib\data\database\tables\mainstream_history_table.dart
 
-================================================
-FILE: lib/data/database/tables/mainstream_history_table.dart
-================================================
+`dart
 import 'package:drift/drift.dart';
 
 @DataClassName('MainstreamHistoryData')
@@ -837,11 +3286,11 @@ class MainstreamHistoryTable extends Table {
   Set<Column> get primaryKey => {tradeDate, categoryName};
 }
 
+`
 
+### lib\data\database\tables\rotation_history_table.dart
 
-================================================
-FILE: lib/data/database/tables/rotation_history_table.dart
-================================================
+`dart
 import 'package:drift/drift.dart';
 
 @DataClassName('RotationHistoryData')
@@ -866,11 +3315,11 @@ class RotationHistoryTable extends Table {
   Set<Column> get primaryKey => {tradeDate, fromCategory, toCategory};
 }
 
+`
 
+### lib\data\history\repositories\category_history_repository.dart
 
-================================================
-FILE: lib/data/history/repositories/category_history_repository.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/database/app_database.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/data/models/analysis_snapshot.dart';
@@ -975,17 +3424,189 @@ class CategoryHistoryRepository {
   }
 }
 
+`
 
+### lib\data\managers\sync_manager.dart
 
-================================================
-FILE: lib/data/managers/sync_manager.dart
-================================================
-[Binary file]
+`dart
+import 'dart:developer' as dev;
 
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
+import 'package:tw_stock_capital_flow/data/services/market_calendar_service.dart';
+import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
+import 'package:tw_stock_capital_flow/data/services/stock_service.dart';
 
-================================================
-FILE: lib/data/models/analysis_snapshot.dart
-================================================
+class SyncResult {
+  final bool success;
+
+  final bool saved;
+
+  final String message;
+
+  final String date;
+
+  final int stockCount;
+
+  final List<StockData> stocks;
+
+  SyncResult({
+    required this.success,
+    required this.saved,
+    required this.message,
+    required this.date,
+    required this.stockCount,
+    required this.stocks,
+  });
+}
+
+class SyncManager {
+  final StorageService storageService;
+
+  final MarketCalendarService calendarService;
+
+  SyncManager({required this.storageService, required this.calendarService});
+
+  Future<SyncResult> syncTodayData() async {
+    try {
+      dev.log('開始同步今日股市資料', name: 'SyncManager');
+
+      await StockService.loadMapping();
+
+      dev.log('開始抓取上市資料', name: 'SyncManager');
+
+      final listed = await StockService.fetchListed();
+
+      final listedDate = StockService.lastDataDate;
+
+      dev.log('上市資料筆數: ${listed.length}', name: 'SyncManager');
+
+      dev.log('開始抓取上櫃資料', name: 'SyncManager');
+
+      final otc = await StockService.fetchOTC();
+
+      final otcDate = StockService.lastDataDate;
+
+      dev.log('上櫃資料筆數: ${otc.length}', name: 'SyncManager');
+
+      if (listed.isEmpty && otc.isEmpty) {
+        return SyncResult(
+          success: false,
+          saved: false,
+          message: '上市與上櫃資料皆為空',
+          date: '',
+          stockCount: 0,
+          stocks: [],
+        );
+      }
+
+      final latestDate = _resolveLatestDate(
+        listedDate: listedDate,
+        otcDate: otcDate,
+      );
+
+      if (latestDate.isEmpty) {
+        return SyncResult(
+          success: false,
+          saved: false,
+          message: '無法取得有效交易日期',
+          date: '',
+          stockCount: 0,
+          stocks: [],
+        );
+      }
+
+      // 🚨 新增：檢查兩個來源日期是否差異過大
+      if (listedDate.isNotEmpty &&
+          otcDate.isNotEmpty &&
+          listedDate != otcDate) {
+        dev.log(
+          '⚠️ 警告：上市與上櫃資料日期不同步！上市:$listedDate | 上櫃:$otcDate | 最終採用:$latestDate',
+          name: 'SyncManager',
+        );
+      }
+
+      final allStocks = <StockData>[...listed, ...otc];
+
+      dev.log('合併後總股票數: ${allStocks.length}', name: 'SyncManager');
+
+      final localDates = await storageService.listAvailableDates();
+
+      final isNewTradingDay = calendarService.isNewTradingDay(
+        latestApiDate: latestDate,
+        localDates: localDates,
+      );
+
+      if (!isNewTradingDay) {
+        dev.log('今日資料已存在，略過保存', name: 'SyncManager');
+
+        final existingSnapshot = await storageService.loadSnapshot(latestDate);
+
+        return SyncResult(
+          success: true,
+          saved: false,
+          message: '今日資料已存在',
+          date: latestDate,
+          stockCount: existingSnapshot?.stocks.length ?? allStocks.length,
+          stocks: existingSnapshot?.stocks ?? allStocks,
+        );
+      }
+
+      final snapshot = StockDaySnapshot(date: latestDate, stocks: allStocks);
+
+      await storageService.saveDailySnapshot(snapshot);
+
+      dev.log('資料同步成功: $latestDate', name: 'SyncManager');
+
+      return SyncResult(
+        success: true,
+        saved: true,
+        message: '同步成功',
+        date: latestDate,
+        stockCount: allStocks.length,
+        stocks: allStocks,
+      );
+    } catch (e, stack) {
+      dev.log('同步失敗: $e', name: 'SyncManager', error: e, stackTrace: stack);
+
+      // 即使失敗，也盡量返回本地最新日期
+      final lastDate = await storageService.getLatestAvailableDate();
+
+      return SyncResult(
+        success: false,
+        saved: false,
+        message: e.toString(),
+        date: lastDate ?? '',
+        stockCount: 0,
+        stocks: [],
+      );
+    }
+  }
+
+  String _resolveLatestDate({
+    required String listedDate,
+    required String otcDate,
+  }) {
+    if (listedDate.isEmpty && otcDate.isEmpty) return '';
+    if (listedDate.isEmpty) return otcDate;
+    if (otcDate.isEmpty) return listedDate;
+
+    // 取兩個日期中「較新」的
+    if (listedDate.compareTo(otcDate) > 0) {
+      dev.log('📅 選擇上市日期（較新）: $listedDate', name: 'SyncManager');
+      return listedDate;
+    } else {
+      dev.log('📅 選擇上櫃日期（較新）: $otcDate', name: 'SyncManager');
+      return otcDate;
+    }
+  }
+}
+
+`
+
+### lib\data\models\analysis_snapshot.dart
+
+`dart
 class AnalysisSnapshot {
   final String date;
 
@@ -1006,11 +3627,11 @@ class AnalysisSnapshot {
   });
 }
 
+`
 
+### lib\data\models\flow_signal.dart
 
-================================================
-FILE: lib/data/models/flow_signal.dart
-================================================
+`dart
 enum FlowDirection { inflow, outflow, neutral }
 
 class FlowSignal {
@@ -1033,11 +3654,11 @@ class FlowSignal {
   });
 }
 
+`
 
+### lib\data\models\rotation_result.dart
 
-================================================
-FILE: lib/data/models/rotation_result.dart
-================================================
+`dart
 class RotationResult {
   final String fromCategory;
 
@@ -1076,11 +3697,11 @@ class RotationResult {
   }
 }
 
+`
 
+### lib\data\models\stock_data.dart
 
-================================================
-FILE: lib/data/models/stock_data.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/core/extensions/market_type_extension.dart';
 
 enum MarketType { listed, otc }
@@ -1153,11 +3774,11 @@ class StockData {
   }
 }
 
+`
 
+### lib\data\models\stock_day_snapshot.dart
 
-================================================
-FILE: lib/data/models/stock_day_snapshot.dart
-================================================
+`dart
 import 'stock_data.dart';
 
 class StockDaySnapshot {
@@ -1181,11 +3802,11 @@ class StockDaySnapshot {
   }
 }
 
+`
 
+### lib\data\models\stock_score.dart
 
-================================================
-FILE: lib/data/models/stock_score.dart
-================================================
+`dart
 class StockScore {
   final String code;
 
@@ -1206,11 +3827,11 @@ class StockScore {
   });
 }
 
+`
 
+### lib\data\repositories\history_repository.dart
 
-================================================
-FILE: lib/data/repositories/history_repository.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
 
@@ -1238,11 +3859,11 @@ class HistoryRepository {
   }
 }
 
+`
 
+### lib\data\services\analysis_cache_service.dart
 
-================================================
-FILE: lib/data/services/analysis_cache_service.dart
-================================================
+`dart
 import 'dart:convert';
 import 'package:tw_stock_capital_flow/domain/usecases/app_bootstrap_result.dart';
 import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
@@ -1474,11 +4095,11 @@ class AnalysisCacheService {
       );
 }
 
+`
 
+### lib\data\services\capital_flow_analyzer.dart
 
-================================================
-FILE: lib/data/services/capital_flow_analyzer.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
@@ -1758,11 +4379,11 @@ class CapitalFlowAnalyzer {
   }
 }
 
+`
 
+### lib\data\services\market_calendar_service.dart
 
-================================================
-FILE: lib/data/services/market_calendar_service.dart
-================================================
+`dart
 class MarketCalendarService {
   bool isNewTradingDay({
     required String latestApiDate,
@@ -1772,11 +4393,11 @@ class MarketCalendarService {
   }
 }
 
+`
 
+### lib\data\services\stock_service.dart
 
-================================================
-FILE: lib/data/services/stock_service.dart
-================================================
+`dart
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -2045,11 +4666,11 @@ class StockService {
   }
 }
 
+`
 
+### lib\data\services\storage_service.dart
 
-================================================
-FILE: lib/data/services/storage_service.dart
-================================================
+`dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -2210,11 +4831,11 @@ class StorageService {
   }
 }
 
+`
 
+### lib\domain\analysers\rotation_leading_analyser.dart
 
-================================================
-FILE: lib/domain/analysers/rotation_leading_analyser.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
 import 'package:tw_stock_capital_flow/domain/models/leading_indicator_result.dart';
 
@@ -2297,11 +4918,11 @@ class _RotationMetrics {
   _RotationMetrics({required this.name});
 }
 
+`
 
+### lib\domain\engines\abnormal_money_engine.dart
 
-================================================
-FILE: lib/domain/engines/abnormal_money_engine.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/domain/models/abnormal_money_result.dart';
@@ -2397,11 +5018,11 @@ class AbnormalMoneyEngine {
   }
 }
 
+`
 
+### lib\domain\engines\capital_flow_engine.dart
 
-================================================
-FILE: lib/domain/engines/capital_flow_engine.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/core/extensions/list_extension.dart';
@@ -2502,11 +5123,11 @@ class CapitalFlowEngine {
   }
 }
 
+`
 
+### lib\domain\engines\lifecycle_engine.dart
 
-================================================
-FILE: lib/domain/engines/lifecycle_engine.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/domain/enums/lifecycle_stage.dart';
 import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
@@ -2698,11 +5319,11 @@ class LifecycleEngine {
   }
 }
 
+`
 
+### lib\domain\engines\mainstream_engine.dart
 
-================================================
-FILE: lib/domain/engines/mainstream_engine.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/domain/models/mainstream_result.dart';
@@ -2853,11 +5474,11 @@ class MainstreamEngine {
   }
 }
 
+`
 
+### lib\domain\engines\market_sentiment_engine.dart
 
-================================================
-FILE: lib/domain/engines/market_sentiment_engine.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 
 import 'package:tw_stock_capital_flow/domain/enums/sentiment_level.dart';
@@ -2971,11 +5592,11 @@ class MarketSentimentEngine {
   }
 }
 
+`
 
+### lib\domain\engines\rotation_engine.dart
 
-================================================
-FILE: lib/domain/engines/rotation_engine.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/core/extensions/list_extension.dart';
 import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
@@ -3068,11 +5689,11 @@ class RotationEngine {
   }
 }
 
+`
 
+### lib\domain\engines\trend_metrics_engine.dart
 
-================================================
-FILE: lib/domain/engines/trend_metrics_engine.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/domain/models/trend_metrics.dart';
 
 class TrendMetricsEngine {
@@ -3126,11 +5747,11 @@ class TrendMetricsEngine {
   }
 }
 
+`
 
+### lib\domain\enums\lifecycle_stage.dart
 
-================================================
-FILE: lib/domain/enums/lifecycle_stage.dart
-================================================
+`dart
 enum LifecycleStage {
   ignition, // 點火
   expansion, // 擴散
@@ -3141,18 +5762,18 @@ enum LifecycleStage {
   dead, // 死亡
 }
 
+`
 
+### lib\domain\enums\sentiment_level.dart
 
-================================================
-FILE: lib/domain/enums/sentiment_level.dart
-================================================
+`dart
 enum SentimentLevel { panic, weak, neutral, optimistic, euphoric }
 
+`
 
+### lib\domain\models\abnormal_money_result.dart
 
-================================================
-FILE: lib/domain/models/abnormal_money_result.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
 class AbnormalMoneyResult {
@@ -3181,11 +5802,11 @@ class AbnormalMoneyResult {
   });
 }
 
+`
 
+### lib\domain\models\leading_indicator_result.dart
 
-================================================
-FILE: lib/domain/models/leading_indicator_result.dart
-================================================
+`dart
 enum LeadingSignalType {
   strongAccumulation, // 🟢 強烈暗中吸籌（黃金領先買進點）
   mildInflow, // 🍏 資金穩步潛伏
@@ -3214,11 +5835,11 @@ class LeadingIndicatorResult {
   });
 }
 
+`
 
+### lib\domain\models\lifecycle_result.dart
 
-================================================
-FILE: lib/domain/models/lifecycle_result.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/domain/enums/lifecycle_stage.dart';
 
 class LifecycleResult {
@@ -3247,11 +5868,11 @@ class LifecycleResult {
   });
 }
 
+`
 
+### lib\domain\models\lifecycle_timeline.dart
 
-================================================
-FILE: lib/domain/models/lifecycle_timeline.dart
-================================================
+`dart
 class LifecycleTimeline {
   final String category;
 
@@ -3269,11 +5890,11 @@ class LifecycleTimeline {
   });
 }
 
+`
 
+### lib\domain\models\mainstream_result.dart
 
-================================================
-FILE: lib/domain/models/mainstream_result.dart
-================================================
+`dart
 class MainstreamResult {
   final String category;
 
@@ -3303,11 +5924,11 @@ class MainstreamResult {
   });
 }
 
+`
 
+### lib\domain\models\market_sentiment_result.dart
 
-================================================
-FILE: lib/domain/models/market_sentiment_result.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/domain/enums/sentiment_level.dart';
 
 class MarketSentimentResult {
@@ -3336,17 +5957,66 @@ class MarketSentimentResult {
   });
 }
 
+`
 
+### lib\domain\models\strategy_signal.dart
 
-================================================
-FILE: lib/domain/models/strategy_signal.dart
-================================================
-[Binary file]
+`dart
+// import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
 
+/// 策略建議之行動型別
+enum StrategyAction {
+  buy, // 🟢 買進 / 進場
+  hold, // 🟡 續抱 / 加碼
+  sell, // 🔴 賣出 / 出清
+  neutral, // ⚪ 觀望 / 無訊號
+}
 
-================================================
-FILE: lib/domain/models/trend_metrics.dart
-================================================
+/// 單一板塊當前觸發的策略訊號
+class StrategySignal {
+  final String category;
+  final StrategyAction action;
+  final double score;
+  final double trendStrength;
+  final double persistence;
+  final String reason;
+  final String dateKey;
+
+  StrategySignal({
+    required this.category,
+    required this.action,
+    required this.score,
+    required this.trendStrength,
+    required this.persistence,
+    required this.reason,
+    required this.dateKey,
+  });
+}
+
+/// 策略回測統計效能結果
+class BacktestSummary {
+  final String strategyName;
+  final double totalReturn; // 總報酬率 (例如 0.25 代表 25%)
+  final double winRate; // 勝率 (0.0 ~ 1.0)
+  final int totalTrades; // 總交易次數
+  final double maxDrawdown; // 最大回撤 (MDD)
+  final List<StrategySignal> signalHistory;
+
+  BacktestSummary({
+    required this.strategyName,
+    required this.totalReturn,
+    required this.winRate,
+    required this.totalTrades,
+    required this.maxDrawdown,
+    required this.signalHistory,
+  });
+}
+
+`
+
+### lib\domain\models\trend_metrics.dart
+
+`dart
 class TrendMetrics {
   final double slope;
 
@@ -3364,11 +6034,11 @@ class TrendMetrics {
   });
 }
 
+`
 
+### lib\domain\strategies\momentum_strategy.dart
 
-================================================
-FILE: lib/domain/strategies/momentum_strategy.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/domain/enums/lifecycle_stage.dart';
 import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart'; // 確保路徑對齊
 import 'package:tw_stock_capital_flow/domain/models/strategy_signal.dart';
@@ -3482,11 +6152,11 @@ class MomentumStrategy {
   }
 }
 
+`
 
+### lib\domain\usecases\app_bootstrap_result.dart
 
-================================================
-FILE: lib/domain/usecases/app_bootstrap_result.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
 import 'package:tw_stock_capital_flow/domain/models/mainstream_result.dart';
 import 'package:tw_stock_capital_flow/domain/models/market_sentiment_result.dart';
@@ -3534,11 +6204,11 @@ class AppBootstrapResult {
   });
 }
 
+`
 
+### lib\domain\usecases\app_bootstrapper.dart
 
-================================================
-FILE: lib/domain/usecases/app_bootstrapper.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/domain/usecases/app_bootstrap_result.dart';
 import 'package:tw_stock_capital_flow/domain/engines/lifecycle_engine.dart';
 import 'package:tw_stock_capital_flow/domain/engines/mainstream_engine.dart';
@@ -3613,11 +6283,11 @@ class AppBootstrapper {
   }
 }
 
+`
 
+### lib\domain\usecases\bootstrap_analyzer.dart
 
-================================================
-FILE: lib/domain/usecases/bootstrap_analyzer.dart
-================================================
+`dart
 import 'package:tw_stock_capital_flow/domain/engines/lifecycle_engine.dart';
 import 'package:tw_stock_capital_flow/domain/engines/mainstream_engine.dart';
 import 'package:tw_stock_capital_flow/domain/engines/market_sentiment_engine.dart';
@@ -3684,24 +6354,122 @@ class BootstrapAnalyzer {
   }
 }
 
+`
 
+### lib\presentation\enums\category_sort_type.dart
 
-================================================
-FILE: lib/presentation/enums/category_sort_type.dart
-================================================
+`dart
 enum CategorySortType { score, riseCount, fallCount, totalCount, threeDayTrend }
 
+`
 
+### lib\presentation\models\category_ui_model.dart
 
-================================================
-FILE: lib/presentation/models/category_ui_model.dart
-================================================
-[Binary file]
+`dart
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
+class CategoryUiModel {
+  final String name;
 
-================================================
-FILE: lib/presentation/pages/home_page.dart
-================================================
+  final int totalCount;
+
+  final int riseCount;
+
+  final int fallCount;
+
+  final double score;
+
+  final double day1Score;
+
+  final double day2Score;
+
+  final double day3Score;
+
+  final double hotScore;
+
+  final double persistence;
+
+  final List<CategoryUiModel> children;
+
+  final List<StockUiModel> stocks;
+
+  CategoryUiModel({
+    required this.name,
+    required this.totalCount,
+    required this.riseCount,
+    required this.fallCount,
+    required this.score,
+    required this.day1Score,
+    required this.day2Score,
+    required this.day3Score,
+    required this.hotScore,
+    required this.persistence,
+    this.children = const [],
+    this.stocks = const [],
+  });
+
+  // 真正三日趨勢強度
+  double get trendStrength {
+    // 權重：
+    // 今日 50%
+    // 昨日 30%
+    // 前日 20%
+
+    final weighted = (day1Score * 0.5) + (day2Score * 0.3) + (day3Score * 0.2);
+
+    // 趨勢加速度
+    final acceleration =
+        (day1Score - day2Score) + ((day2Score - day3Score) * 0.5);
+
+    return weighted + acceleration;
+  }
+
+  // 是否為持續增強
+  bool get isStrengthening {
+    return day1Score > day2Score && day2Score > day3Score;
+  }
+
+  // 是否為持續衰退
+  bool get isWeakening {
+    return day1Score < day2Score && day2Score < day3Score;
+  }
+
+  String get hotLevel {
+    final score = hotScore;
+
+    if (score >= 80) {
+      return '爆發';
+    }
+
+    if (score >= 50) {
+      return '強勢';
+    }
+
+    if (score >= 20) {
+      return '偏強';
+    }
+
+    if (score >= 0) {
+      return '整理';
+    }
+
+    return '退潮';
+  }
+}
+
+class StockUiModel {
+  final StockData stock;
+
+  final double score;
+
+  StockUiModel({required this.stock, required this.score});
+}
+
+`
+
+### lib\presentation\pages\home_page.dart
+
+`dart
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
 import 'package:tw_stock_capital_flow/domain/models/mainstream_result.dart';
@@ -3971,17 +6739,255 @@ class HomePage extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\pages\leading_indicator_page.dart
 
-================================================
-FILE: lib/presentation/pages/leading_indicator_page.dart
-================================================
-[Binary file]
+`dart
+import 'package:flutter/material.dart';
+import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
+import 'package:tw_stock_capital_flow/domain/models/leading_indicator_result.dart';
+import 'package:tw_stock_capital_flow/domain/analysers/rotation_leading_analyser.dart';
 
+class LeadingIndicatorPage extends StatelessWidget {
+  final List<RotationResult> rotations;
+  final RotationLeadingAnalyser _analyser = RotationLeadingAnalyser();
 
-================================================
-FILE: lib/presentation/pages/lifecycle_page.dart
-================================================
+  LeadingIndicatorPage({super.key, required this.rotations});
+
+  @override
+  Widget build(BuildContext context) {
+    final indicators = _analyser.calculateLeadingIndicators(rotations);
+
+    final leaders = indicators.where((e) => e.netRotationScore > 0).toList();
+    final laggards = indicators.where((e) => e.netRotationScore <= 0).toList();
+    laggards.sort((a, b) => a.netRotationScore.compareTo(b.netRotationScore));
+
+    return Scaffold(
+      backgroundColor: const Color(0xfff3f6fb),
+      appBar: AppBar(
+        title: const Text(
+          '資金輪動領先指標雷達',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            _buildConceptCard(),
+            const SizedBox(height: 20),
+
+            if (leaders.isNotEmpty) ...[
+              _buildSectionHeader(
+                '🔥 領先吸籌板塊 (資金正灌入充電)',
+                Colors.green.shade800,
+                Icons.bolt,
+              ),
+              ...leaders.map((e) => _buildIndicatorCard(e)),
+              const SizedBox(height: 20),
+            ],
+
+            if (laggards.isNotEmpty) ...[
+              _buildSectionHeader(
+                '⚠️ 領先失血板塊 (資金正被當提款機)',
+                Colors.red.shade800,
+                Icons.money_off,
+              ),
+              ...laggards.map((e) => _buildIndicatorCard(e)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildConceptCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xff11998e), Color(0xff38ef7d)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.radar, color: Colors.white, size: 22),
+              const SizedBox(width: 8),
+              const Text(
+                '什麼是輪動領先指標？',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            '本雷達透過解構全市場主力搬錢軌跡，計算出產業的『輪動淨動能 (RNM)』。當某產業股價還在底部，但指標顯著大於零，代表主力正在悄悄建倉，能幫助您領先大盤提早埋伏飆股！',
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.white70, // ← 修改重點
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, Color color, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 18),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIndicatorCard(LeadingIndicatorResult item) {
+    final isPositive = item.netRotationScore > 0;
+    final themeColor = isPositive
+        ? const Color(0xff2e7d32)
+        : const Color(0xffc62828);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x03000000), // Colors.black.withOpacity(0.02)
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                item.category,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C2C2C), // black87
+                ),
+              ),
+              Text(
+                '淨動能: ${isPositive ? "+" : ""}${item.netRotationScore.toStringAsFixed(1)}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: themeColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // 能量條
+          Row(
+            children: [
+              Expanded(
+                flex: item.totalInflowScore.round().abs() + 1,
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF66BB6A), // green.shade400
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(4),
+                      bottomLeft: Radius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 2),
+              Expanded(
+                flex: item.totalOutflowScore.round().abs() + 1,
+                child: Container(
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF9A9A), // red.shade300
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(4),
+                      bottomRight: Radius.circular(4),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // 能量條下方文字
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '流入總分: +${item.totalInflowScore.toStringAsFixed(0)} (源自 ${item.inflowFeederCount} 個產業)',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF757575), // grey.shade600
+                ),
+              ),
+              Text(
+                '流出總分: -${item.totalOutflowScore.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Color(0xFF757575), // grey.shade600
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 24),
+
+          // 操盤指南
+          Text(
+            item.textGuidance,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF424242), // grey.shade800
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+`
+
+### lib\presentation\pages\lifecycle_page.dart
+
+`dart
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
@@ -4022,13 +7028,13 @@ class LifecyclePage extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\pages\main_category_page.dart
 
-================================================
-FILE: lib/presentation/pages/main_category_page.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+// import 'package:flutter/widgets.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/category_card.dart';
 // 🚀 修正路由對接：根據您的描述，點擊後應導向 SubCategoryPage，而非直接到 StockListPage
@@ -4158,11 +7164,11 @@ class _MainCategoryPageState extends State<MainCategoryPage> {
   }
 }
 
+`
 
+### lib\presentation\pages\main_navigation_container.dart
 
-================================================
-FILE: lib/presentation/pages/main_navigation_container.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
 import 'package:tw_stock_capital_flow/domain/models/mainstream_result.dart';
@@ -4325,11 +7331,11 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
   }
 }
 
+`
 
+### lib\presentation\pages\mainstream_page.dart
 
-================================================
-FILE: lib/presentation/pages/mainstream_page.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/domain/models/mainstream_result.dart';
@@ -4371,11 +7377,11 @@ class MainstreamPage extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\pages\market_sentiment_page.dart
 
-================================================
-FILE: lib/presentation/pages/market_sentiment_page.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/domain/models/market_sentiment_result.dart';
@@ -4512,11 +7518,11 @@ class _Metric extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\pages\rotation_page.dart
 
-================================================
-FILE: lib/presentation/pages/rotation_page.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
@@ -4628,11 +7634,11 @@ class _RotationMetric extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\pages\strategy_dashboard_page.dart
 
-================================================
-FILE: lib/presentation/pages/strategy_dashboard_page.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
 import 'package:tw_stock_capital_flow/domain/strategies/momentum_strategy.dart';
@@ -4956,11 +7962,11 @@ class StrategySignalWithSource {
   StrategySignalWithSource({required this.signal, required this.source});
 }
 
+`
 
+### lib\presentation\pages\sub_category_page.dart
 
-================================================
-FILE: lib/presentation/pages/sub_category_page.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/presentation/enums/category_sort_type.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/category_card.dart';
@@ -5548,11 +8554,11 @@ class DistributionPiePainter extends CustomPainter {
       oldDelegate.riseRatio != riseRatio || oldDelegate.fallRatio != fallRatio;
 }
 
+`
 
+### lib\presentation\theme\app_theme.dart
 
-================================================
-FILE: lib/presentation/theme/app_theme.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -5597,11 +8603,11 @@ class AppTheme {
   );
 }
 
+`
 
+### lib\presentation\widgets\category_card.dart
 
-================================================
-FILE: lib/presentation/widgets/category_card.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'trend_sparkline.dart';
@@ -5738,17 +8744,17 @@ class CategoryCard extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\empty_view.dart
 
-================================================
-FILE: lib/presentation/widgets/empty_view.dart
-================================================
-[Empty file]
+`dart
 
+`
 
-================================================
-FILE: lib/presentation/widgets/home_section_card.dart
-================================================
+### lib\presentation\widgets\home_section_card.dart
+
+`dart
 import 'package:flutter/material.dart';
 
 class HomeSectionCard extends StatelessWidget {
@@ -5880,11 +8886,11 @@ class HomeSectionCard extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\hot_badge.dart
 
-================================================
-FILE: lib/presentation/widgets/hot_badge.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 class HotBadge extends StatelessWidget {
@@ -5955,11 +8961,11 @@ class HotBadge extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\lifecycle_card.dart
 
-================================================
-FILE: lib/presentation/widgets/lifecycle_card.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/domain/enums/lifecycle_stage.dart';
@@ -6141,11 +9147,11 @@ class _Metric extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\mainstream_card.dart
 
-================================================
-FILE: lib/presentation/widgets/mainstream_card.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/domain/models/mainstream_result.dart';
@@ -6401,11 +9407,11 @@ class _MetricCard extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\market_heatmap.dart
 
-================================================
-FILE: lib/presentation/widgets/market_heatmap.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
@@ -6520,11 +9526,11 @@ class MarketHeatmap extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\market_summary_card.dart
 
-================================================
-FILE: lib/presentation/widgets/market_summary_card.dart
-================================================
+`dart
 import 'package:animated_flip_counter/animated_flip_counter.dart';
 import 'package:flutter/material.dart';
 import 'dart:ui';
@@ -6694,11 +9700,11 @@ class MarketSummaryCard extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\rotation_flow_card.dart
 
-================================================
-FILE: lib/presentation/widgets/rotation_flow_card.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
@@ -6799,11 +9805,11 @@ class RotationFlowCard extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\section_title.dart
 
-================================================
-FILE: lib/presentation/widgets/section_title.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 class SectionTitle extends StatelessWidget {
@@ -6823,11 +9829,11 @@ class SectionTitle extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\shimmer_skeleton.dart
 
-================================================
-FILE: lib/presentation/widgets/shimmer_skeleton.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 /// 泛用型高效微光骨架屏元件
@@ -6956,11 +9962,11 @@ class KaBorderRadius {
   static const BorderRadius r20 = BorderRadius.all(Radius.circular(20));
 }
 
+`
 
+### lib\presentation\widgets\stock_tile.dart
 
-================================================
-FILE: lib/presentation/widgets/stock_tile.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
@@ -7026,11 +10032,11 @@ class StockTile extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\top_hot_categories.dart
 
-================================================
-FILE: lib/presentation/widgets/top_hot_categories.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
@@ -7141,11 +10147,11 @@ class TopHotCategories extends StatelessWidget {
   }
 }
 
+`
 
+### lib\presentation\widgets\trend_sparkline.dart
 
-================================================
-FILE: lib/presentation/widgets/trend_sparkline.dart
-================================================
+`dart
 import 'package:flutter/material.dart';
 
 class TrendSparkline extends StatelessWidget {
@@ -7247,4 +10253,5 @@ class _SparklinePainter extends CustomPainter {
   }
 }
 
+`
 
