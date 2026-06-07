@@ -101,3 +101,5 @@ app.*.symbols
 
 .codegraph/
 .gemini/
+.claude/
+.mcp.json
