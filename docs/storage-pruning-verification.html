@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>本地儲存分級保留清理 — 驗證手冊</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3348;
+      --primary: #4f8ef7;
+      --primary-glow: rgba(79,142,247,0.15);
+      --green: #34d399;
+      --green-bg: rgba(52,211,153,0.1);
+      --yellow: #fbbf24;
+      --yellow-bg: rgba(251,191,36,0.1);
+      --red: #f87171;
+      --red-bg: rgba(248,113,113,0.1);
+      --blue: #60a5fa;
+      --blue-bg: rgba(96,165,250,0.1);
+      --purple: #a78bfa;
+      --purple-bg: rgba(167,139,250,0.1);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --code-bg: #0d1117;
+      --radius: 12px;
+      --radius-sm: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: linear-gradient(135deg, #1a1d27 0%, #0f1117 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 48px 0 40px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute;
+      top: -60px; left: -60px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(79,142,247,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -80px; right: 80px;
+      width: 250px; height: 250px;
+      background: radial-gradient(circle, rgba(167,139,250,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .header-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 32px;
+      position: relative;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--primary-glow);
+      border: 1px solid rgba(79,142,247,0.3);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 16px;
+    }
+    .badge-dot {
+      width: 6px; height: 6px;
+      background: var(--primary);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    header h1 {
+      font-size: clamp(22px, 4vw, 30px);
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 10px;
+      letter-spacing: -0.02em;
+    }
+    header p {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 560px;
+    }
+    .meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 24px;
+    }
+    .meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .meta-item span { color: var(--text-muted); }
+
+    /* ── Layout ── */
+    main {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 40px 32px 80px;
+    }
+
+    /* ── Summary Cards ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+    @media (max-width: 640px) { .summary-grid { grid-template-columns: 1fr; } }
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+    }
+    .summary-card.layer1::before { background: linear-gradient(90deg, var(--green), transparent); }
+    .summary-card.layer2::before { background: linear-gradient(90deg, var(--blue), transparent); }
+    .summary-card.layer3::before { background: linear-gradient(90deg, var(--purple), transparent); }
+    .card-tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .layer1 .card-tag { color: var(--green); }
+    .layer2 .card-tag { color: var(--blue); }
+    .layer3 .card-tag { color: var(--purple); }
+    .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.6; }
+    .card-limit {
+      margin-top: 12px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .layer1 .card-limit { color: var(--green); }
+    .layer2 .card-limit { color: var(--blue); }
+    .layer3 .card-limit { color: var(--purple); }
+
+    /* ── Section ── */
+    .section { margin-bottom: 40px; }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .layer-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 13px;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+    .layer-badge.l1 { background: var(--green-bg); color: var(--green); border: 1px solid rgba(52,211,153,0.3); }
+    .layer-badge.l2 { background: var(--blue-bg); color: var(--blue); border: 1px solid rgba(96,165,250,0.3); }
+    .layer-badge.l3 { background: var(--purple-bg); color: var(--purple); border: 1px solid rgba(167,139,250,0.3); }
+    .layer-badge.l4 { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(251,191,36,0.3); }
+    .section-title { font-size: 17px; font-weight: 700; color: #fff; }
+    .section-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Steps ── */
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 16px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .step-num {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-body { flex: 1; min-width: 0; }
+    .step-label { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .step-desc { font-size: 13px; color: var(--text-muted); }
+
+    /* ── Code Block ── */
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin: 10px 0;
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.02);
+    }
+    .code-lang {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: inherit;
+    }
+    .copy-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .copy-btn.copied { border-color: var(--green); color: var(--green); }
+    pre {
+      padding: 16px;
+      overflow-x: auto;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    code {
+      font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      color: #c9d1d9;
+    }
+    .c-comment { color: #8b949e; }
+    .c-cmd { color: #79c0ff; }
+    .c-str { color: #a5d6ff; }
+    .c-kw { color: #ff7b72; }
+    .c-ok { color: var(--green); }
+    .c-warn { color: var(--yellow); }
+    .c-tag { color: var(--purple); }
+
+    /* ── Log Block ── */
+    .log-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin: 10px 0;
+    }
+    .log-line {
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      font-size: 12.5px;
+      line-height: 1.8;
+      color: #8b949e;
+    }
+    .log-line .log-tag { color: var(--text-dim); }
+    .log-line .log-ok { color: var(--green); }
+    .log-line .log-info { color: var(--blue); }
+    .log-line .log-warn { color: var(--yellow); }
+
+    /* ── Table ── */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead tr { background: var(--surface2); }
+    th {
+      padding: 12px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 12px 16px;
+      border-bottom: 1px solid rgba(46,51,72,0.5);
+      color: var(--text);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    .td-ok { color: var(--green); font-weight: 600; }
+    .td-muted { color: var(--text-muted); }
+
+    /* ── Callout ── */
+    .callout {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: var(--radius-sm);
+      margin: 16px 0;
+      font-size: 13.5px;
+    }
+    .callout.info { background: var(--blue-bg); border: 1px solid rgba(96,165,250,0.2); }
+    .callout.warn { background: var(--yellow-bg); border: 1px solid rgba(251,191,36,0.2); }
+    .callout.success { background: var(--green-bg); border: 1px solid rgba(52,211,153,0.2); }
+    .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+    .callout-body { color: var(--text-muted); line-height: 1.6; }
+    .callout-body strong { color: var(--text); }
+
+    /* ── Trigger Flow ── */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 16px 0;
+    }
+    .flow-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      position: relative;
+    }
+    .flow-item:not(:last-child)::before {
+      content: '';
+      position: absolute;
+      left: 15px; top: 38px;
+      width: 2px;
+      height: calc(100% - 12px);
+      background: var(--border);
+    }
+    .flow-dot {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+    .flow-dot.sync  { background: rgba(79,142,247,0.15); border: 1px solid rgba(79,142,247,0.3); }
+    .flow-dot.l1    { background: var(--green-bg); border: 1px solid rgba(52,211,153,0.3); }
+    .flow-dot.l2    { background: var(--blue-bg); border: 1px solid rgba(96,165,250,0.3); }
+    .flow-dot.l3    { background: var(--purple-bg); border: 1px solid rgba(167,139,250,0.3); }
+    .flow-dot.cache { background: var(--yellow-bg); border: 1px solid rgba(251,191,36,0.3); }
+    .flow-content { flex: 1; padding-top: 4px; }
+    .flow-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+    .flow-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .flow-cond {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 999px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+    .cond-new { background: var(--green-bg); color: var(--green); }
+    .cond-always { background: var(--blue-bg); color: var(--blue); }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+    footer a { color: var(--primary); text-decoration: none; }
+
+    /* ── Divider ── */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 40px 0;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header>
+  <div class="header-inner">
+    <div class="badge"><span class="badge-dot"></span>驗證手冊 v1.0</div>
+    <h1>本地儲存分級保留清理<br>驗證手冊</h1>
+    <p>針對三層自動清理機制的完整驗證步驟，確保實作符合設計規格並不影響核心運算邏輯。</p>
+    <div class="meta-row">
+      <div class="meta-item">📅 <span>完成日期：2026/06/07</span></div>
+      <div class="meta-item">🔧 <span>Tw-Stock-Capital-Flow</span></div>
+      <div class="meta-item">📦 <span>Flutter / Dart 3.11.5</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ══ MAIN ══ -->
+<main>
+
+  <!-- ── Summary ── -->
+  <div class="summary-grid">
+    <div class="summary-card layer1">
+      <div class="card-tag">Layer 1</div>
+      <div class="card-title">原始快照</div>
+      <div class="card-desc">YYYYMMDD.json<br>每日 ~500KB–1MB</div>
+      <div class="card-limit">保留 7 天 ≈ 3.5–7 MB</div>
+    </div>
+    <div class="summary-card layer2">
+      <div class="card-tag">Layer 2</div>
+      <div class="card-title">SQLite 歷史</div>
+      <div class="card-desc">四張歷史表<br>每日 ~300–500 rows</div>
+      <div class="card-limit">保留 365 天 ≈ 40–80 MB</div>
+    </div>
+    <div class="summary-card layer3">
+      <div class="card-tag">Layer 3</div>
+      <div class="card-title">分析快取</div>
+      <div class="card-desc">bootstrap_cache_*.json<br>每份 ~50–100 KB</div>
+      <div class="card-limit">保留 3 份 ≈ 150–300 KB</div>
+    </div>
+  </div>
+
+  <!-- ── Trigger Flow ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="layer-badge l4">🔁</div>
+      <div>
+        <div class="section-title">觸發時機與流程</div>
+        <div class="section-subtitle">三層清理皆整合在 SyncManager 與 main.dart 的 initialize() 內</div>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-body"><strong>只在新交易日資料成功寫入（syncResult.saved == true）時觸發清理。</strong>
+        週末、假日、重開 App 但當日資料已存在 → 不觸發，不影響效能。</div>
+    </div>
+
+    <div class="flow">
+      <div class="flow-item">
+        <div class="flow-dot sync">🌐</div>
+        <div class="flow-content">
+          <div class="flow-title">SyncManager.syncTodayData()</div>
+          <div class="flow-sub">抓取上市 / 上櫃資料，判斷是否為新交易日</div>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-dot l1">🗂️</div>
+        <div class="flow-content">
+          <div class="flow-title">
+            StorageService.pruneOldSnapshots(keepCount: 7)
+            <span class="flow-cond cond-new">新交易日</span>
+          </div>
+          <div class="flow-sub">刪除 daily_data/ 中超出 7 筆的舊 YYYYMMDD.json（Layer 1）</div>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-dot l2">🗃️</div>
+        <div class="flow-content">
+          <div class="flow-title">
+            CategoryHistoryRepository.pruneOldHistory(keepDays: 365)
+            <span class="flow-cond cond-new">新交易日</span>
+          </div>
+          <div class="flow-sub">四張 SQLite 表單一事務刪除 365 天前舊紀錄（Layer 2）</div>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-dot cache">💾</div>
+        <div class="flow-content">
+          <div class="flow-title">BootstrapAnalyzer.analyzeAsync() → saveBootstrapCache()</div>
+          <div class="flow-sub">無快取時執行計算並儲存今日分析結果</div>
+        </div>
+      </div>
+      <div class="flow-item">
+        <div class="flow-dot l3">🧹</div>
+        <div class="flow-content">
+          <div class="flow-title">
+            StorageService.pruneOldBootstrapCaches(keepCount: 3)
+            <span class="flow-cond cond-always">每次計算後</span>
+          </div>
+          <div class="flow-sub">刪除超出 3 份的舊分析快取檔（Layer 3）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Layer 1 ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="layer-badge l1">1</div>
+      <div>
+        <div class="section-title">Layer 1 驗證：原始快照清理</div>
+        <div class="section-subtitle">確認 daily_data/ 目錄中的 YYYYMMDD.json 不超過 7 個</div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-label">連接裝置並取得應用目錄路徑</div>
+          <div class="step-desc">Android 使用 adb，iOS 使用 Xcode Device Explorer</div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash — Android</span>
+              <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </div>
+            <pre><code><span class="c-comment"># 替換 &lt;package_name&gt; 為你的 App bundle id</span>
+<span class="c-cmd">adb shell</span> run-as &lt;package_name&gt; ls files/daily_data/</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-label">模擬多日快照（不需等待真實交易日）</div>
+          <div class="step-desc">手動複製假日期檔案到裝置，製造 8+ 筆快照情境</div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </div>
+            <pre><code><span class="c-comment"># 在裝置上複製現有快照，偽造多個舊日期</span>
+<span class="c-cmd">adb shell</span> run-as &lt;package_name&gt; \
+  cp files/daily_data/20260607.json files/daily_data/20260501.json
+<span class="c-comment"># 重複多次製造 8 個以上的 YYYYMMDD.json</span></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-label">重新啟動 App，觀察 Debug Console</div>
+          <div class="step-desc">新交易日 sync 成功後，應看到以下 log 輸出</div>
+          <div class="log-block">
+            <div class="log-line"><span class="log-tag">[SyncManager]</span> 資料同步成功: 20260607</div>
+            <div class="log-line"><span class="log-ok">[StorageService]</span> 🗑️ 已清理舊快照: 20260501.json</div>
+            <div class="log-line"><span class="log-ok">[StorageService]</span> 🗑️ 已清理舊快照: 20260502.json</div>
+            <div class="log-line"><span class="log-ok">[StorageService]</span> 快照清理完成，保留最近 7 天，刪除 N 筆</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-label">確認目錄最終狀態</div>
+          <div class="step-desc">目錄中只應剩下最新 7 個 YYYYMMDD.json</div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </div>
+            <pre><code><span class="c-cmd">adb shell</span> run-as &lt;package_name&gt; ls -la files/daily_data/ \
+  | grep -E '^[0-9]{8}\.json'
+<span class="c-comment"># 預期輸出：恰好 7 行（最新 7 個交易日）</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-icon">✅</div>
+      <div class="callout-body"><strong>通過條件：</strong>目錄中 YYYYMMDD.json 檔案數量 ≤ 7，
+        且最新 5 個日期的快照完整存在（確保計算引擎不受影響）。</div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Layer 2 ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="layer-badge l2">2</div>
+      <div>
+        <div class="section-title">Layer 2 驗證：SQLite 歷史清理</div>
+        <div class="section-subtitle">確認四張歷史表中不存在 365 天前的紀錄</div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-label">觀察 Debug Console log 輸出</div>
+          <div class="step-desc">新交易日成功 sync 後，應看到以下訊息</div>
+          <div class="log-block">
+            <div class="log-line"><span class="log-ok">[CategoryHistoryRepository]</span> SQLite 歷史清理完成，cutoff=20250607，共刪除 N 筆舊紀錄</div>
+          </div>
+          <div class="callout warn" style="margin-top:8px">
+            <div class="callout-icon">⚠️</div>
+            <div class="callout-body">若 App 運行未滿 365 天，<code>N = 0</code> 為正常結果，表示無舊紀錄需刪除。</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-label">取出 SQLite 檔案進行 SQL 驗證</div>
+          <div class="step-desc">使用 <a href="https://sqlitebrowser.org" style="color:var(--primary)">DB Browser for SQLite</a> 開啟資料庫檔案</div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash — 取出 db 檔</span>
+              <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </div>
+            <pre><code><span class="c-cmd">adb pull</span> \
+  /data/data/&lt;package_name&gt;/databases/app_database.db \
+  ./app_database.db</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-label">執行 SQL 驗證查詢</div>
+          <div class="step-desc">在 DB Browser 的「Execute SQL」分頁中逐一執行</div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">sql</span>
+              <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </div>
+            <pre><code><span class="c-comment">-- 四張表的最舊紀錄日期（應皆 >= 365 天前）</span>
+<span class="c-kw">SELECT</span> <span class="c-str">'category_history'</span>  <span class="c-kw">AS</span> tbl, <span class="c-kw">MIN</span>(trade_date) <span class="c-kw">AS</span> oldest <span class="c-kw">FROM</span> category_history
+<span class="c-kw">UNION ALL</span>
+<span class="c-kw">SELECT</span> <span class="c-str">'mainstream_history'</span>, <span class="c-kw">MIN</span>(trade_date) <span class="c-kw">FROM</span> mainstream_history
+<span class="c-kw">UNION ALL</span>
+<span class="c-kw">SELECT</span> <span class="c-str">'lifecycle_history'</span>,  <span class="c-kw">MIN</span>(trade_date) <span class="c-kw">FROM</span> lifecycle_history
+<span class="c-kw">UNION ALL</span>
+<span class="c-kw">SELECT</span> <span class="c-str">'rotation_history'</span>,  <span class="c-kw">MIN</span>(trade_date) <span class="c-kw">FROM</span> rotation_history;
+
+<span class="c-comment">-- 確認無超期紀錄（應回傳 0）</span>
+<span class="c-kw">SELECT COUNT</span>(*) <span class="c-kw">AS</span> expired_rows
+<span class="c-kw">FROM</span> category_history
+<span class="c-kw">WHERE</span> trade_date &lt; <span class="c-str">date('now', '-365 days')</span>;</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-icon">✅</div>
+      <div class="callout-body"><strong>通過條件：</strong>
+        <code>expired_rows = 0</code>，且四張表的 <code>oldest</code> 日期均不早於 365 天前。</div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Layer 3 ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="layer-badge l3">3</div>
+      <div>
+        <div class="section-title">Layer 3 驗證：Bootstrap 分析快取清理</div>
+        <div class="section-subtitle">確認 bootstrap_cache_*.json 檔案不超過 3 個</div>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-label">觀察 Debug Console log 輸出</div>
+          <div class="log-block">
+            <div class="log-line"><span class="log-ok">[StorageService]</span> 快取清理完成，保留最近 3 份，刪除 N 筆</div>
+          </div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-label">確認目錄中快取檔案數量</div>
+          <div class="code-block">
+            <div class="code-header">
+              <span class="code-lang">bash</span>
+              <button class="copy-btn" onclick="copyCode(this)">複製</button>
+            </div>
+            <pre><code><span class="c-cmd">adb shell</span> run-as &lt;package_name&gt; \
+  ls files/daily_data/ | grep bootstrap_cache_
+<span class="c-comment"># 預期輸出：最多 3 行</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout success">
+      <div class="callout-icon">✅</div>
+      <div class="callout-body"><strong>通過條件：</strong>bootstrap_cache_*.json 檔案數量 ≤ 3。</div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Core Logic Safety ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="layer-badge l4">🛡️</div>
+      <div>
+        <div class="section-title">核心邏輯安全驗證</div>
+        <div class="section-subtitle">確認清理後所有核心功能正常運作</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>功能</th>
+            <th>需求資料量</th>
+            <th>保留量</th>
+            <th>安全緩衝</th>
+            <th>狀態</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>BootstrapAnalyzer.analyzeAsync()</code></td>
+            <td class="td-muted">最近 5 天快照</td>
+            <td>7 天</td>
+            <td>+2 天</td>
+            <td class="td-ok">✅ 安全</td>
+          </tr>
+          <tr>
+            <td>MainstreamEngine / LifecycleEngine</td>
+            <td class="td-muted">最近 3 天快照</td>
+            <td>7 天</td>
+            <td>+4 天</td>
+            <td class="td-ok">✅ 安全</td>
+          </tr>
+          <tr>
+            <td>SubCategoryPage 歷史趨勢圖</td>
+            <td class="td-muted">15 天 SQLite</td>
+            <td>365 天</td>
+            <td>+350 天</td>
+            <td class="td-ok">✅ 安全</td>
+          </tr>
+          <tr>
+            <td>離線防禦模式 tryGetAnyLatestCache()</td>
+            <td class="td-muted">最少 1 份快取</td>
+            <td>3 份</td>
+            <td>+2 份</td>
+            <td class="td-ok">✅ 安全</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout info" style="margin-top:20px">
+      <div class="callout-icon">📋</div>
+      <div class="callout-body">
+        <strong>功能迴歸測試步驟：</strong><br>
+        1. 清理後重新啟動 App → 確認主畫面正常顯示所有板塊數據<br>
+        2. 進入任意板塊 → 點擊細分板塊 → 確認歷史趨勢折線圖正常渲染<br>
+        3. 斷開網路後重啟 → 確認離線模式橫幅出現且顯示歷史數據
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" />
+
+  <!-- ── Modified Files ── -->
+  <div class="section">
+    <div class="section-header">
+      <div class="layer-badge l4">📁</div>
+      <div>
+        <div class="section-title">涉及檔案清單</div>
+        <div class="section-subtitle">此次變更的所有檔案與新增 API</div>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>檔案路徑</th>
+            <th>新增 API</th>
+            <th>用途</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>lib/data/services/storage_service.dart</code></td>
+            <td><code>pruneOldSnapshots(keepCount)</code><br><code>pruneOldBootstrapCaches(keepCount)</code></td>
+            <td class="td-muted">Layer 1 / 3 檔案清理</td>
+          </tr>
+          <tr>
+            <td><code>lib/data/history/repositories/category_history_repository.dart</code></td>
+            <td><code>pruneOldHistory(keepDays)</code></td>
+            <td class="td-muted">Layer 2 SQLite 清理</td>
+          </tr>
+          <tr>
+            <td><code>lib/data/managers/sync_manager.dart</code></td>
+            <td>—</td>
+            <td class="td-muted">新交易日後呼叫 Layer 1</td>
+          </tr>
+          <tr>
+            <td><code>lib/main.dart</code></td>
+            <td>—</td>
+            <td class="td-muted">呼叫 Layer 2 / 3 串接</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ FOOTER ══ -->
+<footer>
+  Tw-Stock-Capital-Flow &nbsp;·&nbsp; 本地儲存分級保留清理驗證手冊 &nbsp;·&nbsp; 2026/06/07
+</footer>
+
+<script>
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '已複製';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = '複製';
+        btn.classList.remove('copied');
+      }, 2000);
+    });
+  }
+</script>
+
+</body>
+</html>

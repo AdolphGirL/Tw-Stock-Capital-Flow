@@ -142,6 +142,88 @@ class StorageService {
     return jsonDecode(content);
   }
 
+  // ── 分級保留清理 ─────────────────────────────────────────────────────────
+
+  /// 保留最近 [keepCount] 筆原始快照（YYYYMMDD.json），刪除更舊的檔案。
+  /// 計算引擎只需 5 天；保留 7 天提供週末 / 補假緩衝，固定佔用約 3.5–7 MB。
+  Future<void> pruneOldSnapshots({int keepCount = 7}) async {
+    try {
+      final dir = await _getDailyDirectory();
+      final allFiles = dir.listSync().whereType<File>().toList();
+
+      // 只針對純日期格式檔案 (YYYYMMDD.json)，不觸碰快取或其他檔案
+      final datePattern = RegExp(r'^\d{8}$');
+      final dateFiles = allFiles
+          .where(
+            (f) => datePattern.hasMatch(path.basenameWithoutExtension(f.path)),
+          )
+          .toList();
+
+      if (dateFiles.length <= keepCount) return;
+
+      // 依檔名（即日期字串）降序排列，最新的在前
+      dateFiles.sort(
+        (a, b) => path
+            .basenameWithoutExtension(b.path)
+            .compareTo(path.basenameWithoutExtension(a.path)),
+      );
+
+      final toDelete = dateFiles.skip(keepCount).toList();
+      for (final file in toDelete) {
+        await file.delete();
+        dev.log(
+          '🗑️ 已清理舊快照: ${path.basename(file.path)}',
+          name: 'StorageService',
+        );
+      }
+      dev.log(
+        '快照清理完成，保留最近 $keepCount 天，刪除 ${toDelete.length} 筆',
+        name: 'StorageService',
+      );
+    } catch (e) {
+      dev.log('快照清理失敗（不影響主流程）: $e', name: 'StorageService', error: e);
+    }
+  }
+
+  /// 保留最近 [keepCount] 份分析結果快取（bootstrap_cache_*.json），刪除更舊的。
+  /// 離線防禦模式需 1 份；保留 3 份覆蓋連假斷線情境，固定佔用約 150–300 KB。
+  Future<void> pruneOldBootstrapCaches({int keepCount = 3}) async {
+    try {
+      final dir = await _getDailyDirectory();
+      final allFiles = dir.listSync().whereType<File>().toList();
+
+      final cacheFiles = allFiles
+          .where(
+            (f) => path.basename(f.path).startsWith('bootstrap_cache_'),
+          )
+          .toList();
+
+      if (cacheFiles.length <= keepCount) return;
+
+      // 依檔名降序（日期在 prefix 之後），最新的在前
+      cacheFiles.sort(
+        (a, b) => path.basename(b.path).compareTo(path.basename(a.path)),
+      );
+
+      final toDelete = cacheFiles.skip(keepCount).toList();
+      for (final file in toDelete) {
+        await file.delete();
+        dev.log(
+          '🗑️ 已清理舊快取: ${path.basename(file.path)}',
+          name: 'StorageService',
+        );
+      }
+      dev.log(
+        '快取清理完成，保留最近 $keepCount 份，刪除 ${toDelete.length} 筆',
+        name: 'StorageService',
+      );
+    } catch (e) {
+      dev.log('快取清理失敗（不影響主流程）: $e', name: 'StorageService', error: e);
+    }
+  }
+
+  // ── SharedPreferences 輔助 ────────────────────────────────────────────────
+
   /// 🚀 獲取目前本地儲存的所有快取 Key
   Future<List<String>> getAllKeys() async {
     try {

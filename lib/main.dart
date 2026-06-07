@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:tw_stock_capital_flow/presentation/theme/app_theme.dart';
 import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
 import 'package:tw_stock_capital_flow/data/services/market_calendar_service.dart';
@@ -87,6 +86,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
       _resolvedDate = resolvedDate;
 
+      // 新交易日成功存入：執行 SQLite 歷史分級清理（Layer 2，保留 365 天）
+      if (syncResult.saved) {
+        await _categoryHistoryRepository!.pruneOldHistory(keepDays: 365);
+      }
+
       // 2. 嘗試讀取快取
       final cachedResult = await cacheService.loadBootstrapCache(resolvedDate);
       if (cachedResult != null) {
@@ -108,11 +112,12 @@ class _BootstrapAppState extends State<BootstrapApp> {
         throw Exception('本機無任何股市快照紀錄，無法進行初始化');
       }
 
-      // 4. 背景運算分析
-      final result = await compute(BootstrapAnalyzer.analyze, snapshots);
+      // 4. 背景運算分析（五引擎依賴圖分兩階段並行 Isolate 執行）
+      final result = await BootstrapAnalyzer.analyzeAsync(snapshots);
 
-      // 5. 儲存快取
+      // 5. 儲存快取，並清理超出保留份數的舊版分析快取（Layer 3 清理）
       await cacheService.saveBootstrapCache(resolvedDate, result);
+      await storageService.pruneOldBootstrapCaches(keepCount: 3);
 
       setState(() {
         bootstrapResult = result;

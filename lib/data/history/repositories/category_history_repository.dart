@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:tw_stock_capital_flow/data/database/app_database.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/data/models/analysis_snapshot.dart';
@@ -28,6 +30,50 @@ class CategoryHistoryRepository {
 
     // 💡 降序拿出來後反轉，使陣列最左邊是舊資料，最右邊是最新資料
     return results.reversed.toList();
+  }
+
+  /// 刪除四張歷史表中超過 [keepDays] 天的舊紀錄（在一個事務內完成）。
+  ///
+  /// tradeDate 欄位為 YYYYMMDD 字串，字典序等同時間序，可直接做字串比較。
+  /// 每次新交易日資料存入後呼叫，保持 SQLite 在合理大小（上限約 40–80 MB）。
+  Future<void> pruneOldHistory({int keepDays = 365}) async {
+    try {
+      final cutoff = DateTime.now().subtract(Duration(days: keepDays));
+      final cutoffStr = '${cutoff.year}'
+          '${cutoff.month.toString().padLeft(2, '0')}'
+          '${cutoff.day.toString().padLeft(2, '0')}';
+
+      int totalDeleted = 0;
+
+      await db.transaction(() async {
+        totalDeleted += await (db.delete(db.categoryHistoryTable)
+              ..where((t) => t.tradeDate.isSmallerThan(Variable<String>(cutoffStr))))
+            .go();
+
+        totalDeleted += await (db.delete(db.mainstreamHistoryTable)
+              ..where((t) => t.tradeDate.isSmallerThan(Variable<String>(cutoffStr))))
+            .go();
+
+        totalDeleted += await (db.delete(db.lifecycleHistoryTable)
+              ..where((t) => t.tradeDate.isSmallerThan(Variable<String>(cutoffStr))))
+            .go();
+
+        totalDeleted += await (db.delete(db.rotationHistoryTable)
+              ..where((t) => t.tradeDate.isSmallerThan(Variable<String>(cutoffStr))))
+            .go();
+      });
+
+      dev.log(
+        'SQLite 歷史清理完成，cutoff=$cutoffStr，共刪除 $totalDeleted 筆舊紀錄',
+        name: 'CategoryHistoryRepository',
+      );
+    } catch (e) {
+      dev.log(
+        'SQLite 歷史清理失敗（不影響主流程）: $e',
+        name: 'CategoryHistoryRepository',
+        error: e,
+      );
+    }
   }
 
   /// 儲存每日完整的資金流 analysis 快照

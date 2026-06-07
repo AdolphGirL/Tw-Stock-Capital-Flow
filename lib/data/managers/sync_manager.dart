@@ -125,6 +125,9 @@ class SyncManager {
 
       await storageService.saveDailySnapshot(snapshot);
 
+      // 新交易日資料存入後，立即清理超出保留視窗的舊原始快照（Layer 1 清理）
+      await storageService.pruneOldSnapshots(keepCount: 7);
+
       dev.log('資料同步成功: $latestDate', name: 'SyncManager');
 
       return SyncResult(

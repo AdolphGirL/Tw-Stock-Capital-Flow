@@ -72,9 +72,21 @@ $$RNM = \sum InflowScores - \sum OutflowScores$$
 ## 3. 優化與升級路線圖
 
 ### 階段一：性能性能優化與資料防禦 (短期)
-1.  **計算異步化**：將 `BootstrapAnalyzer` 的繁重運算完全移至 `Isolate` (目前已有部分實作，建議擴展至所有引擎)。
-2.  **數據校驗優化**：加強上市與上櫃資料日期不一致時的自動對齊邏輯。
-3.  **DB 索引優化**：在 `category_history` 表的 `trade_date` 與 `category_name` 加上複合索引。
+1.  **計算異步化** ✅ **已完成 (2026/06/07)**：依引擎依賴圖將五大引擎升級為兩階段並行 Isolate 執行。
+    -   **Phase 1（並行）**：`CapitalFlowAnalyzer`、`MainstreamEngine`、`RotationEngine` 三者互不依賴，同時各自跑在獨立 Isolate 中。
+    -   **Phase 2（並行）**：`LifecycleEngine`、`MarketSentimentEngine` 皆依賴 Phase 1 產出的 `mainstreams`，Phase 1 完成後同時啟動。
+    -   新增 `BootstrapAnalyzer.analyzeAsync()`（Dart 3 Record `.wait` 語法協調）取代原先的單一 `compute(BootstrapAnalyzer.analyze, snapshots)` 呼叫。
+    -   涉及檔案：`lib/domain/usecases/bootstrap_analyzer.dart`、`lib/main.dart`。
+2.  **本地儲存分級保留清理** ✅ **已完成 (2026/06/07)**：防止原始 JSON 快照與 SQLite 歷史數據無限累積。
+    -   **成長根因**：原始快照每天 ~500KB–1MB，若不清理，1 年約產生 125–250 MB；核心運算只需最近 5 天快照。
+    -   **三層策略**：
+        -   **Layer 1（原始快照）**：每次新交易日存入後，`SyncManager` 自動呼叫 `StorageService.pruneOldSnapshots(keepCount: 7)`，只保留最近 7 天，固定佔用 ~3.5–7 MB。
+        -   **Layer 2（SQLite 歷史）**：每次新交易日存入後，`main.dart` 呼叫 `CategoryHistoryRepository.pruneOldHistory(keepDays: 365)`，四張表（category / mainstream / lifecycle / rotation history）同在一個事務內刪除 365 天前的舊紀錄，固定上限約 40–80 MB。
+        -   **Layer 3（分析快取）**：分析結果存入後，`main.dart` 呼叫 `StorageService.pruneOldBootstrapCaches(keepCount: 3)`，保留最近 3 份快取，固定佔用 ~150–300 KB。
+    -   **不影響核心邏輯**：計算引擎需要 5 天（保留 7 天）；圖表最多拉 15 天 SQLite（保留 365 天）；離線模式需 1 份快取（保留 3 份）。
+    -   涉及檔案：`lib/data/services/storage_service.dart`、`lib/data/history/repositories/category_history_repository.dart`、`lib/data/managers/sync_manager.dart`、`lib/main.dart`。
+3.  **數據校驗優化**：加強上市與上櫃資料日期不一致時的自動對齊邏輯。
+4.  **DB 索引優化**：在 `category_history` 表的 `trade_date` 與 `category_name` 加上複合索引。
 
 ### 階段二：分析深度與技術指標整合 (中期)
 1.  **引入量價關係**：加入「量價背離」檢測演算法。
