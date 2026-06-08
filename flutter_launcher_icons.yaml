@@ -1,0 +1,6 @@
+# flutter pub run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/app_icon.png"   # 你的 1024x1024 圖示
+  remove_alpha_ios: true                    # 強烈建議開啟（iOS 不喜歡透明）
