@@ -59,38 +59,53 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
   Widget build(BuildContext context) {
     // 🚀 使用 IndexedStack 的巨大好處：切換 Tab 時，頁面狀態不銷毀、不重繪、捲動位置不遺失
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
+      body: Column(
         children: [
-          // 🏠 Tab 0: 大盤診斷 (瘦身後的首頁，內部可以移除 Heatmap、Strategy 等重複卡片)
-          HomePage(
-            tradeDate: widget.tradeDate,
-            listedCategories: widget.listedCategories,
-            otcCategories: widget.otcCategories,
-            listedRiseCount: widget.listedRiseCount,
-            listedFallCount: widget.listedFallCount,
-            listedScore: widget.listedScore,
-            otcRiseCount: widget.otcRiseCount,
-            otcFallCount: widget.otcFallCount,
-            otcScore: widget.otcScore,
-            rotations: widget.rotations,
-            mainstreams: widget.mainstreams,
-            lifecycles: widget.lifecycles,
-            sentiment: widget.sentiment,
-            historyRepository: widget.historyRepository,
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                // 🏠 Tab 0: 大盤診斷
+                HomePage(
+                  tradeDate: widget.tradeDate,
+                  listedCategories: widget.listedCategories,
+                  otcCategories: widget.otcCategories,
+                  listedRiseCount: widget.listedRiseCount,
+                  listedFallCount: widget.listedFallCount,
+                  listedScore: widget.listedScore,
+                  otcRiseCount: widget.otcRiseCount,
+                  otcFallCount: widget.otcFallCount,
+                  otcScore: widget.otcScore,
+                  rotations: widget.rotations,
+                  mainstreams: widget.mainstreams,
+                  lifecycles: widget.lifecycles,
+                  sentiment: widget.sentiment,
+                  historyRepository: widget.historyRepository,
+                ),
+
+                // 📊 Tab 1: 資金熱圖中心
+                _buildHeatmapTabScreen(),
+
+                // ⚡ Tab 2: 機構動量策略
+                StrategyDashboardPage(
+                  lifecycles: widget.lifecycles,
+                  tradeDate: widget.tradeDate,
+                  listedCategories: widget.listedCategories,
+                  otcCategories: widget.otcCategories,
+                  historyRepository: widget.historyRepository,
+                ),
+
+                // 📡 Tab 3: 輪動領先雷達
+                LeadingIndicatorPage(
+                  rotations: widget.rotations,
+                  listedCategories: widget.listedCategories,
+                  otcCategories: widget.otcCategories,
+                  historyRepository: widget.historyRepository,
+                ),
+              ],
+            ),
           ),
-
-          // 📊 Tab 1: 資金熱圖中心 (將原本首頁巨大的熱圖與九宮格獨立分流到這裡)
-          _buildHeatmapTabScreen(),
-
-          // ⚡ Tab 2: 機構動量策略 (直接讓之前的動量紅綠燈看板變成一級分頁！)
-          StrategyDashboardPage(
-            lifecycles: widget.lifecycles,
-            tradeDate: widget.tradeDate,
-          ),
-
-          // 📡 Tab 3: 輪動領先雷達
-          LeadingIndicatorPage(rotations: widget.rotations),
+          _buildDisclaimerBar(),
         ],
       ),
 
@@ -122,6 +137,29 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
             label: '領先雷達',
           ),
         ],
+      ),
+    );
+  }
+
+  /// 全 Tab 共用的底部法律聲明欄（永遠顯示於 BottomNavigationBar 上方）
+  Widget _buildDisclaimerBar() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Color(0xFFE5E7EB), width: 0.5),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 16),
+      child: Text(
+        '數據來源：台灣證券交易所、證券櫃檯買賣中心。本 App 計算結果僅供參考，不構成任何投資建議。',
+        style: TextStyle(
+          fontSize: 10,
+          color: Colors.grey.shade400,
+          height: 1.5,
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }

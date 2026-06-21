@@ -154,17 +154,30 @@ class _BootstrapAppState extends State<BootstrapApp> {
       return MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const Scaffold(
-          backgroundColor: Color(0xfff3f6fb),
+        home: Scaffold(
+          backgroundColor: const Color(0xfff3f6fb),
           body: SafeArea(
             child: Padding(
-              padding: EdgeInsets.all(20.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  SizedBox(height: 20),
-                  MainSectionSkeleton(),
-                  SizedBox(height: 24),
-                  MainSectionSkeleton(),
+                  const SizedBox(height: 20),
+                  const MainSectionSkeleton(),
+                  const SizedBox(height: 24),
+                  const MainSectionSkeleton(),
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      '數據來源：台灣證券交易所、證券櫃檯買賣中心。\n本 App 計算結果僅供參考，不構成任何投資建議。',
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        color: Colors.grey.shade400,
+                        height: 1.6,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
                 ],
               ),
             ),

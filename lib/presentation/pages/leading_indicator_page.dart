@@ -2,12 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
 import 'package:tw_stock_capital_flow/domain/models/leading_indicator_result.dart';
 import 'package:tw_stock_capital_flow/domain/analysers/rotation_leading_analyser.dart';
+import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 
 class LeadingIndicatorPage extends StatelessWidget {
   final List<RotationResult> rotations;
+  final List<CategoryUiModel> listedCategories;
+  final List<CategoryUiModel> otcCategories;
+  final CategoryHistoryRepository historyRepository;
   final RotationLeadingAnalyser _analyser = RotationLeadingAnalyser();
 
-  LeadingIndicatorPage({super.key, required this.rotations});
+  LeadingIndicatorPage({
+    super.key,
+    required this.rotations,
+    required this.listedCategories,
+    required this.otcCategories,
+    required this.historyRepository,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +53,7 @@ class LeadingIndicatorPage extends StatelessWidget {
                 Colors.green.shade800,
                 Icons.bolt,
               ),
-              ...leaders.map((e) => _buildIndicatorCard(e)),
+              ...leaders.map((e) => _buildIndicatorCard(context, e)),
               const SizedBox(height: 20),
             ],
 
@@ -51,7 +63,7 @@ class LeadingIndicatorPage extends StatelessWidget {
                 Colors.red.shade800,
                 Icons.money_off,
               ),
-              ...laggards.map((e) => _buildIndicatorCard(e)),
+              ...laggards.map((e) => _buildIndicatorCard(context, e)),
             ],
           ],
         ),
@@ -119,13 +131,27 @@ class LeadingIndicatorPage extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicatorCard(LeadingIndicatorResult item) {
+  CategoryUiModel? _findCategory(String name) {
+    final all = [...listedCategories, ...otcCategories];
+    try {
+      return all.firstWhere((c) => c.name == name);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _buildIndicatorCard(BuildContext context, LeadingIndicatorResult item) {
     final isPositive = item.netRotationScore > 0;
     final themeColor = isPositive
         ? const Color(0xff2e7d32)
         : const Color(0xffc62828);
+    final category = _findCategory(item.category);
 
-    return Container(
+    return GestureDetector(
+      onTap: category != null
+          ? () => CategoryNavigation.openCategory(context, category, historyRepository)
+          : null,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -232,6 +258,7 @@ class LeadingIndicatorPage extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

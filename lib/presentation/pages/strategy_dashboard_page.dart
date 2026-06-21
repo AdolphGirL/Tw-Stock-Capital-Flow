@@ -2,16 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/domain/models/lifecycle_result.dart';
 import 'package:tw_stock_capital_flow/domain/strategies/momentum_strategy.dart';
 import 'package:tw_stock_capital_flow/domain/models/strategy_signal.dart';
+import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 
 class StrategyDashboardPage extends StatelessWidget {
   final List<LifecycleResult> lifecycles;
   final String tradeDate;
+  final List<CategoryUiModel> listedCategories;
+  final List<CategoryUiModel> otcCategories;
+  final CategoryHistoryRepository historyRepository;
   final MomentumStrategy _strategy = MomentumStrategy();
 
   StrategyDashboardPage({
     super.key,
     required this.lifecycles,
     required this.tradeDate,
+    required this.listedCategories,
+    required this.otcCategories,
+    required this.historyRepository,
   });
 
   @override
@@ -158,7 +167,13 @@ class StrategyDashboardPage extends StatelessWidget {
       actionIcon = Icons.warning_amber_rounded;
     }
 
-    return Container(
+    final category = _findCategory(signal.category);
+
+    return GestureDetector(
+      onTap: category != null
+          ? () => CategoryNavigation.openCategory(context, category, historyRepository)
+          : null,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -292,7 +307,17 @@ class StrategyDashboardPage extends StatelessWidget {
           ),
         ),
       ),
+      ),
     );
+  }
+
+  CategoryUiModel? _findCategory(String name) {
+    final all = [...listedCategories, ...otcCategories];
+    try {
+      return all.firstWhere((c) => c.name == name);
+    } catch (_) {
+      return null;
+    }
   }
 
   Widget _buildMiniMetric(String label, String value) {
