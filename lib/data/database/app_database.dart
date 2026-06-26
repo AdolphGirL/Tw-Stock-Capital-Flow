@@ -9,6 +9,8 @@ import 'package:tw_stock_capital_flow/data/database/tables/category_history_tabl
 import 'package:tw_stock_capital_flow/data/database/tables/mainstream_history_table.dart';
 import 'package:tw_stock_capital_flow/data/database/tables/lifecycle_history_table.dart';
 import 'package:tw_stock_capital_flow/data/database/tables/rotation_history_table.dart';
+import 'package:tw_stock_capital_flow/data/database/tables/watchlist_table.dart';
+import 'package:tw_stock_capital_flow/data/database/tables/signal_snapshot_table.dart';
 
 part 'app_database.g.dart';
 
@@ -18,14 +20,15 @@ part 'app_database.g.dart';
     MainstreamHistoryTable, // V2 新增
     LifecycleHistoryTable, // V3 新增
     RotationHistoryTable, // V3 新增
+    WatchlistTable, // V4 新增
+    SignalSnapshotTable, // V5 新增
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
-  // 升級版本號至 3 (涵蓋 Version 2 與 Version 3 的規劃)
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -34,13 +37,17 @@ class AppDatabase extends _$AppDatabase {
     },
     onUpgrade: (Migrator m, int from, int to) async {
       if (from < 2) {
-        // 升級到 Version 2: 新增主流排行表
         await m.createTable(mainstreamHistoryTable);
       }
       if (from < 3) {
-        // 升級到 Version 3: 新增生命週期與輪動表
         await m.createTable(lifecycleHistoryTable);
         await m.createTable(rotationHistoryTable);
+      }
+      if (from < 4) {
+        await m.createTable(watchlistTable);
+      }
+      if (from < 5) {
+        await m.createTable(signalSnapshotTable);
       }
     },
     beforeOpen: (details) async {

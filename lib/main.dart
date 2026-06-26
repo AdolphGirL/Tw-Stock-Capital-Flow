@@ -13,6 +13,11 @@ import 'package:tw_stock_capital_flow/presentation/widgets/shimmer_skeleton.dart
 // 正確引入本地 SQLite 資料庫與歷史紀錄 Repository
 import 'package:tw_stock_capital_flow/data/database/app_database.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+import 'package:tw_stock_capital_flow/data/watchlist/repositories/watchlist_repository.dart';
+import 'package:tw_stock_capital_flow/data/signal/repositories/signal_snapshot_repository.dart';
+import 'package:tw_stock_capital_flow/domain/strategies/momentum_strategy.dart';
+import 'package:tw_stock_capital_flow/domain/services/signal_change_detector.dart';
+import 'package:tw_stock_capital_flow/presentation/widgets/signal_change_dialog.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,8 +38,14 @@ class _BootstrapAppState extends State<BootstrapApp> {
   AppBootstrapResult? bootstrapResult;
   bool isOfflineMode = false;
 
-  // 歷史資料庫 Repository
   CategoryHistoryRepository? _categoryHistoryRepository;
+  WatchlistRepository? _watchlistRepository;
+  SignalSnapshotRepository? _signalSnapshotRepository;
+
+  // 演算完成後填入異動清單，主畫面渲染後彈 dialog
+  List<SignalChange> _pendingSignalChanges = [];
+  bool _signalDialogShown = false;
+  final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
@@ -56,9 +67,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
     final calendarService = MarketCalendarService();
     final cacheService = AnalysisCacheService(storageService);
 
-    // 初始化 SQLite 資料庫與 Repository
+    // 初始化 SQLite 資料庫與所有 Repository
     final db = AppDatabase();
     _categoryHistoryRepository = CategoryHistoryRepository(db);
+    _watchlistRepository = WatchlistRepository(db);
+    _signalSnapshotRepository = SignalSnapshotRepository(db);
 
     final syncManager = SyncManager(
       storageService: storageService,
@@ -95,9 +108,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
       final cachedResult = await cacheService.loadBootstrapCache(resolvedDate);
       if (cachedResult != null) {
         debugPrint('🚀 [Cache Hit] 命中快取: $resolvedDate');
+        final changes = await _detectAndSaveSignalChanges(cachedResult);
         setState(() {
           bootstrapResult = cachedResult;
           loading = false;
+          _pendingSignalChanges = changes;
         });
         return;
       }
@@ -119,9 +134,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
       await cacheService.saveBootstrapCache(resolvedDate, result);
       await storageService.pruneOldBootstrapCaches(keepCount: 3);
 
+      final changes = await _detectAndSaveSignalChanges(result);
       setState(() {
         bootstrapResult = result;
         loading = false;
+        _pendingSignalChanges = changes;
       });
     } catch (e) {
       debugPrint('⚠️ [防禦機制觸發] 異常: $e，進入離線降級...');
@@ -134,10 +151,12 @@ class _BootstrapAppState extends State<BootstrapApp> {
       final fallbackResult = await cacheService.tryGetAnyLatestCache();
 
       if (fallbackResult != null) {
+        final changes = await _detectAndSaveSignalChanges(fallbackResult);
         setState(() {
           bootstrapResult = fallbackResult;
           isOfflineMode = true;
           loading = false;
+          _pendingSignalChanges = changes;
         });
       } else {
         setState(() {
@@ -145,6 +164,44 @@ class _BootstrapAppState extends State<BootstrapApp> {
           loading = false;
         });
       }
+    }
+  }
+
+  /// 偵測關注板塊訊號異動，並儲存今日訊號供下次比對。
+  /// Watchlist 為空時直接回傳空列表，完全跳過演算。
+  Future<List<SignalChange>> _detectAndSaveSignalChanges(
+      AppBootstrapResult result) async {
+    try {
+      final watched = await _watchlistRepository!.getAll();
+      if (watched.isEmpty) return [];
+
+      final watchedNames = watched.map((e) => e.categoryName).toList();
+      final strategy = MomentumStrategy();
+      final todaySignals = result.lifecycles
+          .map((lc) => strategy.evaluate(lc, dateKey: _resolvedDate))
+          .toList();
+
+      // 比對前次訊號
+      final previousSignals =
+          await _signalSnapshotRepository!.loadForCategories(watchedNames);
+      final changes = SignalChangeDetector().detect(
+        previousSignals: previousSignals,
+        todaySignals: todaySignals,
+        watchedNames: watchedNames,
+      );
+
+      // 儲存今日訊號（下次啟動時作為「前次」使用）
+      final toSave = <String, String>{};
+      final watchedSet = watchedNames.toSet();
+      for (final s in todaySignals) {
+        if (watchedSet.contains(s.category)) toSave[s.category] = s.action.name;
+      }
+      await _signalSnapshotRepository!.saveSignals(_resolvedDate, toSave);
+
+      return changes;
+    } catch (e) {
+      debugPrint('訊號異動偵測失敗（不影響主流程）: $e');
+      return [];
     }
   }
 
@@ -204,10 +261,26 @@ class _BootstrapAppState extends State<BootstrapApp> {
       );
     }
 
+    // 演算完成後，若有關注板塊訊號異動，在第一次渲染後彈 dialog
+    if (!_signalDialogShown && _pendingSignalChanges.isNotEmpty) {
+      _signalDialogShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final ctx = _navKey.currentContext;
+        if (ctx != null && mounted) {
+          showDialog(
+            context: ctx,
+            barrierDismissible: true,
+            builder: (_) => SignalChangeDialog(changes: _pendingSignalChanges),
+          );
+        }
+      });
+    }
+
     // 🟢 正式主畫面：全面由標籤頁分流系統接管
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      navigatorKey: _navKey,
       home: Scaffold(
         body: Column(
           children: [
@@ -251,7 +324,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 mainstreams: bootstrapResult!.mainstreams,
                 lifecycles: bootstrapResult!.lifecycles,
                 sentiment: bootstrapResult!.sentiment,
-                historyRepository: _categoryHistoryRepository!, // 注入本地歷史紀錄儲存庫
+                historyRepository: _categoryHistoryRepository!,
+                watchlistRepository: _watchlistRepository!,
               ),
             ),
           ],

@@ -43,7 +43,11 @@ class LifecycleEngine {
 
       final acceleration = scoreTrend.acceleration;
 
-      final hotMoneyIn = flowTrend.acceleration > 0 && diffusionTrend.slope > 0;
+      // 使用方向性更明確的指標：漲幅×成交額加權積(flowScore) + 上漲家數比例(diffusion)
+      // 原定義依賴 flowTrend.acceleration（量的加速度）和 diffusionTrend.slope，
+      // 基於 5 天頭尾差，單日整理即翻轉，造成大量誤判出清訊號。
+      final hotMoneyIn =
+          mainstream.flowScore > 0 && mainstream.diffusionScore > 45;
 
       results.add(
         LifecycleResult(
@@ -180,11 +184,12 @@ class LifecycleEngine {
       return LifecycleStage.expansion;
     }
 
-    // 點火
+    // 點火：有明確加速訊號
     if (acceleration > 5 || flowTrend.acceleration > 0) {
       return LifecycleStage.ignition;
     }
 
-    return LifecycleStage.ignition;
+    // 盤整：無明確訊號的板塊，觀望為主（原先錯誤地預設為「點火」）
+    return LifecycleStage.consolidation;
   }
 }

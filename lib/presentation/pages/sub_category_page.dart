@@ -4,9 +4,8 @@ import 'package:tw_stock_capital_flow/presentation/widgets/category_card.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
-
-// 🚀 Phase 5 核心引入：引入 Drift 的歷史數據實體模型以承接 SQLite 資料庫數據
 import 'package:tw_stock_capital_flow/data/database/app_database.dart';
+import 'package:tw_stock_capital_flow/presentation/widgets/category_trend_chart.dart';
 
 class SubCategoryPage extends StatefulWidget {
   final List<CategoryUiModel> categories;
@@ -68,8 +67,8 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
     try {
       // 💡 精確對接專案原始代碼：呼叫 getCategoryTrend 取得 15 天歷史
       final records = await widget.historyRepository.getCategoryTrend(
-        widget.title, // 傳入當前大分類板塊名稱
-        limit: 15, // 拉取 15 天數據
+        widget.title,
+        limit: 30,
       );
 
       if (mounted) {
@@ -239,7 +238,7 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
             children: [
               Text(
                 hasHistory
-                    ? '${widget.title} 板塊歷史資金走勢'
+                    ? '${widget.title}  近30日走勢'
                     : '${widget.title} 今日盤態雷達',
                 style: const TextStyle(
                   fontSize: 15,
@@ -256,7 +255,7 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  hasHistory ? '歷史 K 線回溯' : '即時多空分佈',
+                  hasHistory ? '近30日互動圖' : '即時多空分佈',
                   style: TextStyle(
                     fontSize: 11,
                     color: hasHistory
@@ -270,61 +269,21 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
           ),
           const SizedBox(height: 16),
 
-          // 圖表渲染核心限制盒（固定高度 140）
-          SizedBox(
-            height: 140,
-            child: _isLoadingHistory
-                ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
-                : hasHistory
-                ? _buildLineChart() // 📈 渲染歷史折線走勢圖
-                : _buildLiveDistributionRadar(), // 📊 降級防線：即時多空比例圖
-          ),
+          if (_isLoadingHistory)
+            const SizedBox(
+              height: 140,
+              child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+            )
+          else if (hasHistory)
+            CategoryTrendChart(history: _historyRecords)
+          else
+            SizedBox(height: 140, child: _buildLiveDistributionRadar()),
         ],
       ),
     );
   }
 
-  /// 📈 核心圖表 A：自繪 15 日資金流分數走勢圖
-  Widget _buildLineChart() {
-    final scores = _historyRecords.map((e) => e.score).toList();
-    final dates = _historyRecords
-        .map(
-          (e) =>
-              e.tradeDate.length > 4 ? e.tradeDate.substring(4) : e.tradeDate,
-        )
-        .toList();
-
-    return Column(
-      children: [
-        Expanded(
-          child: CustomPaint(
-            size: Size.infinite,
-            painter: CategoryTrendPainter(scores: scores),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              dates.first,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-            Text(
-              dates[dates.length ~/ 2],
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-            Text(
-              dates.last,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// 📊 核心圖表 B（即時雷達防線）：今日細成份股多空漲跌分佈圓餅圖
+  /// 📊 即時雷達防線（無歷史資料時使用）：今日細成份股多空漲跌分佈圓餅圖
   /// 🟢 安全完全體：移除了所有致命的內部 SliverToBoxAdapter，改用純粹的標準佈局組件
   Widget _buildLiveDistributionRadar() {
     final double riseRatio = _totalStockCount > 0
@@ -427,102 +386,6 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
       ],
     );
   }
-}
-
-// ==========================================
-// 🎨 底層自繪引擎：趨勢折線圖畫布 (CategoryTrendPainter)
-// ==========================================
-class CategoryTrendPainter extends CustomPainter {
-  final List<double> scores;
-  CategoryTrendPainter({required this.scores});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (scores.isEmpty) return;
-
-    final double width = size.width;
-    final double height = size.height;
-
-    double maxScore = scores.reduce((a, b) => a > b ? a : b);
-    double minScore = scores.reduce((a, b) => a < b ? a : b);
-
-    if ((maxScore - minScore).abs() < 0.1) {
-      maxScore += 1.0;
-      minScore -= 1.0;
-    }
-
-    maxScore += (maxScore - minScore) * 0.1;
-    minScore -= (maxScore - minScore) * 0.1;
-
-    final double range = maxScore - minScore;
-
-    // 繪製零軸參考線
-    if (maxScore > 0 && minScore < 0) {
-      final double zeroY = height - ((0.0 - minScore) / range * height);
-      final Paint zeroPaint = Paint()
-        ..color = Colors.grey.shade200
-        ..strokeWidth = 1.0
-        ..style = PaintingStyle.stroke;
-      canvas.drawLine(Offset(0, zeroY), Offset(width, zeroY), zeroPaint);
-    }
-
-    // 建立折線點
-    final double stepX = width / (scores.length - 1);
-    final List<Offset> points = [];
-    for (int i = 0; i < scores.length; i++) {
-      final double x = i * stepX;
-      final double y = height - ((scores[i] - minScore) / range * height);
-      points.add(Offset(x, y));
-    }
-
-    // 繪製漸層陰影
-    final Path shadowPath = Path()..moveTo(points.first.dx, height);
-    for (var pt in points) {
-      shadowPath.lineTo(pt.dx, pt.dy);
-    }
-    shadowPath.lineTo(points.last.dx, height);
-    shadowPath.close();
-
-    final Paint shadowPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.blueAccent.withValues(alpha: 0.15),
-          Colors.blueAccent.withValues(alpha: 0.00),
-        ],
-      ).createShader(Rect.fromLTRB(0, 0, width, height));
-    canvas.drawPath(shadowPath, shadowPaint);
-
-    // 繪製主趨勢折線
-    final Paint linePaint = Paint()
-      ..color = Colors.blueAccent
-      ..strokeWidth = 2.5
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-
-    final Path linePath = Path()..moveTo(points.first.dx, points.first.dy);
-    for (int i = 1; i < points.length; i++) {
-      linePath.lineTo(points[i].dx, points[i].dy);
-    }
-    canvas.drawPath(linePath, linePaint);
-
-    // 繪製最新端點
-    final Paint dotPaint = Paint()
-      ..color = Colors.blueAccent
-      ..style = PaintingStyle.fill;
-    // 🟢 修正點：使用相容性最高、最穩定的 withOpacity(0.2) 宣告光暈
-    final Paint dotHalo = Paint()
-      ..color = Colors.blue.withValues(alpha: 0.2)
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(points.last, 7, dotHalo);
-    canvas.drawCircle(points.last, 3.5, dotPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CategoryTrendPainter oldDelegate) =>
-      oldDelegate.scores != scores;
 }
 
 // ==========================================

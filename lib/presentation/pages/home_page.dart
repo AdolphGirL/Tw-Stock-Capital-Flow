@@ -7,6 +7,7 @@ import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart
 
 import 'package:tw_stock_capital_flow/presentation/widgets/home_section_card.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/market_summary_card.dart';
+import 'package:tw_stock_capital_flow/presentation/widgets/market_signal_summary.dart';
 
 import 'package:tw_stock_capital_flow/presentation/pages/mainstream_page.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/main_category_page.dart';
@@ -14,6 +15,11 @@ import 'package:tw_stock_capital_flow/presentation/pages/market_sentiment_page.d
 
 // 🚀 引入本地 SQLite 歷史紀錄 Repository
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+import 'package:tw_stock_capital_flow/data/watchlist/repositories/watchlist_repository.dart';
+import 'package:tw_stock_capital_flow/domain/strategies/momentum_strategy.dart';
+import 'package:tw_stock_capital_flow/domain/models/strategy_signal.dart';
+import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart';
+import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 
 class HomePage extends StatelessWidget {
   final String tradeDate;
@@ -30,8 +36,8 @@ class HomePage extends StatelessWidget {
   final List<LifecycleResult> lifecycles;
   final MarketSentimentResult? sentiment;
 
-  // 歷史資料庫接口
   final CategoryHistoryRepository historyRepository;
+  final WatchlistRepository watchlistRepository;
 
   const HomePage({
     super.key,
@@ -49,6 +55,7 @@ class HomePage extends StatelessWidget {
     required this.lifecycles,
     required this.sentiment,
     required this.historyRepository,
+    required this.watchlistRepository,
   });
 
   /// 將資料庫的 YYYYMMDD 轉化為交易者易讀的 YYYY-MM-DD
@@ -69,6 +76,13 @@ class HomePage extends StatelessWidget {
           children: [
             _buildHeader(), // 頂部動態日期與標題
             const SizedBox(height: 24),
+
+            // 🚦 0. 今日全市場訊號快照
+            _buildSignalSummaryCard(context),
+            const SizedBox(height: 20),
+
+            // ⭐ 0.5 觀察清單（有資料才顯示）
+            _buildWatchlistSection(context),
 
             // 📊 1. 上市與上櫃多空家數診斷（保留作為一開屏的核心摘要）
             _buildMarketSection(context),
@@ -235,6 +249,206 @@ class HomePage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildWatchlistSection(BuildContext context) {
+    return StreamBuilder<List>(
+      stream: watchlistRepository.watchAll(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        final entries = snapshot.data!;
+        final strategy = MomentumStrategy();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 20),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFFFF9C4)),
+            boxShadow: const [
+              BoxShadow(color: Color(0x06000000), blurRadius: 6, offset: Offset(0, 2)),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.star_rounded, color: Color(0xFFF9A825), size: 18),
+                  const SizedBox(width: 6),
+                  const Text(
+                    '我的觀察清單',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${entries.length} 個板塊',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ...entries.map((entry) {
+                final name = (entry as dynamic).categoryName as String;
+                final lcList = lifecycles.where((l) => l.category == name).toList();
+                if (lcList.isEmpty) {
+                  return _buildWatchlistEmptyTile(name);
+                }
+                final lc = lcList.first;
+                final signal = strategy.evaluate(lc, dateKey: tradeDate);
+                return _buildWatchlistTile(context, name, signal);
+              }),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 在上市 / 上櫃大板塊中尋找符合名稱的 CategoryUiModel（含子層搜尋）
+  CategoryUiModel? _findCategory(String name) {
+    for (final cat in listedCategories) {
+      if (cat.name == name) return cat;
+      for (final child in cat.children) {
+        if (child.name == name) return child;
+      }
+    }
+    for (final cat in otcCategories) {
+      if (cat.name == name) return cat;
+      for (final child in cat.children) {
+        if (child.name == name) return child;
+      }
+    }
+    return null;
+  }
+
+  Widget _buildWatchlistTile(BuildContext context, String name, StrategySignal signal) {
+    Color accentColor;
+    String actionLabel;
+    Color bgColor;
+    switch (signal.action) {
+      case StrategyAction.buy:
+        accentColor = const Color(0xFF2E7D32);
+        actionLabel = '買進';
+        bgColor = const Color(0xFFE8F5E9);
+        break;
+      case StrategyAction.hold:
+        accentColor = const Color(0xFFF57F17);
+        actionLabel = '續抱';
+        bgColor = const Color(0xFFFFF9C4);
+        break;
+      case StrategyAction.sell:
+        accentColor = const Color(0xFFC62828);
+        actionLabel = '出清';
+        bgColor = const Color(0xFFFFEBEE);
+        break;
+      case StrategyAction.neutral:
+        accentColor = const Color(0xFF616161);
+        actionLabel = '觀望';
+        bgColor = const Color(0xFFF5F5F5);
+        break;
+    }
+
+    final cat = _findCategory(name);
+    return GestureDetector(
+      onTap: cat == null
+          ? null
+          : () => CategoryNavigation.openCategory(context, cat, historyRepository),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
+            ),
+            if (cat != null)
+              const Icon(Icons.chevron_right, size: 14, color: Colors.grey),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                actionLabel,
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            WatchlistButton(repository: watchlistRepository, categoryName: name, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWatchlistEmptyTile(String name) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(fontSize: 14, color: Color(0xFF9E9E9E)),
+            ),
+          ),
+          const Text('暫無資料', style: TextStyle(fontSize: 11, color: Color(0xFFBDBDBD))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSignalSummaryCard(BuildContext context) {
+    if (lifecycles.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE8EAF0)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x06000000), blurRadius: 6, offset: Offset(0, 2)),
+        ],
+      ),
+      child: MarketSignalSummary(
+        lifecycles: lifecycles,
+        tradeDate: tradeDate,
+        listedCategories: listedCategories,
+        otcCategories: otcCategories,
+        historyRepository: historyRepository,
+      ),
     );
   }
 

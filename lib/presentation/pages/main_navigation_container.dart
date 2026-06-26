@@ -5,6 +5,7 @@ import 'package:tw_stock_capital_flow/domain/models/market_sentiment_result.dart
 import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+import 'package:tw_stock_capital_flow/data/watchlist/repositories/watchlist_repository.dart';
 
 // 引入各分流頁面
 import 'package:tw_stock_capital_flow/presentation/pages/home_page.dart'; // 瘦身後的首頁
@@ -28,6 +29,7 @@ class MainNavigationContainer extends StatefulWidget {
   final List<LifecycleResult> lifecycles;
   final MarketSentimentResult? sentiment;
   final CategoryHistoryRepository historyRepository;
+  final WatchlistRepository watchlistRepository;
 
   const MainNavigationContainer({
     super.key,
@@ -45,6 +47,7 @@ class MainNavigationContainer extends StatefulWidget {
     required this.lifecycles,
     required this.sentiment,
     required this.historyRepository,
+    required this.watchlistRepository,
   });
 
   @override
@@ -81,6 +84,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   lifecycles: widget.lifecycles,
                   sentiment: widget.sentiment,
                   historyRepository: widget.historyRepository,
+                  watchlistRepository: widget.watchlistRepository,
                 ),
 
                 // 📊 Tab 1: 資金熱圖中心
@@ -93,6 +97,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   listedCategories: widget.listedCategories,
                   otcCategories: widget.otcCategories,
                   historyRepository: widget.historyRepository,
+                  watchlistRepository: widget.watchlistRepository,
                 ),
 
                 // 📡 Tab 3: 輪動領先雷達
@@ -101,6 +106,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   listedCategories: widget.listedCategories,
                   otcCategories: widget.otcCategories,
                   historyRepository: widget.historyRepository,
+                  watchlistRepository: widget.watchlistRepository,
                 ),
               ],
             ),

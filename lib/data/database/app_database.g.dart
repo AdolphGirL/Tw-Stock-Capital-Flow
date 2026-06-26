@@ -1511,6 +1511,502 @@ class RotationHistoryTableCompanion
   }
 }
 
+class $WatchlistTableTable extends WatchlistTable
+    with TableInfo<$WatchlistTableTable, WatchlistEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WatchlistTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _categoryNameMeta = const VerificationMeta(
+    'categoryName',
+  );
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+    'category_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _addedAtMeta = const VerificationMeta(
+    'addedAt',
+  );
+  @override
+  late final GeneratedColumn<String> addedAt = GeneratedColumn<String>(
+    'added_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [categoryName, addedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'watchlist';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WatchlistEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('category_name')) {
+      context.handle(
+        _categoryNameMeta,
+        categoryName.isAcceptableOrUnknown(
+          data['category_name']!,
+          _categoryNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryNameMeta);
+    }
+    if (data.containsKey('added_at')) {
+      context.handle(
+        _addedAtMeta,
+        addedAt.isAcceptableOrUnknown(data['added_at']!, _addedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_addedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {categoryName};
+  @override
+  WatchlistEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WatchlistEntry(
+      categoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_name'],
+      )!,
+      addedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}added_at'],
+      )!,
+    );
+  }
+
+  @override
+  $WatchlistTableTable createAlias(String alias) {
+    return $WatchlistTableTable(attachedDatabase, alias);
+  }
+}
+
+class WatchlistEntry extends DataClass implements Insertable<WatchlistEntry> {
+  final String categoryName;
+  final String addedAt;
+  const WatchlistEntry({required this.categoryName, required this.addedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['category_name'] = Variable<String>(categoryName);
+    map['added_at'] = Variable<String>(addedAt);
+    return map;
+  }
+
+  WatchlistTableCompanion toCompanion(bool nullToAbsent) {
+    return WatchlistTableCompanion(
+      categoryName: Value(categoryName),
+      addedAt: Value(addedAt),
+    );
+  }
+
+  factory WatchlistEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WatchlistEntry(
+      categoryName: serializer.fromJson<String>(json['categoryName']),
+      addedAt: serializer.fromJson<String>(json['addedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'categoryName': serializer.toJson<String>(categoryName),
+      'addedAt': serializer.toJson<String>(addedAt),
+    };
+  }
+
+  WatchlistEntry copyWith({String? categoryName, String? addedAt}) =>
+      WatchlistEntry(
+        categoryName: categoryName ?? this.categoryName,
+        addedAt: addedAt ?? this.addedAt,
+      );
+  WatchlistEntry copyWithCompanion(WatchlistTableCompanion data) {
+    return WatchlistEntry(
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      addedAt: data.addedAt.present ? data.addedAt.value : this.addedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WatchlistEntry(')
+          ..write('categoryName: $categoryName, ')
+          ..write('addedAt: $addedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(categoryName, addedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WatchlistEntry &&
+          other.categoryName == this.categoryName &&
+          other.addedAt == this.addedAt);
+}
+
+class WatchlistTableCompanion extends UpdateCompanion<WatchlistEntry> {
+  final Value<String> categoryName;
+  final Value<String> addedAt;
+  final Value<int> rowid;
+  const WatchlistTableCompanion({
+    this.categoryName = const Value.absent(),
+    this.addedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  WatchlistTableCompanion.insert({
+    required String categoryName,
+    required String addedAt,
+    this.rowid = const Value.absent(),
+  }) : categoryName = Value(categoryName),
+       addedAt = Value(addedAt);
+  static Insertable<WatchlistEntry> custom({
+    Expression<String>? categoryName,
+    Expression<String>? addedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (categoryName != null) 'category_name': categoryName,
+      if (addedAt != null) 'added_at': addedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  WatchlistTableCompanion copyWith({
+    Value<String>? categoryName,
+    Value<String>? addedAt,
+    Value<int>? rowid,
+  }) {
+    return WatchlistTableCompanion(
+      categoryName: categoryName ?? this.categoryName,
+      addedAt: addedAt ?? this.addedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (addedAt.present) {
+      map['added_at'] = Variable<String>(addedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WatchlistTableCompanion(')
+          ..write('categoryName: $categoryName, ')
+          ..write('addedAt: $addedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SignalSnapshotTableTable extends SignalSnapshotTable
+    with TableInfo<$SignalSnapshotTableTable, SignalSnapshotData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SignalSnapshotTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _categoryNameMeta = const VerificationMeta(
+    'categoryName',
+  );
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+    'category_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _actionMeta = const VerificationMeta('action');
+  @override
+  late final GeneratedColumn<String> action = GeneratedColumn<String>(
+    'action',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dateKeyMeta = const VerificationMeta(
+    'dateKey',
+  );
+  @override
+  late final GeneratedColumn<String> dateKey = GeneratedColumn<String>(
+    'date_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [categoryName, action, dateKey];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'signal_snapshot';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SignalSnapshotData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('category_name')) {
+      context.handle(
+        _categoryNameMeta,
+        categoryName.isAcceptableOrUnknown(
+          data['category_name']!,
+          _categoryNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryNameMeta);
+    }
+    if (data.containsKey('action')) {
+      context.handle(
+        _actionMeta,
+        action.isAcceptableOrUnknown(data['action']!, _actionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_actionMeta);
+    }
+    if (data.containsKey('date_key')) {
+      context.handle(
+        _dateKeyMeta,
+        dateKey.isAcceptableOrUnknown(data['date_key']!, _dateKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateKeyMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {categoryName};
+  @override
+  SignalSnapshotData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SignalSnapshotData(
+      categoryName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_name'],
+      )!,
+      action: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}action'],
+      )!,
+      dateKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}date_key'],
+      )!,
+    );
+  }
+
+  @override
+  $SignalSnapshotTableTable createAlias(String alias) {
+    return $SignalSnapshotTableTable(attachedDatabase, alias);
+  }
+}
+
+class SignalSnapshotData extends DataClass
+    implements Insertable<SignalSnapshotData> {
+  final String categoryName;
+  final String action;
+  final String dateKey;
+  const SignalSnapshotData({
+    required this.categoryName,
+    required this.action,
+    required this.dateKey,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['category_name'] = Variable<String>(categoryName);
+    map['action'] = Variable<String>(action);
+    map['date_key'] = Variable<String>(dateKey);
+    return map;
+  }
+
+  SignalSnapshotTableCompanion toCompanion(bool nullToAbsent) {
+    return SignalSnapshotTableCompanion(
+      categoryName: Value(categoryName),
+      action: Value(action),
+      dateKey: Value(dateKey),
+    );
+  }
+
+  factory SignalSnapshotData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SignalSnapshotData(
+      categoryName: serializer.fromJson<String>(json['categoryName']),
+      action: serializer.fromJson<String>(json['action']),
+      dateKey: serializer.fromJson<String>(json['dateKey']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'categoryName': serializer.toJson<String>(categoryName),
+      'action': serializer.toJson<String>(action),
+      'dateKey': serializer.toJson<String>(dateKey),
+    };
+  }
+
+  SignalSnapshotData copyWith({
+    String? categoryName,
+    String? action,
+    String? dateKey,
+  }) => SignalSnapshotData(
+    categoryName: categoryName ?? this.categoryName,
+    action: action ?? this.action,
+    dateKey: dateKey ?? this.dateKey,
+  );
+  SignalSnapshotData copyWithCompanion(SignalSnapshotTableCompanion data) {
+    return SignalSnapshotData(
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      action: data.action.present ? data.action.value : this.action,
+      dateKey: data.dateKey.present ? data.dateKey.value : this.dateKey,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SignalSnapshotData(')
+          ..write('categoryName: $categoryName, ')
+          ..write('action: $action, ')
+          ..write('dateKey: $dateKey')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(categoryName, action, dateKey);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SignalSnapshotData &&
+          other.categoryName == this.categoryName &&
+          other.action == this.action &&
+          other.dateKey == this.dateKey);
+}
+
+class SignalSnapshotTableCompanion extends UpdateCompanion<SignalSnapshotData> {
+  final Value<String> categoryName;
+  final Value<String> action;
+  final Value<String> dateKey;
+  final Value<int> rowid;
+  const SignalSnapshotTableCompanion({
+    this.categoryName = const Value.absent(),
+    this.action = const Value.absent(),
+    this.dateKey = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SignalSnapshotTableCompanion.insert({
+    required String categoryName,
+    required String action,
+    required String dateKey,
+    this.rowid = const Value.absent(),
+  }) : categoryName = Value(categoryName),
+       action = Value(action),
+       dateKey = Value(dateKey);
+  static Insertable<SignalSnapshotData> custom({
+    Expression<String>? categoryName,
+    Expression<String>? action,
+    Expression<String>? dateKey,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (categoryName != null) 'category_name': categoryName,
+      if (action != null) 'action': action,
+      if (dateKey != null) 'date_key': dateKey,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SignalSnapshotTableCompanion copyWith({
+    Value<String>? categoryName,
+    Value<String>? action,
+    Value<String>? dateKey,
+    Value<int>? rowid,
+  }) {
+    return SignalSnapshotTableCompanion(
+      categoryName: categoryName ?? this.categoryName,
+      action: action ?? this.action,
+      dateKey: dateKey ?? this.dateKey,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (action.present) {
+      map['action'] = Variable<String>(action.value);
+    }
+    if (dateKey.present) {
+      map['date_key'] = Variable<String>(dateKey.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SignalSnapshotTableCompanion(')
+          ..write('categoryName: $categoryName, ')
+          ..write('action: $action, ')
+          ..write('dateKey: $dateKey, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1522,6 +2018,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $LifecycleHistoryTableTable(this);
   late final $RotationHistoryTableTable rotationHistoryTable =
       $RotationHistoryTableTable(this);
+  late final $WatchlistTableTable watchlistTable = $WatchlistTableTable(this);
+  late final $SignalSnapshotTableTable signalSnapshotTable =
+      $SignalSnapshotTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1531,6 +2030,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     mainstreamHistoryTable,
     lifecycleHistoryTable,
     rotationHistoryTable,
+    watchlistTable,
+    signalSnapshotTable,
   ];
 }
 
@@ -2420,6 +2921,333 @@ typedef $$RotationHistoryTableTableProcessedTableManager =
       RotationHistoryData,
       PrefetchHooks Function()
     >;
+typedef $$WatchlistTableTableCreateCompanionBuilder =
+    WatchlistTableCompanion Function({
+      required String categoryName,
+      required String addedAt,
+      Value<int> rowid,
+    });
+typedef $$WatchlistTableTableUpdateCompanionBuilder =
+    WatchlistTableCompanion Function({
+      Value<String> categoryName,
+      Value<String> addedAt,
+      Value<int> rowid,
+    });
+
+class $$WatchlistTableTableFilterComposer
+    extends Composer<_$AppDatabase, $WatchlistTableTable> {
+  $$WatchlistTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WatchlistTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $WatchlistTableTable> {
+  $$WatchlistTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get addedAt => $composableBuilder(
+    column: $table.addedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WatchlistTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WatchlistTableTable> {
+  $$WatchlistTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get addedAt =>
+      $composableBuilder(column: $table.addedAt, builder: (column) => column);
+}
+
+class $$WatchlistTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WatchlistTableTable,
+          WatchlistEntry,
+          $$WatchlistTableTableFilterComposer,
+          $$WatchlistTableTableOrderingComposer,
+          $$WatchlistTableTableAnnotationComposer,
+          $$WatchlistTableTableCreateCompanionBuilder,
+          $$WatchlistTableTableUpdateCompanionBuilder,
+          (
+            WatchlistEntry,
+            BaseReferences<_$AppDatabase, $WatchlistTableTable, WatchlistEntry>,
+          ),
+          WatchlistEntry,
+          PrefetchHooks Function()
+        > {
+  $$WatchlistTableTableTableManager(
+    _$AppDatabase db,
+    $WatchlistTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WatchlistTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$WatchlistTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$WatchlistTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> categoryName = const Value.absent(),
+                Value<String> addedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => WatchlistTableCompanion(
+                categoryName: categoryName,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String categoryName,
+                required String addedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => WatchlistTableCompanion.insert(
+                categoryName: categoryName,
+                addedAt: addedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WatchlistTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WatchlistTableTable,
+      WatchlistEntry,
+      $$WatchlistTableTableFilterComposer,
+      $$WatchlistTableTableOrderingComposer,
+      $$WatchlistTableTableAnnotationComposer,
+      $$WatchlistTableTableCreateCompanionBuilder,
+      $$WatchlistTableTableUpdateCompanionBuilder,
+      (
+        WatchlistEntry,
+        BaseReferences<_$AppDatabase, $WatchlistTableTable, WatchlistEntry>,
+      ),
+      WatchlistEntry,
+      PrefetchHooks Function()
+    >;
+typedef $$SignalSnapshotTableTableCreateCompanionBuilder =
+    SignalSnapshotTableCompanion Function({
+      required String categoryName,
+      required String action,
+      required String dateKey,
+      Value<int> rowid,
+    });
+typedef $$SignalSnapshotTableTableUpdateCompanionBuilder =
+    SignalSnapshotTableCompanion Function({
+      Value<String> categoryName,
+      Value<String> action,
+      Value<String> dateKey,
+      Value<int> rowid,
+    });
+
+class $$SignalSnapshotTableTableFilterComposer
+    extends Composer<_$AppDatabase, $SignalSnapshotTableTable> {
+  $$SignalSnapshotTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dateKey => $composableBuilder(
+    column: $table.dateKey,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SignalSnapshotTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $SignalSnapshotTableTable> {
+  $$SignalSnapshotTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get action => $composableBuilder(
+    column: $table.action,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dateKey => $composableBuilder(
+    column: $table.dateKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SignalSnapshotTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SignalSnapshotTableTable> {
+  $$SignalSnapshotTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+    column: $table.categoryName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get action =>
+      $composableBuilder(column: $table.action, builder: (column) => column);
+
+  GeneratedColumn<String> get dateKey =>
+      $composableBuilder(column: $table.dateKey, builder: (column) => column);
+}
+
+class $$SignalSnapshotTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SignalSnapshotTableTable,
+          SignalSnapshotData,
+          $$SignalSnapshotTableTableFilterComposer,
+          $$SignalSnapshotTableTableOrderingComposer,
+          $$SignalSnapshotTableTableAnnotationComposer,
+          $$SignalSnapshotTableTableCreateCompanionBuilder,
+          $$SignalSnapshotTableTableUpdateCompanionBuilder,
+          (
+            SignalSnapshotData,
+            BaseReferences<
+              _$AppDatabase,
+              $SignalSnapshotTableTable,
+              SignalSnapshotData
+            >,
+          ),
+          SignalSnapshotData,
+          PrefetchHooks Function()
+        > {
+  $$SignalSnapshotTableTableTableManager(
+    _$AppDatabase db,
+    $SignalSnapshotTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SignalSnapshotTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SignalSnapshotTableTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$SignalSnapshotTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> categoryName = const Value.absent(),
+                Value<String> action = const Value.absent(),
+                Value<String> dateKey = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SignalSnapshotTableCompanion(
+                categoryName: categoryName,
+                action: action,
+                dateKey: dateKey,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String categoryName,
+                required String action,
+                required String dateKey,
+                Value<int> rowid = const Value.absent(),
+              }) => SignalSnapshotTableCompanion.insert(
+                categoryName: categoryName,
+                action: action,
+                dateKey: dateKey,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SignalSnapshotTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SignalSnapshotTableTable,
+      SignalSnapshotData,
+      $$SignalSnapshotTableTableFilterComposer,
+      $$SignalSnapshotTableTableOrderingComposer,
+      $$SignalSnapshotTableTableAnnotationComposer,
+      $$SignalSnapshotTableTableCreateCompanionBuilder,
+      $$SignalSnapshotTableTableUpdateCompanionBuilder,
+      (
+        SignalSnapshotData,
+        BaseReferences<
+          _$AppDatabase,
+          $SignalSnapshotTableTable,
+          SignalSnapshotData
+        >,
+      ),
+      SignalSnapshotData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2435,4 +3263,8 @@ class $AppDatabaseManager {
       $$LifecycleHistoryTableTableTableManager(_db, _db.lifecycleHistoryTable);
   $$RotationHistoryTableTableTableManager get rotationHistoryTable =>
       $$RotationHistoryTableTableTableManager(_db, _db.rotationHistoryTable);
+  $$WatchlistTableTableTableManager get watchlistTable =>
+      $$WatchlistTableTableTableManager(_db, _db.watchlistTable);
+  $$SignalSnapshotTableTableTableManager get signalSnapshotTable =>
+      $$SignalSnapshotTableTableTableManager(_db, _db.signalSnapshotTable);
 }

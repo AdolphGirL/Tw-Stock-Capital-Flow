@@ -30,6 +30,8 @@ class LifecycleCard extends StatelessWidget {
 
       case LifecycleStage.dead:
         return '死亡';
+      case LifecycleStage.consolidation:
+        return '盤整';
     }
   }
 
@@ -55,6 +57,8 @@ class LifecycleCard extends StatelessWidget {
 
       case LifecycleStage.dead:
         return Colors.black87;
+      case LifecycleStage.consolidation:
+        return Colors.blueGrey;
     }
   }
 

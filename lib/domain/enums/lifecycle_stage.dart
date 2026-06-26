@@ -6,4 +6,5 @@ enum LifecycleStage {
   distribution, // 出貨
   decline, // 退潮
   dead, // 死亡
+  consolidation, // 盤整（無明確方向，觀望）
 }
