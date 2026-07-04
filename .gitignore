@@ -103,3 +103,7 @@ app.*.symbols
 .gemini/
 .claude/
 .mcp.json
+
+app-store-screenshots/
+images/
+skills-lock.json

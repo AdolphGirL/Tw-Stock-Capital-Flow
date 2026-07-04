@@ -11,8 +11,7 @@ import 'package:tw_stock_capital_flow/data/watchlist/repositories/watchlist_repo
 import 'package:tw_stock_capital_flow/presentation/pages/home_page.dart'; // 瘦身後的首頁
 import 'package:tw_stock_capital_flow/presentation/pages/strategy_dashboard_page.dart'; // 策略看板
 import 'package:tw_stock_capital_flow/presentation/pages/leading_indicator_page.dart'; // 領先指標
-import 'package:tw_stock_capital_flow/presentation/widgets/market_heatmap.dart';
-import 'package:tw_stock_capital_flow/presentation/widgets/top_hot_categories.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/anomaly_detector_page.dart';
 
 class MainNavigationContainer extends StatefulWidget {
   final String tradeDate;
@@ -87,8 +86,13 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   watchlistRepository: widget.watchlistRepository,
                 ),
 
-                // 📊 Tab 1: 資金熱圖中心
-                _buildHeatmapTabScreen(),
+                // 📊 Tab 1: 異常資金偵測器
+                AnomalyDetectorPage(
+                  listedCategories: widget.listedCategories,
+                  otcCategories: widget.otcCategories,
+                  historyRepository: widget.historyRepository,
+                  tradeDate: widget.tradeDate,
+                ),
 
                 // ⚡ Tab 2: 機構動量策略
                 StrategyDashboardPage(
@@ -133,7 +137,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
             icon: Icon(Icons.dashboard_rounded),
             label: '大盤診斷',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.map_rounded), label: '資金熱區'),
+          BottomNavigationBarItem(icon: Icon(Icons.bolt_rounded), label: '異常偵測'),
           BottomNavigationBarItem(
             icon: Icon(Icons.traffic_rounded),
             label: '動量決策',
@@ -170,36 +174,4 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
     );
   }
 
-  /// 建立獨立的熱圖與九宮格主畫面
-  Widget _buildHeatmapTabScreen() {
-    return Scaffold(
-      backgroundColor: const Color(0xfff3f6fb),
-      appBar: AppBar(
-        title: const Text(
-          '全市場資金熱區雷達',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            MarketHeatmap(
-              categories: [...widget.listedCategories, ...widget.otcCategories],
-              historyRepository: widget.historyRepository,
-            ),
-            const SizedBox(height: 32),
-            TopHotCategories(
-              categories: [...widget.listedCategories, ...widget.otcCategories],
-              historyRepository: widget.historyRepository,
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
 }

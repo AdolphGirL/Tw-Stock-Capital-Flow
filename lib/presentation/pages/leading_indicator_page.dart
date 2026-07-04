@@ -52,23 +52,29 @@ class LeadingIndicatorPage extends StatelessWidget {
             _buildConceptCard(),
             const SizedBox(height: 20),
 
-            if (leaders.isNotEmpty) ...[
-              _buildSectionHeader(
-                '🔥 領先吸籌板塊 (資金正灌入充電)',
-                Colors.green.shade800,
-                Icons.bolt,
-              ),
-              ...leaders.map((e) => _buildIndicatorCard(context, e)),
-              const SizedBox(height: 20),
-            ],
+            if (rotations.isEmpty) ...[
+              _buildNoDataCard(),
+            ] else ...[
+              if (leaders.isNotEmpty) ...[
+                _buildSectionHeader(
+                  '🔥 領先吸籌板塊 (資金正灌入充電)',
+                  Colors.green.shade800,
+                  Icons.bolt,
+                ),
+                ...leaders.map((e) => _buildIndicatorCard(context, e)),
+                const SizedBox(height: 20),
+              ],
 
-            if (laggards.isNotEmpty) ...[
-              _buildSectionHeader(
-                '⚠️ 領先失血板塊 (資金正被當提款機)',
-                Colors.red.shade800,
-                Icons.money_off,
-              ),
-              ...laggards.map((e) => _buildIndicatorCard(context, e)),
+              if (laggards.isNotEmpty) ...[
+                _buildSectionHeader(
+                  '⚠️ 領先失血板塊 (資金正被當提款機)',
+                  Colors.red.shade800,
+                  Icons.money_off,
+                ),
+                ...laggards.map((e) => _buildIndicatorCard(context, e)),
+              ],
+
+              if (leaders.isEmpty && laggards.isEmpty) _buildNoDataCard(),
             ],
           ],
         ),
@@ -77,6 +83,38 @@ class LeadingIndicatorPage extends StatelessWidget {
   }
 
   // ── helpers ────────────────────────────────────────────────────────────────
+
+  Widget _buildNoDataCard() {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.hourglass_empty_rounded,
+              size: 40, color: Colors.grey.shade400),
+          const SizedBox(height: 12),
+          const Text(
+            '資金輪動資料累積中',
+            style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '輪動指標需要至少 2 個交易日的資料才能計算。\n請在下一個交易日再次開啟 App，系統將自動分析。',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
 
   CategoryUiModel? _findCategory(String name) {
     final all = [...listedCategories, ...otcCategories];

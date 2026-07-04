@@ -108,6 +108,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
       final cachedResult = await cacheService.loadBootstrapCache(resolvedDate);
       if (cachedResult != null) {
         debugPrint('🚀 [Cache Hit] 命中快取: $resolvedDate');
+        // 新交易日時一併更新 SQLite 歷史（即使命中快取，資料仍屬新交易日）
+        if (syncResult.saved) {
+          await _saveHistoryToSqlite(resolvedDate, cachedResult);
+        }
         final changes = await _detectAndSaveSignalChanges(cachedResult);
         setState(() {
           bootstrapResult = cachedResult;
@@ -133,6 +137,11 @@ class _BootstrapAppState extends State<BootstrapApp> {
       // 5. 儲存快取，並清理超出保留份數的舊版分析快取（Layer 3 清理）
       await cacheService.saveBootstrapCache(resolvedDate, result);
       await storageService.pruneOldBootstrapCaches(keepCount: 3);
+
+      // 6. 儲存今日板塊指標至 SQLite 歷史（30日走勢圖資料來源）
+      if (syncResult.saved) {
+        await _saveHistoryToSqlite(resolvedDate, result);
+      }
 
       final changes = await _detectAndSaveSignalChanges(result);
       setState(() {
@@ -164,6 +173,26 @@ class _BootstrapAppState extends State<BootstrapApp> {
           loading = false;
         });
       }
+    }
+  }
+
+  /// 將今日 bootstrap 計算結果寫入 SQLite 歷史表，供 30 日走勢圖使用。
+  /// 儲存上市 + 上櫃主板塊、主流排行、生命週期、輪動資料。
+  Future<void> _saveHistoryToSqlite(
+      String dateKey, AppBootstrapResult result) async {
+    try {
+      await _categoryHistoryRepository!.saveDailySnapshot(
+        dateKey: dateKey,
+        categories: [
+          ...result.listedCategories,
+          ...result.otcCategories,
+        ],
+        mainstreams: result.mainstreams,
+        lifecycles: result.lifecycles,
+        rotations: result.rotations,
+      );
+    } catch (e) {
+      debugPrint('歷史快照寫入失敗（不影響主流程）: $e');
     }
   }
 
