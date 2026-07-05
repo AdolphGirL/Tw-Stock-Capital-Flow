@@ -18,6 +18,7 @@ import 'package:tw_stock_capital_flow/data/signal/repositories/signal_snapshot_r
 import 'package:tw_stock_capital_flow/domain/strategies/momentum_strategy.dart';
 import 'package:tw_stock_capital_flow/domain/services/signal_change_detector.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/signal_change_dialog.dart';
+import 'package:tw_stock_capital_flow/core/services/notification_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +64,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
   }
 
   Future<void> initialize() async {
+    await NotificationService.initialize();
+
     final storageService = StorageService();
     final calendarService = MarketCalendarService();
     final cacheService = AnalysisCacheService(storageService);
@@ -226,6 +229,9 @@ class _BootstrapAppState extends State<BootstrapApp> {
         if (watchedSet.contains(s.category)) toSave[s.category] = s.action.name;
       }
       await _signalSnapshotRepository!.saveSignals(_resolvedDate, toSave);
+
+      // 發送本地通知（有異動才觸發，不影響主流程）
+      await NotificationService.showSignalChanges(changes);
 
       return changes;
     } catch (e) {

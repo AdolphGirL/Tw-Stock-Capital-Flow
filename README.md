@@ -1,8 +1,8 @@
 # 台股資金流向分析系統
 ### Tw Stock Capital Flow — 板塊輪動追蹤與動量決策工具
 
-> 資料來源：臺灣證券交易所（TWSE）/ 證券櫃檯買賣中心（TPEX）開放資料
-> 平台：iOS / Android（Flutter）
+> 資料來源：臺灣證券交易所（TWSE）/ 證券櫃檯買賣中心（TPEX）開放資料  
+> 平台：iOS / Android（Flutter）  
 > 版本：1.0.0
 
 ---
@@ -12,11 +12,12 @@
 1. [專案簡介](#專案簡介)
 2. [功能總覽](#功能總覽)
    - [大盤診斷](#大盤診斷-tab-0)
-   - [資金熱區](#資金熱區-tab-1)
+   - [異常偵測器](#異常偵測器-tab-1)
    - [動量決策](#動量決策-tab-2)
    - [領先雷達](#領先雷達-tab-3)
    - [觀察清單](#觀察清單watchlist)
    - [訊號異動通知](#訊號異動通知)
+   - [三大法人籌碼](#三大法人籌碼)
    - [30日互動走勢圖](#30日互動走勢圖)
 3. [鑽入導覽](#鑽入導覽drill-down)
 4. [核心演算引擎](#核心演算引擎)
@@ -37,6 +38,8 @@
 - 主力資金正在往哪個板塊集中？
 - 這個板塊的上漲是剛開始（點火）還是快結束（出貨）？
 - 哪些板塊股價還在底部，但主力已悄悄在進場建倉？
+- 今天哪個板塊的資金動向在統計上「異常顯著」？
+- 三大法人今日買超還是賣超？
 
 本 App 透過五大量化引擎，從多個維度同時計算，並以語意化標籤、顏色徽章、互動圖表呈現給一般受眾，取代讓人看不懂的裸數字。
 
@@ -60,21 +63,37 @@
 - 上市 / 上櫃市場今日上漲、下跌家數與資金流向分數
 - 點擊進入各市場的完整板塊列表
 
-**市場主流方向 + 熱錢情緒**
-- 今日最強主流板塊名稱
-- 熱錢情緒等級與湧入強度
+**三大法人籌碼**
+- 外資 / 投信 / 自營商三欄並排顯示差額（億元）
+- 底部合計行顯示三大法人總買賣超
+- 詳見 [三大法人籌碼](#三大法人籌碼) 章節
+
+**市場熱錢情緒**
+- 情緒等級徽章（過熱警惕 / 資金樂觀 / 中性觀望 / 偏空悲觀 / 市場恐慌）
+- 情緒分數進度條、上漲家數、下跌家數、熱錢強度、主流均強四指標
 
 ---
 
-### 資金熱區 (Tab 1)
+### 異常偵測器 (Tab 1)
 
-**全市場熱力圖（MarketHeatmap）**
-- 以色塊大小與顏色深淺視覺化呈現所有板塊的資金集中程度
-- 點擊色塊直接鑽入板塊
+以 **Z-score 統計分析**識別今日資金動向在歷史基準上「顯著異常」的板塊，從海量板塊中篩出真正值得關注的異動信號。
 
-**今日最熱板塊排行（TopHotCategories）**
-- 上市 / 上櫃分類，依資金流分數排序
-- 顯示持續力、漲跌家數、三日趨勢 Sparkline
+**運算邏輯**
+- 載入最近 35 天歷史快照，至少需 5 天才分析
+- 以每個板塊的 `trendStrength`（趨勢強度）計算歷史均值與標準差
+- Z-score = (今日強度 − 歷史均值) / 標準差
+- **異常資金湧入**：Z > 0.8，取前 8 名（按 Z 值降序）
+- **異常資金流出**：Z < −0.8，取前 8 名（按 Z 值升序）
+
+**每張卡片包含：**
+- 板塊名稱 + 市場標籤（上市 / 上櫃）
+- Z-score 數值 + 正負色塊（紅=湧入 / 綠=流出）
+- 今日趨勢強度 vs 歷史均值 + 百分比偏差
+- 歷史樣本天數標注
+- 點擊可鑽入板塊細目
+
+**摘要卡片：**
+- 分析板塊總數、可用歷史天數、異常湧入/流出計數
 
 ---
 
@@ -135,7 +154,7 @@
 
 ### 訊號異動通知
 
-每次開啟 App 完成演算後自動執行：
+每次開啟 App 完成演算後自動執行，**同時觸發 App 內 Dialog 與系統本地推播通知**：
 
 1. 讀取個人觀察清單
 2. **若清單為空，完全跳過（零額外運算）**
@@ -144,11 +163,41 @@
    - 重新計算今日訊號
    - 偵測升級（觀望→買進）或降級（持股→出清）
    - 儲存今日訊號作為下次比對基準
-4. 若偵測到異動，渲染完成後彈出 Dialog
+4. 若偵測到異動：
+   - 渲染完成後彈出 **App 內 Dialog**
+   - 同步推送 **系統本地通知**（iOS / Android），App 在背景也可接收
 
-**Dialog 內容：** ✅ 訊號升級（排最前）/ ⚠️ 訊號降級 / 🆕 首次記錄
-
+**Dialog / 通知內容：** ✅ 訊號升級（排最前）/ ⚠️ 訊號降級 / 🆕 首次記錄  
 **取消機制：** 移除收藏 → 同步刪除快照 → 下次不再追蹤
+
+---
+
+### 三大法人籌碼
+
+首頁卡片，即時顯示三大法人（外資 / 投信 / 自營商）當日買賣超金額。
+
+**資料來源**  
+直接呼叫 TWSE 法人買賣超 API（`BFI82U`），不依賴第三方服務。
+
+**分組規則**
+
+| 分組 | 組成來源 |
+|------|----------|
+| 外資 | 外資及陸資（不含外資自營商）+ 外資自營商 |
+| 投信 | 投信 |
+| 自營商 | 自營商（自行買賣）+ 自營商（避險） |
+| 三大合計 | API 合計行（與 TWSE 官方一致） |
+
+**顯示內容**
+- 三欄並排：名稱 + 差額（億元，**紅=買超 / 綠=賣超**）+ 買進億 + 賣出億
+- 底部合計行：三大合計買超/賣超總額
+- 卡片右上角顯示交易日期標籤
+
+**技術設計**
+- `HomePage` 在 `initState` 以 `widget.tradeDate` 自行發起非阻塞 HTTP 請求，與主流程完全解耦
+- 民國年日期（`YYYMMDD`，7碼）自動轉換為西元年（`YYYYMMDD`，8碼），相容 App 內部日期系統
+- **Fallback 機制**：若當日無資料（非交易日 / 週末），自動往前找最多 5 個日曆日，確保資料顯示
+- 解析失敗或網路錯誤時靜默忽略，不影響主流程
 
 ---
 
@@ -187,7 +236,8 @@
 Yahoo 股市個股頁面（外部瀏覽器）
 ```
 
-動量決策與領先雷達的卡片點擊後，也走相同的鑽入路徑。
+動量決策與領先雷達的卡片點擊後，也走相同的鑽入路徑。  
+異常偵測器的卡片點擊後同樣直接鑽入對應板塊細目。
 
 ---
 
@@ -236,6 +286,18 @@ Yahoo 股市個股頁面（外部瀏覽器）
 
 計算板塊間資金輪動路徑與淨動能（RNM），輸出五級訊號評級。
 
+### 6. AnomalyDetector — 異常偵測（Z-score）
+
+```
+歷史均值 μ = mean(trendStrength, N days)
+標準差 σ = std(trendStrength, N days)
+Z-score = (today − μ) / σ
+
+湧入閾值：Z > 0.8
+流出閾值：Z < −0.8
+樣本需求：≥ 5 天
+```
+
 ---
 
 ## 資料庫設計
@@ -244,12 +306,14 @@ Yahoo 股市個股頁面（外部瀏覽器）
 
 | 表名 | 說明 | 主鍵 | 保留期限 |
 |------|------|------|----------|
-| `category_history` | 每日板塊歷史快照 | `(tradeDate, categoryName)` | 365天 |
+| `category_history` | 每日板塊歷史快照（trendStrength / score / persistence 等） | `(tradeDate, categoryName)` | 365天 |
 | `mainstream_history` | 每日主流排行 | `(tradeDate, categoryName)` | 365天 |
 | `lifecycle_history` | 每日生命週期階段 | `(tradeDate, categoryName)` | 365天 |
 | `rotation_history` | 每日輪動路徑 | `(tradeDate, fromCategory, toCategory)` | 365天 |
 | `watchlist` | 個人觀察清單 | `categoryName` | 永久 |
 | `signal_snapshot` | 最近一次訊號快照（異動比對用） | `categoryName` | 隨收藏移除 |
+
+> `category_history` 同時作為異常偵測器的統計基礎，最多回溯 35 天歷史資料。
 
 ---
 
@@ -265,6 +329,7 @@ Yahoo 股市個股頁面（外部瀏覽器）
 | 外部連結 | url_launcher 6.3.1 |
 | 快取 | shared_preferences（分析結果 JSON 快取） |
 | 網路 | http 1.2.0（TWSE / TPEX 開放 API） |
+| 推播通知 | flutter_local_notifications 17.2.4（iOS + Android 系統通知） |
 | Code Gen | drift_dev + build_runner |
 | 自訂圖表 | CustomPainter（Sparkline、多空分佈圓餅圖） |
 
@@ -278,6 +343,8 @@ lib/
 │   ├── constants/              # 全域常數（API endpoint、分析參數）
 │   ├── extensions/             # List 擴充方法
 │   ├── navigation/             # CategoryNavigation（板塊鑽入、個股清單、Yahoo Finance）
+│   ├── services/
+│   │   └── notification_service.dart  # 本地推播通知（iOS / Android）
 │   └── utils/                  # 日期工具
 │
 ├── data/
@@ -290,34 +357,39 @@ lib/
 │   ├── managers/               # SyncManager（資料同步排程）
 │   ├── models/                 # 資料層模型
 │   ├── repositories/           # HistoryRepository（本地 JSON 快照）
-│   └── services/               # StockService / StorageService / AnalysisCacheService
+│   └── services/
+│       ├── stock_service.dart
+│       ├── storage_service.dart
+│       ├── analysis_cache_service.dart
+│       └── institutional_flow_service.dart  # 三大法人 TWSE API
 │
 ├── domain/
-│   ├── engines/                # 五大演算引擎
+│   ├── engines/                # 六大演算引擎（含 AnomalyDetector）
 │   ├── analysers/              # RotationLeadingAnalyser
-│   ├── enums/                  # LifecycleStage / LeadingSignalType
-│   ├── models/                 # 領域模型
+│   ├── enums/                  # LifecycleStage / LeadingSignalType / SentimentLevel
+│   ├── models/
+│   │   ├── institutional_flow_result.dart  # InstitutionalFlowResult / InstitutionalGroup
+│   │   └── ...其他領域模型
 │   ├── services/               # SignalChangeDetector（純邏輯）
 │   ├── strategies/             # MomentumStrategy
 │   └── usecases/               # BootstrapAnalyzer / AppBootstrapResult
 │
 └── presentation/
     ├── models/                 # CategoryUiModel
-    ├── pages/                  # 各頁面
-    │   ├── home_page.dart
-    │   ├── main_navigation_container.dart
-    │   ├── main_category_page.dart
-    │   ├── sub_category_page.dart      # 含30日互動圖
-    │   ├── strategy_dashboard_page.dart
-    │   ├── leading_indicator_page.dart
-    │   ├── mainstream_page.dart
-    │   └── market_sentiment_page.dart
+    ├── pages/
+    │   ├── home_page.dart                  # 大盤診斷（含三大法人籌碼）
+    │   ├── main_navigation_container.dart  # 底部導覽殼層（IndexedStack）
+    │   ├── anomaly_detector_page.dart      # 異常偵測器（Z-score 統計）
+    │   ├── strategy_dashboard_page.dart    # 板塊動量決策
+    │   ├── leading_indicator_page.dart     # 輪動領先雷達
+    │   ├── main_category_page.dart         # 大類板塊列表
+    │   └── sub_category_page.dart          # 細類板塊 + 30日互動圖
     ├── theme/                  # AppTheme
     └── widgets/
         ├── category_card.dart
         ├── category_history_summary.dart  # 歷史比較徽章
         ├── category_trend_chart.dart      # 30日 fl_chart 互動折線圖
-        ├── market_heatmap.dart
+        ├── market_heatmap.dart            # 全市場資金熱力圖
         ├── market_signal_summary.dart     # 今日訊號快照面板
         ├── signal_change_dialog.dart      # 訊號異動通知 Dialog
         ├── trend_sparkline.dart           # 迷你 Sparkline
@@ -347,7 +419,13 @@ dart run build_runner build
 flutter run
 ```
 
-> **注意**：首次啟動需要網路連線，App 會自動從 TWSE / TPEX 同步最新交易日資料。同步完成後可離線使用快取資料。
+> **注意**：首次啟動需要網路連線，App 會自動從 TWSE / TPEX 同步最新交易日資料。同步完成後可離線使用快取資料。  
+> 三大法人籌碼每次啟動時即時抓取，離線時不顯示此卡片。
+
+### 推播通知權限
+
+- **iOS**：首次啟動時系統彈窗請求通知權限（`requestAlertPermission / requestBadgePermission / requestSoundPermission`）
+- **Android**：無需額外設定，透過 `signal_changes_v1` 通知頻道發送
 
 ### 更新 Drift Schema
 

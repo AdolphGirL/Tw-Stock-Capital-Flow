@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/presentation/enums/category_sort_type.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/category_card.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 import 'package:tw_stock_capital_flow/data/database/app_database.dart';
@@ -152,6 +153,9 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
           // 🚀 1. 頂部組件：歷史看盤面板外殼
           SliverToBoxAdapter(child: _buildHistoryTrendHeader()),
 
+          // 🚀 1.5 板塊強勢個股排行
+          SliverToBoxAdapter(child: _buildTopStocksSection(context)),
+
           // 🚀 2. 分隔小標題
           SliverToBoxAdapter(
             child: Padding(
@@ -206,6 +210,193 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  // ── 板塊強勢個股排行 ────────────────────────────────────────────────────────
+
+  /// 聚合所有子板塊的個股，分成強勢（漲）/ 風控（跌）兩段顯示。
+  ///
+  /// 排序規則：
+  ///   強勢區 — 只取 changePercent > 0 的股票，依 FlowScore 降序，前 8 檔
+  ///   風控區 — 只取 changePercent < 0 的股票，依 changePercent 升序（跌最深優先），前 3 檔
+  ///
+  /// 以 stock.code 去重，防止同一股票出現在多個子板塊中。
+  Widget _buildTopStocksSection(BuildContext context) {
+    // 聚合並去重
+    final allStocks = <StockUiModel>[];
+    final seenCodes = <String>{};
+    for (final child in widget.categories) {
+      for (final s in child.stocks) {
+        if (seenCodes.add(s.stock.code)) {
+          allStocks.add(s);
+        }
+      }
+    }
+
+    if (allStocks.isEmpty) return const SizedBox.shrink();
+
+    // 強勢股：changePercent > 0，依 score 降序，取前 8
+    final risers = allStocks
+        .where((s) => s.stock.changePercent > 0)
+        .toList()
+      ..sort((a, b) => b.score.compareTo(a.score));
+    final topRisers = risers.take(8).toList();
+
+    // 風控股：changePercent < 0，依 changePercent 升序（最大跌幅優先），取前 3
+    final fallers = allStocks
+        .where((s) => s.stock.changePercent < 0)
+        .toList()
+      ..sort((a, b) => a.stock.changePercent.compareTo(b.stock.changePercent));
+    final topFallers = fallers.take(3).toList();
+
+    if (topRisers.isEmpty && topFallers.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.01),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 標題列
+          Row(
+            children: [
+              const Icon(Icons.bar_chart_rounded, size: 16, color: Color(0xFF37474F)),
+              const SizedBox(width: 6),
+              const Text(
+                '板塊個股排行',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
+              Text(
+                '共 ${allStocks.length} 檔',
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // 強勢區
+          if (topRisers.isNotEmpty) ...[
+            _buildRankSectionLabel(
+              '今日強勢',
+              const Color(0xFFC62828),
+              Icons.trending_up_rounded,
+            ),
+            const SizedBox(height: 8),
+            ...topRisers.map((s) => _buildStockRankTile(context, s, isRiser: true)),
+          ],
+
+          // 風控區
+          if (topFallers.isNotEmpty) ...[
+            if (topRisers.isNotEmpty) const SizedBox(height: 12),
+            _buildRankSectionLabel(
+              '風控注意',
+              const Color(0xFF2E7D32),
+              Icons.trending_down_rounded,
+            ),
+            const SizedBox(height: 8),
+            ...topFallers.map((s) => _buildStockRankTile(context, s, isRiser: false)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankSectionLabel(String title, Color color, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(
+          title,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStockRankTile(
+    BuildContext context,
+    StockUiModel s, {
+    required bool isRiser,
+  }) {
+    final stock = s.stock;
+    // 台灣股市慣例：漲紅跌綠
+    final themeColor = isRiser ? const Color(0xFFC62828) : const Color(0xFF2E7D32);
+    final bgColor = isRiser ? const Color(0xFFFFF5F5) : const Color(0xFFF1F8F4);
+    final changeStr =
+        '${isRiser ? "+" : ""}${stock.changePercent.toStringAsFixed(2)}%';
+    final valueInYi = (stock.value / 100000000.0).toStringAsFixed(2);
+    final marketLabel = stock.market == MarketType.listed ? '上市' : '上櫃';
+
+    return GestureDetector(
+      onTap: () => CategoryNavigation.openStockUrl(stock),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            // 左：股名 + 代碼 / 市場 / 成交值
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    stock.name,
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${stock.code} · $marketLabel · 成交值 $valueInYi 億',
+                    style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // 右：漲跌幅徽章
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: themeColor,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                changeStr,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.open_in_new_rounded, size: 12, color: Colors.grey.shade400),
+          ],
+        ),
       ),
     );
   }

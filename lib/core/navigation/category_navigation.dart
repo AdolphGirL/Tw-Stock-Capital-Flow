@@ -242,17 +242,17 @@ class CategoryNavigation {
           ],
         ),
 
-        onTap: () => _launchYahooFinance(stock),
+        onTap: () => openStockUrl(stock),
       ),
     );
   }
 
-  static Future<void> _launchYahooFinance(StockData stock) async {
+  /// 開啟 Yahoo Finance 股票頁（供外部元件直接呼叫）
+  static Future<void> openStockUrl(StockData stock) async {
     final String suffix = stock.market == MarketType.listed ? 'TW' : 'TWO';
     final url = Uri.parse(
       'https://tw.stock.yahoo.com/quote/${stock.code}.$suffix',
     );
-
     try {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
