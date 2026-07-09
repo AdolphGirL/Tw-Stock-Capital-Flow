@@ -42,6 +42,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
   CategoryHistoryRepository? _categoryHistoryRepository;
   WatchlistRepository? _watchlistRepository;
   SignalSnapshotRepository? _signalSnapshotRepository;
+  final StorageService _storageService = StorageService();
 
   // 演算完成後填入異動清單，主畫面渲染後彈 dialog
   List<SignalChange> _pendingSignalChanges = [];
@@ -54,19 +55,19 @@ class _BootstrapAppState extends State<BootstrapApp> {
     initialize();
   }
 
-  /// 取得今天日期字串（格式：YYYYMMDD）
+  /// 取得今天日期字串（格式：民國年 YYYMMDD，與 StockService 格式一致）
   String _getTodayDateKey() {
-    return DateTime.now()
-        .toIso8601String()
-        .split('T')
-        .first
-        .replaceAll('-', '');
+    final now = DateTime.now();
+    final rocYear = now.year - 1911;
+    final month = now.month.toString().padLeft(2, '0');
+    final day = now.day.toString().padLeft(2, '0');
+    return '$rocYear$month$day';
   }
 
   Future<void> initialize() async {
     await NotificationService.initialize();
 
-    final storageService = StorageService();
+    final storageService = _storageService;
     final calendarService = MarketCalendarService();
     final cacheService = AnalysisCacheService(storageService);
 
@@ -361,6 +362,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 sentiment: bootstrapResult!.sentiment,
                 historyRepository: _categoryHistoryRepository!,
                 watchlistRepository: _watchlistRepository!,
+                storageService: _storageService,
               ),
             ),
           ],

@@ -151,8 +151,8 @@ class StorageService {
       final dir = await _getDailyDirectory();
       final allFiles = dir.listSync().whereType<File>().toList();
 
-      // 只針對純日期格式檔案 (YYYYMMDD.json)，不觸碰快取或其他檔案
-      final datePattern = RegExp(r'^\d{8}$');
+      // 只針對純日期格式檔案（民國年 YYYMMDD 7碼 或 西元年 YYYYMMDD 8碼），不觸碰快取或其他檔案
+      final datePattern = RegExp(r'^\d{7,8}$');
       final dateFiles = allFiles
           .where(
             (f) => datePattern.hasMatch(path.basenameWithoutExtension(f.path)),

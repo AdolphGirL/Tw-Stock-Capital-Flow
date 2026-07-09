@@ -6,8 +6,11 @@ import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart
 import 'package:tw_stock_capital_flow/domain/enums/sentiment_level.dart';
 import 'package:tw_stock_capital_flow/domain/models/institutional_flow_result.dart';
 import 'package:tw_stock_capital_flow/data/services/institutional_flow_service.dart';
+import 'package:tw_stock_capital_flow/data/services/institutional_flow_history_service.dart';
+import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/market_summary_card.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/market_signal_summary.dart';
+import 'package:tw_stock_capital_flow/presentation/widgets/institutional_flow_chart.dart';
 
 import 'package:tw_stock_capital_flow/presentation/pages/main_category_page.dart';
 
@@ -34,6 +37,7 @@ class HomePage extends StatefulWidget {
 
   final CategoryHistoryRepository historyRepository;
   final WatchlistRepository watchlistRepository;
+  final StorageService storageService;
 
   const HomePage({
     super.key,
@@ -50,6 +54,7 @@ class HomePage extends StatefulWidget {
     required this.sentiment,
     required this.historyRepository,
     required this.watchlistRepository,
+    required this.storageService,
   });
 
   @override
@@ -71,13 +76,16 @@ class _HomePageState extends State<HomePage> {
   MarketSentimentResult? get sentiment => widget.sentiment;
   CategoryHistoryRepository get historyRepository => widget.historyRepository;
   WatchlistRepository get watchlistRepository => widget.watchlistRepository;
+  StorageService get storageService => widget.storageService;
 
   InstitutionalFlowResult? _institutionalFlow;
+  List<InstitutionalFlowResult> _flowHistory = [];
 
   @override
   void initState() {
     super.initState();
     _fetchFlow();
+    _loadFlowHistory();
   }
 
   @override
@@ -125,14 +133,27 @@ class _HomePageState extends State<HomePage> {
       }
 
       debugPrint('[法人籌碼] _fetchFlow 結果: ${result?.date ?? "null"}');
-      if (result != null && mounted) setState(() => _institutionalFlow = result);
+      if (result != null && mounted) {
+        // 存入歷史後重新載入，確保圖表包含今日資料
+        await InstitutionalFlowHistoryService.save(storageService, result);
+        _loadFlowHistory();
+        setState(() => _institutionalFlow = result);
+      }
     } catch (e) {
       debugPrint('[法人籌碼] _fetchFlow 例外: $e');
     }
   }
 
-  /// 將資料庫的 YYYYMMDD 轉化為交易者易讀的 YYYY-MM-DD
+  Future<void> _loadFlowHistory() async {
+    final history = await InstitutionalFlowHistoryService.loadRecent(storageService);
+    if (mounted) setState(() => _flowHistory = history);
+  }
+
+  /// 民國年 YYYMMDD (7碼) 或西元年 YYYYMMDD (8碼) → 帶分隔符顯示字串
   String _formatTradeDate(String rawDate) {
+    if (rawDate.length == 7) {
+      return '${rawDate.substring(0, 3)}-${rawDate.substring(3, 5)}-${rawDate.substring(5, 7)}';
+    }
     if (rawDate.length == 8) {
       return '${rawDate.substring(0, 4)}-${rawDate.substring(4, 6)}-${rawDate.substring(6, 8)}';
     }
@@ -778,6 +799,29 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
+
+          // ── 歷史流向圖（有歷史資料才顯示）──────────────────────────────
+          if (_flowHistory.length >= 2) ...[
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_flowHistory.length} 日歷史流向',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  InstitutionalFlowChart(history: _flowHistory),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

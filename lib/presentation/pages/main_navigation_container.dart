@@ -6,6 +6,7 @@ import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 import 'package:tw_stock_capital_flow/data/watchlist/repositories/watchlist_repository.dart';
+import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
 // 引入各分流頁面
 import 'package:tw_stock_capital_flow/presentation/pages/home_page.dart'; // 瘦身後的首頁
 import 'package:tw_stock_capital_flow/presentation/pages/strategy_dashboard_page.dart'; // 策略看板
@@ -28,6 +29,7 @@ class MainNavigationContainer extends StatefulWidget {
   final MarketSentimentResult? sentiment;
   final CategoryHistoryRepository historyRepository;
   final WatchlistRepository watchlistRepository;
+  final StorageService storageService;
 
   const MainNavigationContainer({
     super.key,
@@ -46,6 +48,7 @@ class MainNavigationContainer extends StatefulWidget {
     required this.sentiment,
     required this.historyRepository,
     required this.watchlistRepository,
+    required this.storageService,
   });
 
   @override
@@ -81,6 +84,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   sentiment: widget.sentiment,
                   historyRepository: widget.historyRepository,
                   watchlistRepository: widget.watchlistRepository,
+                  storageService: widget.storageService,
                 ),
 
                 // 📊 Tab 1: 異常資金偵測器

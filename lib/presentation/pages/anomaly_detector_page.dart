@@ -59,6 +59,18 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
   bool _hasEnoughHistory = false;
   int _totalAnalyzed = 0;
   int _historyDaysAvailable = 0;
+  int _daysAccumulated = 0; // 實際已累積天數（含未達門檻者），供倒數顯示
+
+  /// 民國年 YYYMMDD (7碼) 或西元年 YYYYMMDD (8碼) → 帶分隔符顯示字串
+  String _formatDate(String raw) {
+    if (raw.length == 7) {
+      return '${raw.substring(0, 3)}-${raw.substring(3, 5)}-${raw.substring(5, 7)}';
+    }
+    if (raw.length == 8) {
+      return '${raw.substring(0, 4)}-${raw.substring(4, 6)}-${raw.substring(6, 8)}';
+    }
+    return raw;
+  }
 
   @override
   void initState() {
@@ -79,9 +91,14 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
     const int minDays = 5;
 
     int maxDays = 0;
+    int actualMaxDays = 0; // 不受 minDays 過濾，用於倒數計算
 
     for (final cat in allCategories) {
       final records = historyMap[cat.name] ?? <CategoryHistoryData>[];
+
+      // 追蹤所有板塊的真實最大天數（用於計算還需幾天才能解鎖）
+      if (records.length > actualMaxDays) actualMaxDays = records.length;
+
       if (records.length < minDays) continue;
 
       if (records.length > maxDays) maxDays = records.length;
@@ -125,6 +142,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
         _hasEnoughHistory = anomalies.isNotEmpty;
         _totalAnalyzed = anomalies.length;
         _historyDaysAvailable = maxDays;
+        _daysAccumulated = actualMaxDays;
         _isLoading = false;
       });
     }
@@ -193,11 +211,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
   // ── 摘要卡 ─────────────────────────────────────────────────────────────────
 
   Widget _buildSummaryCard() {
-    final dateLabel = widget.tradeDate.length == 8
-        ? '${widget.tradeDate.substring(0, 4)}-'
-            '${widget.tradeDate.substring(4, 6)}-'
-            '${widget.tradeDate.substring(6, 8)}'
-        : widget.tradeDate;
+    final dateLabel = _formatDate(widget.tradeDate);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -407,6 +421,9 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
   // ── 空態 ───────────────────────────────────────────────────────────────────
 
   Widget _buildNoHistoryState() {
+    const int minDays = 5;
+    final stillNeeded = (minDays - _daysAccumulated).clamp(0, minDays);
+
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -431,13 +448,53 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
                       fontWeight: FontWeight.bold,
                       color: Colors.black87),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
+                // 進度指示
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(minDays, (i) {
+                    final filled = i < _daysAccumulated;
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: filled
+                            ? const Color(0xFF1A237E)
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '${i + 1}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: filled ? Colors.white : Colors.grey.shade400,
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 12),
                 Text(
-                  '異常偵測需要至少 5 個交易日的板塊歷史數據。\n\n系統已開始自動記錄，請在 5 個交易日後再次開啟此頁面，即可看到完整的資金異動分析。',
+                  stillNeeded > 0
+                      ? '已累積 $_daysAccumulated 個交易日，還需 $stillNeeded 天即可解鎖'
+                      : '資料已準備完成，請稍後重新整理',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A237E)),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '異常偵測需要 $minDays 個交易日的歷史基準，\n系統每日開盤後自動記錄，無需手動操作。',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
                       height: 1.6),
                 ),
               ],

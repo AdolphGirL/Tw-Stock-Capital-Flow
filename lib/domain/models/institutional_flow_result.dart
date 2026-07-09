@@ -43,4 +43,23 @@ class InstitutionalFlowResult {
     required this.dealer,
     required this.total,
   });
+
+  Map<String, dynamic> toJson() => {
+    'date': date,
+    'fBuy': foreign.buyYi, 'fSell': foreign.sellYi, 'fNet': foreign.netYi,
+    'tBuy': trust.buyYi,   'tSell': trust.sellYi,   'tNet': trust.netYi,
+    'dBuy': dealer.buyYi,  'dSell': dealer.sellYi,  'dNet': dealer.netYi,
+    'totBuy': total.buyYi, 'totSell': total.sellYi, 'totNet': total.netYi,
+  };
+
+  factory InstitutionalFlowResult.fromJson(Map<String, dynamic> j) {
+    double d(String k) => (j[k] as num?)?.toDouble() ?? 0.0;
+    return InstitutionalFlowResult(
+      date: j['date'] as String,
+      foreign: InstitutionalGroup(name: '外資',   buyYi: d('fBuy'),   sellYi: d('fSell'),   netYi: d('fNet')),
+      trust:   InstitutionalGroup(name: '投信',   buyYi: d('tBuy'),   sellYi: d('tSell'),   netYi: d('tNet')),
+      dealer:  InstitutionalGroup(name: '自營商', buyYi: d('dBuy'),   sellYi: d('dSell'),   netYi: d('dNet')),
+      total:   InstitutionalGroup(name: '三大法人合計', buyYi: d('totBuy'), sellYi: d('totSell'), netYi: d('totNet')),
+    );
+  }
 }

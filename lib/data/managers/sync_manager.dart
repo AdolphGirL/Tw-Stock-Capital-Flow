@@ -163,13 +163,20 @@ class SyncManager {
     if (listedDate.isEmpty) return otcDate;
     if (otcDate.isEmpty) return listedDate;
 
-    // 取兩個日期中「較新」的
-    if (listedDate.compareTo(otcDate) > 0) {
-      dev.log('📅 選擇上市日期（較新）: $listedDate', name: 'SyncManager');
+    if (listedDate == otcDate) {
+      dev.log('📅 上市上櫃日期一致: $listedDate', name: 'SyncManager');
       return listedDate;
-    } else {
-      dev.log('📅 選擇上櫃日期（較新）: $otcDate', name: 'SyncManager');
-      return otcDate;
     }
+
+    // 兩個來源日期不同時，取「較新」的日期。
+    // 原因：較新的日期代表至少有一個市場已更新到該交易日；
+    // 取較舊的日期會導致另一個市場的新資料永遠被略過（本地已有舊日期 → isNewTradingDay=false）。
+    // 實務上兩市場 API 更新時差通常在 1~2 小時以內，混合狀態屬可接受範圍。
+    final newer = listedDate.compareTo(otcDate) > 0 ? listedDate : otcDate;
+    dev.log(
+      '📅 上市($listedDate)與上櫃($otcDate)日期不同步，採用較新日期: $newer',
+      name: 'SyncManager',
+    );
+    return newer;
   }
 }

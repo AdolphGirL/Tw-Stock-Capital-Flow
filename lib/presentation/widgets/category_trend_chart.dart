@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/data/database/app_database.dart';
 
-enum _Metric { trend, score, persist, breadth }
+enum _Metric { trend, score, persist, breadth, cumulative }
 
 /// 30 日板塊走勢互動圖（fl_chart LineChart）
 /// 支援 4 種指標切換，提供觸碰 tooltip 顯示精確日期與數值。
@@ -35,6 +35,13 @@ class _CategoryTrendChartState extends State<CategoryTrendChart> {
                 ? e.riseCount / e.totalCount * 100.0
                 : 50.0)
             .toList();
+      case _Metric.cumulative:
+        // 累積趨勢強度：每日 trendStrength 的累積和
+        double sum = 0;
+        return widget.history.map((e) {
+          sum += e.trendStrength;
+          return sum;
+        }).toList();
     }
   }
 
@@ -44,6 +51,7 @@ class _CategoryTrendChartState extends State<CategoryTrendChart> {
       case _Metric.score: return '資金流分';
       case _Metric.persist: return '持續力';
       case _Metric.breadth: return '上漲占比%';
+      case _Metric.cumulative: return '累積走向';
     }
   }
 
@@ -155,7 +163,9 @@ class _CategoryTrendChartState extends State<CategoryTrendChart> {
                   : raw;
               final valStr = _metric == _Metric.breadth
                   ? '${spot.y.toStringAsFixed(1)}%'
-                  : spot.y.toStringAsFixed(2);
+                  : _metric == _Metric.cumulative
+                      ? '${spot.y >= 0 ? "+" : ""}${spot.y.toStringAsFixed(2)}'
+                      : spot.y.toStringAsFixed(2);
               return LineTooltipItem(
                 '$dateLabel\n$valStr',
                 const TextStyle(
@@ -200,7 +210,9 @@ class _CategoryTrendChartState extends State<CategoryTrendChart> {
                 if (value == meta.min || value == meta.max) return const SizedBox.shrink();
                 final label = _metric == _Metric.breadth
                     ? '${value.toStringAsFixed(0)}%'
-                    : value.toStringAsFixed(0);
+                    : _metric == _Metric.cumulative && value > 0
+                        ? '+${value.toStringAsFixed(0)}'
+                        : value.toStringAsFixed(0);
                 return Text(
                   label,
                   style: TextStyle(fontSize: 9, color: Colors.grey.shade500),
