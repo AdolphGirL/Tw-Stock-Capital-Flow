@@ -214,15 +214,18 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
     );
   }
 
-  // ── 板塊強勢個股排行 ────────────────────────────────────────────────────────
+  // ── 板塊強勢個股排行 ＋ 個股掃描器 ─────────────────────────────────────────
 
-  /// 聚合所有子板塊的個股，分成強勢（漲）/ 風控（跌）兩段顯示。
-  ///
-  /// 排序規則：
-  ///   強勢區 — 只取 changePercent > 0 的股票，依 FlowScore 降序，前 8 檔
-  ///   風控區 — 只取 changePercent < 0 的股票，依 changePercent 升序（跌最深優先），前 3 檔
-  ///
-  /// 以 stock.code 去重，防止同一股票出現在多個子板塊中。
+  /// 掃描器準則：changePercent > 0，收盤位置(closePosition) >= 0.7，日內漲(close > open)
+  bool _passesScanner(StockUiModel s) {
+    final st = s.stock;
+    if (st.changePercent <= 0) return false;
+    final range = st.high - st.low;
+    final closePos = range > 0 ? (st.close - st.low) / range : 0.5;
+    final intradayUp = st.close > st.open;
+    return closePos >= 0.7 && intradayUp;
+  }
+
   Widget _buildTopStocksSection(BuildContext context) {
     // 聚合並去重
     final allStocks = <StockUiModel>[];
@@ -253,6 +256,9 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
 
     if (topRisers.isEmpty && topFallers.isEmpty) return const SizedBox.shrink();
 
+    // 掃描器命中數
+    final scannerHits = topRisers.where(_passesScanner).length;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 4),
       padding: const EdgeInsets.all(16),
@@ -281,6 +287,25 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
               ),
               const Spacer(),
+              if (scannerHits > 0) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: const Color(0xFF1B5E20).withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    '掃描命中 $scannerHits 檔',
+                    style: const TextStyle(
+                      fontSize: 10,
+                      color: Color(0xFF1B5E20),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
               Text(
                 '共 ${allStocks.length} 檔',
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
@@ -343,6 +368,16 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
     final valueInYi = (stock.value / 100000000.0).toStringAsFixed(2);
     final marketLabel = stock.market == MarketType.listed ? '上市' : '上櫃';
 
+    // 掃描器指標（僅強勢股有意義）
+    final range = stock.high - stock.low;
+    final closePos = range > 0 ? (stock.close - stock.low) / range : 0.5;
+    final intradayReturn = stock.open > 0
+        ? (stock.close - stock.open) / stock.open * 100
+        : 0.0;
+    final strongClose = closePos >= 0.7;
+    final intradayUp = intradayReturn > 0;
+    final scannerPass = isRiser && strongClose && intradayUp;
+
     return GestureDetector(
       onTap: () => CategoryNavigation.openStockUrl(stock),
       child: Container(
@@ -351,52 +386,120 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(8),
+          border: scannerPass
+              ? Border.all(color: const Color(0xFF1B5E20).withValues(alpha: 0.4), width: 1.2)
+              : null,
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 左：股名 + 代碼 / 市場 / 成交值
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    stock.name,
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                // 左：股名 + 代碼 / 市場 / 成交值
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              stock.name,
+                              style: const TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (scannerPass) ...[
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1B5E20),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Text(
+                                '掃描命中',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${stock.code} · $marketLabel · 成交值 $valueInYi 億',
+                        style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${stock.code} · $marketLabel · 成交值 $valueInYi 億',
-                    style: TextStyle(fontSize: 10.5, color: Colors.grey.shade600),
+                ),
+                const SizedBox(width: 8),
+                // 右：漲跌幅徽章
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: themeColor,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    changeStr,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(Icons.open_in_new_rounded, size: 12, color: Colors.grey.shade400),
+              ],
+            ),
+            // 掃描器指標列（僅強勢股顯示）
+            if (isRiser) ...[
+              const SizedBox(height: 5),
+              Wrap(
+                spacing: 5,
+                children: [
+                  _scannerChip(
+                    strongClose ? '強收 ${(closePos * 100).toStringAsFixed(0)}%' : '弱收 ${(closePos * 100).toStringAsFixed(0)}%',
+                    strongClose ? const Color(0xFFC62828) : Colors.grey.shade500,
+                    strongClose ? const Color(0xFFFFEBEE) : Colors.grey.shade100,
+                  ),
+                  _scannerChip(
+                    intradayUp
+                        ? '日內 +${intradayReturn.toStringAsFixed(1)}%'
+                        : '日內 ${intradayReturn.toStringAsFixed(1)}%',
+                    intradayUp ? const Color(0xFFC62828) : Colors.grey.shade500,
+                    intradayUp ? const Color(0xFFFFEBEE) : Colors.grey.shade100,
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            // 右：漲跌幅徽章
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: themeColor,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                changeStr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 6),
-            Icon(Icons.open_in_new_rounded, size: 12, color: Colors.grey.shade400),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _scannerChip(String text, Color textColor, Color bgColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(3),
+        border: Border.all(color: textColor.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(fontSize: 9.5, color: textColor, fontWeight: FontWeight.w600),
       ),
     );
   }

@@ -55,19 +55,24 @@ class StorageService {
   }
 
   Future<StockDaySnapshot?> loadSnapshot(String date) async {
-    final filePath = await _buildFilePath(date);
+    try {
+      final filePath = await _buildFilePath(date);
 
-    final file = File(filePath);
+      final file = File(filePath);
 
-    if (!await file.exists()) {
+      if (!await file.exists()) {
+        return null;
+      }
+
+      final content = await file.readAsString();
+
+      final jsonData = jsonDecode(content);
+
+      return StockDaySnapshot.fromJson(jsonData);
+    } catch (e) {
+      dev.log('loadSnapshot 解析失敗($date)，已略過: $e', name: 'StorageService');
       return null;
     }
-
-    final content = await file.readAsString();
-
-    final jsonData = jsonDecode(content);
-
-    return StockDaySnapshot.fromJson(jsonData);
   }
 
   /// 取得本地最新可用的交易日期（按日期由新到舊排序）

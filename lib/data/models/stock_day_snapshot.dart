@@ -9,10 +9,11 @@ class StockDaySnapshot {
 
   factory StockDaySnapshot.fromJson(Map<String, dynamic> json) {
     return StockDaySnapshot(
-      date: json['date'],
-      stocks: (json['stocks'] as List)
-          .map((e) => StockData.fromJson(e))
-          .toList(),
+      date: json['date']?.toString() ?? '',
+      stocks: (json['stocks'] as List?)
+              ?.map((e) => StockData.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
   }
 

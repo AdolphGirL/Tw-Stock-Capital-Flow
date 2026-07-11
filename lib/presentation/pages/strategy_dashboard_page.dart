@@ -9,6 +9,7 @@ import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/category_history_summary.dart';
 import 'package:tw_stock_capital_flow/data/watchlist/repositories/watchlist_repository.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart';
+import 'package:tw_stock_capital_flow/presentation/widgets/multi_timeframe_confirm_badge.dart';
 
 class StrategyDashboardPage extends StatelessWidget {
   final List<LifecycleResult> lifecycles;
@@ -311,6 +312,11 @@ class StrategyDashboardPage extends StatelessWidget {
                         _inlineChip('連3日走強 ↑', const Color(0xFF1B5E20), const Color(0xFFE8F5E9)),
                       if (trend3Down)
                         _inlineChip('連3日走弱 ↓', const Color(0xFFC62828), const Color(0xFFFFEBEE)),
+                      MultiTimeframeConfirmBadge(
+                        historyRepository: historyRepository,
+                        categoryName: signal.category,
+                        action: signal.action,
+                      ),
                     ],
                   ),
                 ],

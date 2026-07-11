@@ -35,11 +35,11 @@ class StockData {
 
   factory StockData.fromJson(Map<String, dynamic> json) {
     return StockData(
-      code: json['code'],
-      name: json['name'],
-      market: MarketTypeExtension.fromString(json['market']),
-      mainCategory: json['mainCategory'],
-      subCategory: json['subCategory'],
+      code: json['code']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      market: MarketTypeExtension.fromString(json['market']?.toString() ?? 'listed'),
+      mainCategory: json['mainCategory']?.toString() ?? '其他',
+      subCategory: json['subCategory']?.toString() ?? '其他',
       open: (json['open'] ?? 0).toDouble(),
       high: (json['high'] ?? 0).toDouble(),
       low: (json['low'] ?? 0).toDouble(),
