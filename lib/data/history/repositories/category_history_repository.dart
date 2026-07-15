@@ -40,7 +40,9 @@ class CategoryHistoryRepository {
     int days = 35,
   }) async {
     final cutoff = DateTime.now().subtract(Duration(days: days));
-    final cutoffStr = '${cutoff.year}'
+    // tradeDate 以民國年 YYYMMDD 儲存，cutoff 必須用同格式才能正確比對
+    final rocYear = cutoff.year - 1911;
+    final cutoffStr = '$rocYear'
         '${cutoff.month.toString().padLeft(2, '0')}'
         '${cutoff.day.toString().padLeft(2, '0')}';
 
@@ -68,7 +70,9 @@ class CategoryHistoryRepository {
   Future<void> pruneOldHistory({int keepDays = 365}) async {
     try {
       final cutoff = DateTime.now().subtract(Duration(days: keepDays));
-      final cutoffStr = '${cutoff.year}'
+      // tradeDate 以民國年 YYYMMDD 儲存，cutoff 必須用同格式才能正確比對
+      final rocYear = cutoff.year - 1911;
+      final cutoffStr = '$rocYear'
           '${cutoff.month.toString().padLeft(2, '0')}'
           '${cutoff.day.toString().padLeft(2, '0')}';
 
