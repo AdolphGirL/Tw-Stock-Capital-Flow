@@ -38,19 +38,10 @@ class StorageService {
   }
 
   Future<void> saveDailySnapshot(StockDaySnapshot snapshot) async {
-    final alreadyExists = await exists(snapshot.date);
-    dev.log('日期: ${snapshot.date}，檔案是否存在: $alreadyExists');
-    if (alreadyExists) {
-      return;
-    }
-
     final filePath = await _buildFilePath(snapshot.date);
-    dev.log('日期: ${snapshot.date}，建構檔案路徑: $filePath');
-
+    dev.log('儲存快照: ${snapshot.date}', name: 'StorageService');
     final file = File(filePath);
-
     final jsonString = jsonEncode(snapshot.toJson());
-
     await file.writeAsString(jsonString);
   }
 
@@ -78,15 +69,15 @@ class StorageService {
   /// 取得本地最新可用的交易日期（按日期由新到舊排序）
   Future<String?> getLatestAvailableDate() async {
     try {
-      final dates = await listAvailableDates();
+      final all = await listAvailableDates();
 
-      if (dates.isEmpty) {
-        return null;
-      }
+      // 只保留純日期格式（民國年 7碼 或 西元年 8碼），過濾掉 institutional_flow_history 等非日期檔案
+      final datePattern = RegExp(r'^\d{7,8}$');
+      final dates = all.where((d) => datePattern.hasMatch(d)).toList();
 
-      // 確保日期是字串格式 YYYYMMDD，先排序再取最新
+      if (dates.isEmpty) return null;
+
       dates.sort((a, b) => b.compareTo(a)); // 降序：最新的在前面
-
       return dates.first;
     } catch (e) {
       dev.log('取得最新可用日期失敗: $e', name: 'StorageService', error: e);

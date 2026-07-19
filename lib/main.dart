@@ -33,7 +33,7 @@ class BootstrapApp extends StatefulWidget {
 }
 
 class _BootstrapAppState extends State<BootstrapApp> {
-  String _resolvedDate = ''; // 最終決定的交易日期（YYYYMMDD）
+  String _resolvedDate = ''; // 最終決定的交易日期（民國年 YYYMMDD，例如 1150717）
   bool loading = true;
   String? error;
   AppBootstrapResult? bootstrapResult;

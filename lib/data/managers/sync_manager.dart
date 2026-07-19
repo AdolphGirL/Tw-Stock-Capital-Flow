@@ -38,6 +38,41 @@ class SyncManager {
 
   Future<SyncResult> syncTodayData() async {
     try {
+      // ── 時間護欄：18:00 前優先使用本地快照，但若資料超過 3 個日曆天則強制同步 ──
+      // 台股收盤 13:30，TWSE/TPEX 資料通常 18:00 後才穩定。
+      // 例外：連假後本地資料可能超過 3 天，此時即使未到 18:00 也必須強制取得新資料。
+      final now = DateTime.now();
+      if (now.hour < 18) {
+        final localDate = await storageService.getLatestAvailableDate();
+        if (localDate != null && localDate.isNotEmpty) {
+          final localDt = _parseRocDate(localDate);
+          final today = DateTime(now.year, now.month, now.day);
+          final isStale = localDt == null || today.difference(localDt).inDays > 3;
+          if (!isStale) {
+            dev.log(
+              '現在時間 ${now.hour}:${now.minute.toString().padLeft(2, '0')}，'
+              '未達 18:00 且本地資料新鮮（$localDate），略過 API 同步',
+              name: 'SyncManager',
+            );
+            final snapshot = await storageService.loadSnapshot(localDate);
+            return SyncResult(
+              success: true,
+              saved: false,
+              message: '未達 18:00，使用本地快照（$localDate）',
+              date: localDate,
+              stockCount: snapshot?.stocks.length ?? 0,
+              stocks: snapshot?.stocks ?? [],
+            );
+          }
+          dev.log(
+            '本地資料超過 3 天（$localDate），18:00 前仍強制向 API 同步',
+            name: 'SyncManager',
+          );
+        } else {
+          dev.log('本地無快照，18:00 前仍需嘗試 API 同步', name: 'SyncManager');
+        }
+      }
+
       dev.log('開始同步今日股市資料', name: 'SyncManager');
 
       await StockService.loadMapping();
@@ -106,34 +141,22 @@ class SyncManager {
         localDates: localDates,
       );
 
-      if (!isNewTradingDay) {
-        dev.log('今日資料已存在，略過保存', name: 'SyncManager');
-
-        final existingSnapshot = await storageService.loadSnapshot(latestDate);
-
-        return SyncResult(
-          success: true,
-          saved: false,
-          message: '今日資料已存在',
-          date: latestDate,
-          stockCount: existingSnapshot?.stocks.length ?? allStocks.length,
-          stocks: existingSnapshot?.stocks ?? allStocks,
-        );
-      }
-
+      // ── Rule 2：不論本地是否已有同日期資料，一律 upsert 以保持最新 ──────
       final snapshot = StockDaySnapshot(date: latestDate, stocks: allStocks);
-
       await storageService.saveDailySnapshot(snapshot);
-
-      // 新交易日資料存入後，立即清理超出保留視窗的舊原始快照（Layer 1 清理）
       await storageService.pruneOldSnapshots(keepCount: 7);
 
-      dev.log('資料同步成功: $latestDate', name: 'SyncManager');
+      dev.log(
+        isNewTradingDay
+            ? '資料同步成功（新交易日）: $latestDate'
+            : '已更新現有交易日資料: $latestDate',
+        name: 'SyncManager',
+      );
 
       return SyncResult(
         success: true,
         saved: true,
-        message: '同步成功',
+        message: isNewTradingDay ? '同步成功' : '已更新現有資料（$latestDate）',
         date: latestDate,
         stockCount: allStocks.length,
         stocks: allStocks,
@@ -153,6 +176,16 @@ class SyncManager {
         stocks: [],
       );
     }
+  }
+
+  /// 民國年 YYYMMDD（7碼）→ [DateTime]；格式不符回傳 null。
+  DateTime? _parseRocDate(String rocDate) {
+    if (rocDate.length != 7) return null;
+    final rocYear = int.tryParse(rocDate.substring(0, 3));
+    final month   = int.tryParse(rocDate.substring(3, 5));
+    final day     = int.tryParse(rocDate.substring(5, 7));
+    if (rocYear == null || month == null || day == null) return null;
+    return DateTime(rocYear + 1911, month, day);
   }
 
   String _resolveLatestDate({
