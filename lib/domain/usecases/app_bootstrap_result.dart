@@ -17,6 +17,8 @@ class AppBootstrapResult {
   final double otcScore;
   final List<MainstreamResult> mainstreams;
   final List<LifecycleResult> lifecycles;
+  final List<LifecycleResult> listedLifecycles; // 上市市場獨立週期（StrategyDashboard 用）
+  final List<LifecycleResult> otcLifecycles;    // 上櫃市場獨立週期（StrategyDashboard 用）
   final List<RotationResult> rotations;
   final MarketSentimentResult sentiment;
 
@@ -33,6 +35,8 @@ class AppBootstrapResult {
     required this.otcScore,
     required this.mainstreams,
     required this.lifecycles,
+    this.listedLifecycles = const [],
+    this.otcLifecycles = const [],
     required this.rotations,
     required this.sentiment,
   });
@@ -51,6 +55,8 @@ class AppBootstrapResult {
       otcScore: otcScore,
       mainstreams: mainstreams,
       lifecycles: lifecycles,
+      listedLifecycles: listedLifecycles,
+      otcLifecycles: otcLifecycles,
       rotations: rotations,
       sentiment: sentiment,
     );

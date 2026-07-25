@@ -12,7 +12,8 @@ import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart
 import 'package:tw_stock_capital_flow/presentation/widgets/multi_timeframe_confirm_badge.dart';
 
 class StrategyDashboardPage extends StatelessWidget {
-  final List<LifecycleResult> lifecycles;
+  final List<LifecycleResult> listedLifecycles; // 上市市場獨立週期
+  final List<LifecycleResult> otcLifecycles;    // 上櫃市場獨立週期
   final String listedDate; // TWSE 上市交易日
   final String otcDate;    // TPEX 上櫃交易日
   final List<CategoryUiModel> listedCategories;
@@ -23,7 +24,8 @@ class StrategyDashboardPage extends StatelessWidget {
 
   StrategyDashboardPage({
     super.key,
-    required this.lifecycles,
+    required this.listedLifecycles,
+    required this.otcLifecycles,
     required this.listedDate,
     required this.otcDate,
     required this.listedCategories,
@@ -43,15 +45,8 @@ class StrategyDashboardPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 依市場分流 lifecycle
-    final listedNames = listedCategories.map((c) => c.name).toSet();
-    final otcNames    = otcCategories.map((c) => c.name).toSet();
-
-    final listedLcs = lifecycles.where((lc) => listedNames.contains(lc.category)).toList();
-    final otcLcs    = lifecycles.where((lc) => otcNames.contains(lc.category)).toList();
-
-    final listedEval = _evaluateForMarket(listedLcs, listedDate);
-    final otcEval    = _evaluateForMarket(otcLcs,    otcDate);
+    final listedEval = _evaluateForMarket(listedLifecycles, listedDate);
+    final otcEval    = _evaluateForMarket(otcLifecycles,    otcDate);
 
     String fmtDate(String raw) {
       if (raw.length == 7) {
@@ -85,8 +80,8 @@ class StrategyDashboardPage extends StatelessWidget {
         body: SafeArea(
           child: TabBarView(
             children: [
-              _buildMarketView(context, listedEval),
-              _buildMarketView(context, otcEval),
+              _buildMarketView(context, listedEval, listedCategories),
+              _buildMarketView(context, otcEval,    otcCategories),
             ],
           ),
         ),
@@ -94,7 +89,8 @@ class StrategyDashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildMarketView(BuildContext context, List<StrategySignalWithSource> evaluated) {
+  Widget _buildMarketView(BuildContext context, List<StrategySignalWithSource> evaluated,
+      List<CategoryUiModel> marketCategories) {
     final buys     = evaluated.where((e) => e.signal.action == StrategyAction.buy).toList();
     final holds    = evaluated.where((e) => e.signal.action == StrategyAction.hold).toList();
     final sells    = evaluated.where((e) => e.signal.action == StrategyAction.sell).toList();
@@ -108,25 +104,25 @@ class StrategyDashboardPage extends StatelessWidget {
 
         if (buys.isNotEmpty) ...[
           _buildSectionTitle('🟢 機構動能突破區 (建議買進/加碼)', Colors.green.shade800),
-          ...buys.map((e) => _buildSignalCard(context, e)),
+          ...buys.map((e) => _buildSignalCard(context, e, marketCategories)),
           const SizedBox(height: 20),
         ],
 
         if (holds.isNotEmpty) ...[
           _buildSectionTitle('🟡 趨勢鎖籌續航區 (建議持股續抱)', Colors.amber.shade900),
-          ...holds.map((e) => _buildSignalCard(context, e)),
+          ...holds.map((e) => _buildSignalCard(context, e, marketCategories)),
           const SizedBox(height: 20),
         ],
 
         if (sells.isNotEmpty) ...[
           _buildSectionTitle('🔴 資金竭盡風控區 (建議減碼/出清)', Colors.red.shade800),
-          ...sells.map((e) => _buildSignalCard(context, e)),
+          ...sells.map((e) => _buildSignalCard(context, e, marketCategories)),
           const SizedBox(height: 20),
         ],
 
         if (neutrals.isNotEmpty) ...[
           _buildSectionTitle('⚪ 資金冬眠盤整區 (建議空倉觀望)', Colors.grey.shade700),
-          ...neutrals.map((e) => _buildSignalCard(context, e)),
+          ...neutrals.map((e) => _buildSignalCard(context, e, marketCategories)),
         ],
       ],
     );
@@ -134,18 +130,13 @@ class StrategyDashboardPage extends StatelessWidget {
 
   // ── helpers ────────────────────────────────────────────────────────────────
 
-  CategoryUiModel? _findCategory(String name) {
-    final all = [...listedCategories, ...otcCategories];
+  // 在指定市場的 categories 中查找，避免上市/上櫃同名板塊互相干擾
+  CategoryUiModel? _findCategoryIn(String name, List<CategoryUiModel> categories) {
     try {
-      return all.firstWhere((c) => c.name == name);
+      return categories.firstWhere((c) => c.name == name);
     } catch (_) {
       return null;
     }
-  }
-
-  bool _hasDivergence(String categoryName) {
-    final cat = _findCategory(categoryName);
-    return cat != null && cat.trendStrength > 20;
   }
 
   String _stageLabel(LifecycleStage stage) {
@@ -238,7 +229,8 @@ class StrategyDashboardPage extends StatelessWidget {
     );
   }
 
-  Widget _buildSignalCard(BuildContext context, StrategySignalWithSource item) {
+  Widget _buildSignalCard(BuildContext context, StrategySignalWithSource item,
+      List<CategoryUiModel> marketCategories) {
     final signal = item.signal;
     final source = item.source;
 
@@ -256,8 +248,9 @@ class StrategyDashboardPage extends StatelessWidget {
     }
 
     final isSell = signal.action == StrategyAction.sell;
-    final showDivergence = isSell && _hasDivergence(signal.category);
-    final category = _findCategory(signal.category);
+    // 只在當前市場的 categories 中查找，確保導航至正確市場的板塊
+    final category = _findCategoryIn(signal.category, marketCategories);
+    final showDivergence = isSell && category != null && category.trendStrength > 20;
 
     // vs 昨日（來自 CapitalFlowAnalyzer 的三日記錄，不需異步）
     final double? vsYesterday = category != null

@@ -138,9 +138,10 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
     final inflows  = sorted.where((a) => a.zScore > 0.8).take(8).toList();
     final outflows = outflowsSorted.where((a) => a.zScore < -0.8).take(8).toList();
 
-    // 依市場分流
-    final listedNames = widget.listedCategories.map((c) => c.name).toSet();
-    bool isListed(_Anomaly a) => listedNames.contains(a.category.name);
+    // 依市場分流（CategoryUiModel 沒有 override ==，用 object identity 精確區分
+    // 上市和上櫃中同名板塊的不同實例，避免名稱重疊時歸類錯誤）
+    final listedSet = widget.listedCategories.toSet();
+    bool isListed(_Anomaly a) => listedSet.contains(a.category);
 
     if (mounted) {
       setState(() {

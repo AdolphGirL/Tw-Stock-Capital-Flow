@@ -28,7 +28,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -48,6 +48,15 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await m.createTable(signalSnapshotTable);
+      }
+      if (from < 6) {
+        // 上市/上櫃日期分離重構後，舊資料的 tradeDate 標籤可能不正確，
+        // 清除讓 App 在之後的交易日重新累積乾淨的歷史記錄。
+        // watchlist 與 signal_snapshot（使用者資料）不受影響。
+        await delete(categoryHistoryTable).go();
+        await delete(mainstreamHistoryTable).go();
+        await delete(lifecycleHistoryTable).go();
+        await delete(rotationHistoryTable).go();
       }
     },
     beforeOpen: (details) async {

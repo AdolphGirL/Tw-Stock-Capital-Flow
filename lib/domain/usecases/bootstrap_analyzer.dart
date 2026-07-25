@@ -44,6 +44,12 @@ class _LifecyclePayload {
   const _LifecyclePayload(this.snapshots, this.mainstreams);
 }
 
+class _MarketLifecyclePayload {
+  final List<StockDaySnapshot> snapshots;
+  final MarketType market;
+  const _MarketLifecyclePayload(this.snapshots, this.market);
+}
+
 class _SentimentPayload {
   final List<StockDaySnapshot> snapshots;
   final List<MainstreamResult> mainstreams;
@@ -75,6 +81,16 @@ List<RotationResult> _runRotation(List<StockDaySnapshot> snapshots) =>
 List<LifecycleResult> _runLifecycle(_LifecyclePayload p) =>
     LifecycleEngine(snapshots: p.snapshots, mainstreams: p.mainstreams).analyze();
 
+// 對指定市場過濾快照後，獨立跑 Mainstream + Lifecycle，確保不同市場的分類不互相干擾
+List<LifecycleResult> _runLifecycleForMarket(_MarketLifecyclePayload p) {
+  final filtered = p.snapshots.map((s) => StockDaySnapshot(
+    date: s.date,
+    stocks: s.stocks.where((st) => st.market == p.market).toList(),
+  )).toList();
+  final ms = MainstreamEngine(snapshots: filtered).analyze();
+  return LifecycleEngine(snapshots: filtered, mainstreams: ms).analyze();
+}
+
 MarketSentimentResult _runSentiment(_SentimentPayload p) =>
     MarketSentimentEngine(snapshots: p.snapshots, mainstreams: p.mainstreams).analyze();
 
@@ -99,6 +115,10 @@ class BootstrapAnalyzer {
         snapshots: snapshots,
         mainstreams: mainstreams,
       ).analyze(),
+      listedLifecycles: _runLifecycleForMarket(
+          _MarketLifecyclePayload(snapshots, MarketType.listed)),
+      otcLifecycles: _runLifecycleForMarket(
+          _MarketLifecyclePayload(snapshots, MarketType.otc)),
       rotations: RotationEngine(snapshots: snapshots).analyze(),
       sentiment: MarketSentimentEngine(
         snapshots: snapshots,
@@ -115,12 +135,16 @@ class BootstrapAnalyzer {
   static Future<AppBootstrapResult> analyzeAsync(
     List<StockDaySnapshot> snapshots,
   ) async {
-    final (capitalFlow, mainstreams, rotations) = await (
+    // Phase 1（並行）：CapitalFlow、Mainstream、Rotation、上市週期、上櫃週期 互不依賴
+    final (capitalFlow, mainstreams, rotations, listedLifecycles, otcLifecycles) = await (
       compute(_runCapitalFlow, snapshots),
       compute(_runMainstream, snapshots),
       compute(_runRotation, snapshots),
+      compute(_runLifecycleForMarket, _MarketLifecyclePayload(snapshots, MarketType.listed)),
+      compute(_runLifecycleForMarket, _MarketLifecyclePayload(snapshots, MarketType.otc)),
     ).wait;
 
+    // Phase 2（並行）：Lifecycle（混合，供首頁訊號用）與 Sentiment 皆依賴 mainstreams
     final (lifecycles, sentiment) = await (
       compute(_runLifecycle, _LifecyclePayload(snapshots, mainstreams)),
       compute(_runSentiment, _SentimentPayload(snapshots, mainstreams)),
@@ -137,6 +161,8 @@ class BootstrapAnalyzer {
       otcScore: capitalFlow.otcScore,
       mainstreams: mainstreams,
       lifecycles: lifecycles,
+      listedLifecycles: listedLifecycles,
+      otcLifecycles: otcLifecycles,
       rotations: rotations,
       sentiment: sentiment,
     );

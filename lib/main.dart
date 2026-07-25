@@ -427,6 +427,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 rotations: bootstrapResult!.rotations,
                 mainstreams: bootstrapResult!.mainstreams,
                 lifecycles: bootstrapResult!.lifecycles,
+                listedLifecycles: bootstrapResult!.listedLifecycles,
+                otcLifecycles: bootstrapResult!.otcLifecycles,
                 sentiment: bootstrapResult!.sentiment,
                 historyRepository: _categoryHistoryRepository!,
                 watchlistRepository: _watchlistRepository!,

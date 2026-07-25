@@ -27,6 +27,8 @@ class MainNavigationContainer extends StatefulWidget {
   final List<RotationResult> rotations;
   final List<MainstreamResult> mainstreams;
   final List<LifecycleResult> lifecycles;
+  final List<LifecycleResult> listedLifecycles; // 上市獨立週期
+  final List<LifecycleResult> otcLifecycles;    // 上櫃獨立週期
   final MarketSentimentResult? sentiment;
   final CategoryHistoryRepository historyRepository;
   final WatchlistRepository watchlistRepository;
@@ -48,6 +50,8 @@ class MainNavigationContainer extends StatefulWidget {
     required this.rotations,
     required this.mainstreams,
     required this.lifecycles,
+    required this.listedLifecycles,
+    required this.otcLifecycles,
     required this.sentiment,
     required this.historyRepository,
     required this.watchlistRepository,
@@ -104,7 +108,8 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
 
                 // ⚡ Tab 2: 機構動量策略
                 StrategyDashboardPage(
-                  lifecycles: widget.lifecycles,
+                  listedLifecycles: widget.listedLifecycles,
+                  otcLifecycles: widget.otcLifecycles,
                   listedDate: widget.listedDate,
                   otcDate: widget.otcDate,
                   listedCategories: widget.listedCategories,
