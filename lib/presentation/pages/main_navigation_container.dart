@@ -14,7 +14,8 @@ import 'package:tw_stock_capital_flow/presentation/pages/leading_indicator_page.
 import 'package:tw_stock_capital_flow/presentation/pages/anomaly_detector_page.dart';
 
 class MainNavigationContainer extends StatefulWidget {
-  final String tradeDate;
+  final String listedDate; // TWSE 上市交易日
+  final String otcDate;    // TPEX 上櫃交易日
   final List<CategoryUiModel> listedCategories;
   final List<CategoryUiModel> otcCategories;
   final int listedRiseCount;
@@ -30,10 +31,12 @@ class MainNavigationContainer extends StatefulWidget {
   final CategoryHistoryRepository historyRepository;
   final WatchlistRepository watchlistRepository;
   final StorageService storageService;
+  final Future<void> Function()? onRefresh;
 
   const MainNavigationContainer({
     super.key,
-    required this.tradeDate,
+    required this.listedDate,
+    required this.otcDate,
     required this.listedCategories,
     required this.otcCategories,
     required this.listedRiseCount,
@@ -49,6 +52,7 @@ class MainNavigationContainer extends StatefulWidget {
     required this.historyRepository,
     required this.watchlistRepository,
     required this.storageService,
+    this.onRefresh,
   });
 
   @override
@@ -71,7 +75,8 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
               children: [
                 // 🏠 Tab 0: 大盤診斷
                 HomePage(
-                  tradeDate: widget.tradeDate,
+                  listedDate: widget.listedDate,
+                  otcDate: widget.otcDate,
                   listedCategories: widget.listedCategories,
                   otcCategories: widget.otcCategories,
                   listedRiseCount: widget.listedRiseCount,
@@ -85,6 +90,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   historyRepository: widget.historyRepository,
                   watchlistRepository: widget.watchlistRepository,
                   storageService: widget.storageService,
+                  onRefresh: widget.onRefresh,
                 ),
 
                 // 📊 Tab 1: 異常資金偵測器
@@ -92,13 +98,15 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   listedCategories: widget.listedCategories,
                   otcCategories: widget.otcCategories,
                   historyRepository: widget.historyRepository,
-                  tradeDate: widget.tradeDate,
+                  listedDate: widget.listedDate,
+                  otcDate: widget.otcDate,
                 ),
 
                 // ⚡ Tab 2: 機構動量策略
                 StrategyDashboardPage(
                   lifecycles: widget.lifecycles,
-                  tradeDate: widget.tradeDate,
+                  listedDate: widget.listedDate,
+                  otcDate: widget.otcDate,
                   listedCategories: widget.listedCategories,
                   otcCategories: widget.otcCategories,
                   historyRepository: widget.historyRepository,

@@ -4,16 +4,15 @@ import 'dart:ui';
 
 class MarketSummaryCard extends StatelessWidget {
   final String title;
-
+  final String? dateLabel; // 在標題旁顯示的交易日期（例如 "115-07-22"）
   final int riseCount;
-
   final int fallCount;
-
   final double score;
 
   const MarketSummaryCard({
     super.key,
     required this.title,
+    this.dateLabel,
     required this.riseCount,
     required this.fallCount,
     required this.score,
@@ -88,6 +87,27 @@ class MarketSummaryCard extends StatelessWidget {
                         ),
                       ),
                     ),
+
+                    if (dateLabel != null && dateLabel!.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          dateLabel!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
 

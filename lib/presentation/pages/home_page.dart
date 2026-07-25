@@ -23,7 +23,8 @@ import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 
 class HomePage extends StatefulWidget {
-  final String tradeDate;
+  final String listedDate; // TWSE 上市交易日
+  final String otcDate;    // TPEX 上櫃交易日
   final List<CategoryUiModel> listedCategories;
   final List<CategoryUiModel> otcCategories;
   final int listedRiseCount;
@@ -38,10 +39,12 @@ class HomePage extends StatefulWidget {
   final CategoryHistoryRepository historyRepository;
   final WatchlistRepository watchlistRepository;
   final StorageService storageService;
+  final Future<void> Function()? onRefresh;
 
   const HomePage({
     super.key,
-    required this.tradeDate,
+    required this.listedDate,
+    required this.otcDate,
     required this.listedCategories,
     required this.otcCategories,
     required this.listedRiseCount,
@@ -55,6 +58,7 @@ class HomePage extends StatefulWidget {
     required this.historyRepository,
     required this.watchlistRepository,
     required this.storageService,
+    this.onRefresh,
   });
 
   @override
@@ -62,8 +66,10 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // 透過 getter 讓所有現有方法無需改動
-  String get tradeDate => widget.tradeDate;
+  String get listedDate => widget.listedDate;
+  String get otcDate    => widget.otcDate;
+  // 三大法人 / watchlist signal 等仍需一個統一日期：取較新者
+  String get tradeDate  => listedDate.compareTo(otcDate) >= 0 ? listedDate : otcDate;
   List<CategoryUiModel> get listedCategories => widget.listedCategories;
   List<CategoryUiModel> get otcCategories => widget.otcCategories;
   int get listedRiseCount => widget.listedRiseCount;
@@ -80,6 +86,7 @@ class _HomePageState extends State<HomePage> {
 
   InstitutionalFlowResult? _institutionalFlow;
   List<InstitutionalFlowResult> _flowHistory = [];
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -91,7 +98,8 @@ class _HomePageState extends State<HomePage> {
   @override
   void didUpdateWidget(HomePage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.tradeDate != widget.tradeDate) {
+    if (oldWidget.listedDate != widget.listedDate ||
+        oldWidget.otcDate != widget.otcDate) {
       _fetchFlow();
     }
   }
@@ -107,8 +115,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _fetchFlow() async {
-    final dateKey = _toGregorianKey(widget.tradeDate);
-    debugPrint('[法人籌碼] _fetchFlow 啟動: dateKey=$dateKey (原始: ${widget.tradeDate})');
+    final dateKey = _toGregorianKey(tradeDate);
+    debugPrint('[法人籌碼] _fetchFlow 啟動: dateKey=$dateKey (原始: $tradeDate)');
     if (dateKey.length != 8) {
       debugPrint('[法人籌碼] _fetchFlow 跳過 — 日期格式錯誤');
       return;
@@ -141,6 +149,26 @@ class _HomePageState extends State<HomePage> {
       }
     } catch (e) {
       debugPrint('[法人籌碼] _fetchFlow 例外: $e');
+    }
+  }
+
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing || widget.onRefresh == null) return;
+    setState(() => _isRefreshing = true);
+    try {
+      await widget.onRefresh!();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('重新整理失敗，請稍後再試'),
+            backgroundColor: Colors.red.shade700,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
     }
   }
 
@@ -228,37 +256,36 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            Container(
-              margin: const EdgeInsets.only(top: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.blueAccent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: Colors.blueAccent.withValues(alpha: 0.15),
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.calendar_today,
-                    size: 12,
-                    color: Colors.blueAccent,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _formatTradeDate(tradeDate),
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.blueAccent,
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'monospace',
+            // 刷新按鈕（日期 chip 已移入各市場卡片內）
+            if (widget.onRefresh != null)
+              GestureDetector(
+                onTap: _isRefreshing ? null : _handleRefresh,
+                child: Container(
+                  margin: const EdgeInsets.only(top: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.blueAccent.withValues(alpha: 0.15),
                     ),
                   ),
-                ],
+                  child: _isRefreshing
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.blueAccent,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.refresh_rounded,
+                          size: 14,
+                          color: Colors.blueAccent,
+                        ),
+                ),
               ),
-            ),
           ],
         ),
         if (isBeforeCutoff) ...[
@@ -310,6 +337,7 @@ class _HomePageState extends State<HomePage> {
           },
           child: MarketSummaryCard(
             title: '上市市場',
+            dateLabel: _formatTradeDate(listedDate),
             riseCount: listedRiseCount,
             fallCount: listedFallCount,
             score: listedScore,
@@ -331,6 +359,7 @@ class _HomePageState extends State<HomePage> {
           },
           child: MarketSummaryCard(
             title: '上櫃市場',
+            dateLabel: _formatTradeDate(otcDate),
             riseCount: otcRiseCount,
             fallCount: otcFallCount,
             score: otcScore,

@@ -5,31 +5,24 @@ import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 
 class AppBootstrapResult {
+  final String listedDate;  // TWSE 上市交易日（民國年 YYYMMDD）
+  final String otcDate;     // TPEX 上櫃交易日（民國年 YYYMMDD）
   final List<CategoryUiModel> listedCategories;
-
   final List<CategoryUiModel> otcCategories;
-
   final int listedRiseCount;
-
   final int listedFallCount;
-
   final int otcRiseCount;
-
   final int otcFallCount;
-
   final double listedScore;
-
   final double otcScore;
-
   final List<MainstreamResult> mainstreams;
-
   final List<LifecycleResult> lifecycles;
-
   final List<RotationResult> rotations;
-
   final MarketSentimentResult sentiment;
 
   const AppBootstrapResult({
+    this.listedDate = '',
+    this.otcDate = '',
     required this.listedCategories,
     required this.otcCategories,
     required this.listedRiseCount,
@@ -43,4 +36,23 @@ class AppBootstrapResult {
     required this.rotations,
     required this.sentiment,
   });
+
+  AppBootstrapResult copyWith({String? listedDate, String? otcDate}) {
+    return AppBootstrapResult(
+      listedDate: listedDate ?? this.listedDate,
+      otcDate: otcDate ?? this.otcDate,
+      listedCategories: listedCategories,
+      otcCategories: otcCategories,
+      listedRiseCount: listedRiseCount,
+      listedFallCount: listedFallCount,
+      otcRiseCount: otcRiseCount,
+      otcFallCount: otcFallCount,
+      listedScore: listedScore,
+      otcScore: otcScore,
+      mainstreams: mainstreams,
+      lifecycles: lifecycles,
+      rotations: rotations,
+      sentiment: sentiment,
+    );
+  }
 }

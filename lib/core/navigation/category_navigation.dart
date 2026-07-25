@@ -212,9 +212,22 @@ class CategoryNavigation {
 
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            '成交值: ${valueInMillions.toStringAsFixed(2)} 億 | 量: ${(stock.volume / 1000).toStringAsFixed(0)} 張',
-            style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '成交值: ${valueInMillions.toStringAsFixed(2)} 億 | 量: ${(stock.volume / 1000).toStringAsFixed(0)} 張',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '開 ${stock.open.toStringAsFixed(2)}  '
+                '高 ${stock.high.toStringAsFixed(2)}  '
+                '低 ${stock.low.toStringAsFixed(2)}  '
+                '漲跌 ${isUp ? "+" : ""}${stock.change.toStringAsFixed(2)}',
+                style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+              ),
+            ],
           ),
         ),
 

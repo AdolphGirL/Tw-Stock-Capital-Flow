@@ -13,7 +13,8 @@ import 'package:tw_stock_capital_flow/presentation/widgets/multi_timeframe_confi
 
 class StrategyDashboardPage extends StatelessWidget {
   final List<LifecycleResult> lifecycles;
-  final String tradeDate;
+  final String listedDate; // TWSE 上市交易日
+  final String otcDate;    // TPEX 上櫃交易日
   final List<CategoryUiModel> listedCategories;
   final List<CategoryUiModel> otcCategories;
   final CategoryHistoryRepository historyRepository;
@@ -23,68 +24,111 @@ class StrategyDashboardPage extends StatelessWidget {
   StrategyDashboardPage({
     super.key,
     required this.lifecycles,
-    required this.tradeDate,
+    required this.listedDate,
+    required this.otcDate,
     required this.listedCategories,
     required this.otcCategories,
     required this.historyRepository,
     required this.watchlistRepository,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final List<StrategySignalWithSource> evaluated = lifecycles.map((item) {
-      final signal = _strategy.evaluate(item, dateKey: tradeDate);
+  // 過濾出指定市場的 lifecycle 並評估訊號
+  List<StrategySignalWithSource> _evaluateForMarket(
+      List<LifecycleResult> lcs, String dateKey) {
+    return lcs.map((item) {
+      final signal = _strategy.evaluate(item, dateKey: dateKey);
       return StrategySignalWithSource(signal: signal, source: item);
     }).toList();
+  }
 
-    final buys = evaluated.where((e) => e.signal.action == StrategyAction.buy).toList();
-    final holds = evaluated.where((e) => e.signal.action == StrategyAction.hold).toList();
-    final sells = evaluated.where((e) => e.signal.action == StrategyAction.sell).toList();
+  @override
+  Widget build(BuildContext context) {
+    // 依市場分流 lifecycle
+    final listedNames = listedCategories.map((c) => c.name).toSet();
+    final otcNames    = otcCategories.map((c) => c.name).toSet();
+
+    final listedLcs = lifecycles.where((lc) => listedNames.contains(lc.category)).toList();
+    final otcLcs    = lifecycles.where((lc) => otcNames.contains(lc.category)).toList();
+
+    final listedEval = _evaluateForMarket(listedLcs, listedDate);
+    final otcEval    = _evaluateForMarket(otcLcs,    otcDate);
+
+    String fmtDate(String raw) {
+      if (raw.length == 7) {
+        return '${raw.substring(0, 3)}-${raw.substring(3, 5)}-${raw.substring(5, 7)}';
+      }
+      return raw;
+    }
+
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xfff3f6fb),
+        appBar: AppBar(
+          title: const Text(
+            '板塊動量續航決策系統',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0,
+          bottom: TabBar(
+            labelColor: const Color(0xFF1A237E),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: const Color(0xFF1A237E),
+            tabs: [
+              Tab(text: '上市  ${fmtDate(listedDate)}'),
+              Tab(text: '上櫃  ${fmtDate(otcDate)}'),
+            ],
+          ),
+        ),
+        body: SafeArea(
+          child: TabBarView(
+            children: [
+              _buildMarketView(context, listedEval),
+              _buildMarketView(context, otcEval),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarketView(BuildContext context, List<StrategySignalWithSource> evaluated) {
+    final buys     = evaluated.where((e) => e.signal.action == StrategyAction.buy).toList();
+    final holds    = evaluated.where((e) => e.signal.action == StrategyAction.hold).toList();
+    final sells    = evaluated.where((e) => e.signal.action == StrategyAction.sell).toList();
     final neutrals = evaluated.where((e) => e.signal.action == StrategyAction.neutral).toList();
 
-    return Scaffold(
-      backgroundColor: const Color(0xfff3f6fb),
-      appBar: AppBar(
-        title: const Text(
-          '板塊動量續航決策系統',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildInfoCard(),
-            const SizedBox(height: 20),
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildInfoCard(),
+        const SizedBox(height: 20),
 
-            if (buys.isNotEmpty) ...[
-              _buildSectionTitle('🟢 機構動能突破區 (建議買進/加碼)', Colors.green.shade800),
-              ...buys.map((e) => _buildSignalCard(context, e)),
-              const SizedBox(height: 20),
-            ],
+        if (buys.isNotEmpty) ...[
+          _buildSectionTitle('🟢 機構動能突破區 (建議買進/加碼)', Colors.green.shade800),
+          ...buys.map((e) => _buildSignalCard(context, e)),
+          const SizedBox(height: 20),
+        ],
 
-            if (holds.isNotEmpty) ...[
-              _buildSectionTitle('🟡 趨勢鎖籌續航區 (建議持股續抱)', Colors.amber.shade900),
-              ...holds.map((e) => _buildSignalCard(context, e)),
-              const SizedBox(height: 20),
-            ],
+        if (holds.isNotEmpty) ...[
+          _buildSectionTitle('🟡 趨勢鎖籌續航區 (建議持股續抱)', Colors.amber.shade900),
+          ...holds.map((e) => _buildSignalCard(context, e)),
+          const SizedBox(height: 20),
+        ],
 
-            if (sells.isNotEmpty) ...[
-              _buildSectionTitle('🔴 資金竭盡風控區 (建議減碼/出清)', Colors.red.shade800),
-              ...sells.map((e) => _buildSignalCard(context, e)),
-              const SizedBox(height: 20),
-            ],
+        if (sells.isNotEmpty) ...[
+          _buildSectionTitle('🔴 資金竭盡風控區 (建議減碼/出清)', Colors.red.shade800),
+          ...sells.map((e) => _buildSignalCard(context, e)),
+          const SizedBox(height: 20),
+        ],
 
-            if (neutrals.isNotEmpty) ...[
-              _buildSectionTitle('⚪ 資金冬眠盤整區 (建議空倉觀望)', Colors.grey.shade700),
-              ...neutrals.map((e) => _buildSignalCard(context, e)),
-            ],
-          ],
-        ),
-      ),
+        if (neutrals.isNotEmpty) ...[
+          _buildSectionTitle('⚪ 資金冬眠盤整區 (建議空倉觀望)', Colors.grey.shade700),
+          ...neutrals.map((e) => _buildSignalCard(context, e)),
+        ],
+      ],
     );
   }
 

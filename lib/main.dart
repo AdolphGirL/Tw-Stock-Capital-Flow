@@ -33,7 +33,8 @@ class BootstrapApp extends StatefulWidget {
 }
 
 class _BootstrapAppState extends State<BootstrapApp> {
-  String _resolvedDate = ''; // 最終決定的交易日期（民國年 YYYMMDD，例如 1150717）
+  String _listedDate = ''; // 上市（TWSE）交易日（民國年 YYYMMDD）
+  String _otcDate    = ''; // 上櫃（TPEX）交易日（民國年 YYYMMDD）
   bool loading = true;
   String? error;
   AppBootstrapResult? bootstrapResult;
@@ -48,6 +49,9 @@ class _BootstrapAppState extends State<BootstrapApp> {
   List<SignalChange> _pendingSignalChanges = [];
   bool _signalDialogShown = false;
   final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
+
+  // 防止 _refresh 重複並發
+  bool _isRefreshing = false;
 
   @override
   void initState() {
@@ -82,43 +86,36 @@ class _BootstrapAppState extends State<BootstrapApp> {
       calendarService: calendarService,
     );
 
-    String resolvedDate = '';
-
     try {
       // 1. 同步今日最新數據
       final syncResult = await syncManager.syncTodayData().timeout(
         const Duration(seconds: 120),
       );
 
-      if (syncResult.date.isNotEmpty) {
-        resolvedDate = syncResult.date;
-      } else {
-        resolvedDate = await storageService.getLatestAvailableDate() ?? '';
-      }
-
-      // 額外保護：如果 resolvedDate 還是空的
-      if (resolvedDate.isEmpty) {
-        resolvedDate = _getTodayDateKey();
-      }
-
-      _resolvedDate = resolvedDate;
+      final fallbackDate = await storageService.getLatestAvailableDate() ?? _getTodayDateKey();
+      _listedDate = syncResult.listedDate.isNotEmpty ? syncResult.listedDate : fallbackDate;
+      _otcDate    = syncResult.otcDate.isNotEmpty    ? syncResult.otcDate    : fallbackDate;
 
       // 新交易日成功存入：執行 SQLite 歷史分級清理（Layer 2，保留 365 天）
       if (syncResult.saved) {
         await _categoryHistoryRepository!.pruneOldHistory(keepDays: 365);
       }
 
-      // 2. 嘗試讀取快取
-      final cachedResult = await cacheService.loadBootstrapCache(resolvedDate);
+      // 2. 嘗試讀取快取（快取 key 使用上市日期）
+      // 若剛儲存了新快照（saved=true），快取與快照已不同步，必須強制重算；
+      // 只有在「使用本地快照、未呼叫 API」的情況下才可命中快取。
+      final cachedResult = syncResult.saved
+          ? null
+          : await cacheService.loadBootstrapCache(_listedDate);
       if (cachedResult != null) {
-        debugPrint('🚀 [Cache Hit] 命中快取: $resolvedDate');
-        // 新交易日時一併更新 SQLite 歷史（即使命中快取，資料仍屬新交易日）
-        if (syncResult.saved) {
-          await _saveHistoryToSqlite(resolvedDate, cachedResult);
-        }
-        final changes = await _detectAndSaveSignalChanges(cachedResult);
+        debugPrint('🚀 [Cache Hit] 命中快取: $_listedDate');
+        // 若快取不含日期資訊（舊版快取），補上當前日期
+        final resultWithDates = cachedResult.listedDate.isEmpty
+            ? cachedResult.copyWith(listedDate: _listedDate, otcDate: _otcDate)
+            : cachedResult;
+        final changes = await _detectAndSaveSignalChanges(resultWithDates);
         setState(() {
-          bootstrapResult = cachedResult;
+          bootstrapResult = resultWithDates;
           loading = false;
           _pendingSignalChanges = changes;
         });
@@ -136,15 +133,17 @@ class _BootstrapAppState extends State<BootstrapApp> {
       }
 
       // 4. 背景運算分析（五引擎依賴圖分兩階段並行 Isolate 執行）
-      final result = await BootstrapAnalyzer.analyzeAsync(snapshots);
+      final rawResult = await BootstrapAnalyzer.analyzeAsync(snapshots);
+      // 注入市場日期（Isolate 無法回傳日期，由呼叫端補上）
+      final result = rawResult.copyWith(listedDate: _listedDate, otcDate: _otcDate);
 
       // 5. 儲存快取，並清理超出保留份數的舊版分析快取（Layer 3 清理）
-      await cacheService.saveBootstrapCache(resolvedDate, result);
+      await cacheService.saveBootstrapCache(_listedDate, result);
       await storageService.pruneOldBootstrapCaches(keepCount: 3);
 
-      // 6. 儲存今日板塊指標至 SQLite 歷史（30日走勢圖資料來源）
+      // 6. 儲存今日板塊指標至 SQLite 歷史（30日走勢圖資料來源），分市場使用正確日期
       if (syncResult.saved) {
-        await _saveHistoryToSqlite(resolvedDate, result);
+        await _saveHistoryToSqlite(result);
       }
 
       final changes = await _detectAndSaveSignalChanges(result);
@@ -157,9 +156,9 @@ class _BootstrapAppState extends State<BootstrapApp> {
       debugPrint('⚠️ [防禦機制觸發] 異常: $e，進入離線降級...');
 
       // 離線模式：優先使用本地最新日期
-      resolvedDate =
-          await storageService.getLatestAvailableDate() ?? _getTodayDateKey();
-      _resolvedDate = resolvedDate;
+      final fallbackDate = await storageService.getLatestAvailableDate() ?? _getTodayDateKey();
+      _listedDate = fallbackDate;
+      _otcDate    = fallbackDate;
 
       final fallbackResult = await cacheService.tryGetAnyLatestCache();
 
@@ -180,21 +179,87 @@ class _BootstrapAppState extends State<BootstrapApp> {
     }
   }
 
-  /// 將今日 bootstrap 計算結果寫入 SQLite 歷史表，供 30 日走勢圖使用。
-  /// 儲存上市 + 上櫃主板塊、主流排行、生命週期、輪動資料。
-  Future<void> _saveHistoryToSqlite(
-      String dateKey, AppBootstrapResult result) async {
+  /// 手動刷新：強制向 API 同步、重新計算、upsert SQLite，並更新 UI。
+  /// 使用者點擊刷新按鈕時呼叫，完全繞過 18:00 時間護欄。
+  Future<void> _refresh() async {
+    if (_isRefreshing) return;
+    _isRefreshing = true;
     try {
+      final storageService = _storageService;
+      final syncManager = SyncManager(
+        storageService: storageService,
+        calendarService: MarketCalendarService(),
+      );
+      final cacheService = AnalysisCacheService(storageService);
+
+      final syncResult = await syncManager
+          .syncTodayData(forceSync: true)
+          .timeout(const Duration(seconds: 120));
+
+      final fallbackDate = await storageService.getLatestAvailableDate() ?? _getTodayDateKey();
+      _listedDate = syncResult.listedDate.isNotEmpty ? syncResult.listedDate : fallbackDate;
+      _otcDate    = syncResult.otcDate.isNotEmpty    ? syncResult.otcDate    : fallbackDate;
+
+      if (syncResult.saved) {
+        await _categoryHistoryRepository!.pruneOldHistory(keepDays: 365);
+      }
+
+      final historyRepository = HistoryRepository(storageService: storageService);
+      final snapshots = await historyRepository.loadRecentSnapshots(5);
+      if (snapshots.isEmpty) return;
+
+      final rawResult = await BootstrapAnalyzer.analyzeAsync(snapshots);
+      final result = rawResult.copyWith(listedDate: _listedDate, otcDate: _otcDate);
+      await cacheService.saveBootstrapCache(_listedDate, result);
+      await storageService.pruneOldBootstrapCaches(keepCount: 3);
+
+      if (syncResult.saved) {
+        await _saveHistoryToSqlite(result);
+      }
+
+      if (mounted) {
+        setState(() {
+          bootstrapResult = result;
+        });
+      }
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  /// 將今日 bootstrap 計算結果寫入 SQLite 歷史表，供 30 日走勢圖使用。
+  /// 上市板塊用上市日期、上櫃板塊用上櫃日期，確保歷史資料日期標籤正確。
+  Future<void> _saveHistoryToSqlite(AppBootstrapResult result) async {
+    try {
+      // 上市板塊 → listedDate
       await _categoryHistoryRepository!.saveDailySnapshot(
-        dateKey: dateKey,
-        categories: [
-          ...result.listedCategories,
-          ...result.otcCategories,
-        ],
+        dateKey: result.listedDate.isNotEmpty ? result.listedDate : _listedDate,
+        categories: result.listedCategories,
         mainstreams: result.mainstreams,
         lifecycles: result.lifecycles,
         rotations: result.rotations,
       );
+      // 上櫃板塊 → otcDate（日期不同時才需要再寫一次）
+      final otcKey = result.otcDate.isNotEmpty ? result.otcDate : _otcDate;
+      final listedKey = result.listedDate.isNotEmpty ? result.listedDate : _listedDate;
+      if (result.otcCategories.isNotEmpty && otcKey != listedKey) {
+        await _categoryHistoryRepository!.saveDailySnapshot(
+          dateKey: otcKey,
+          categories: result.otcCategories,
+          mainstreams: [],
+          lifecycles: [],
+          rotations: [],
+        );
+      } else if (result.otcCategories.isNotEmpty) {
+        // 同日期時合併在同一筆，避免重複寫入
+        await _categoryHistoryRepository!.saveDailySnapshot(
+          dateKey: otcKey,
+          categories: [...result.listedCategories, ...result.otcCategories],
+          mainstreams: result.mainstreams,
+          lifecycles: result.lifecycles,
+          rotations: result.rotations,
+        );
+      }
     } catch (e) {
       debugPrint('歷史快照寫入失敗（不影響主流程）: $e');
     }
@@ -210,8 +275,10 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
       final watchedNames = watched.map((e) => e.categoryName).toList();
       final strategy = MomentumStrategy();
+      // 訊號評估以上市日期為主（上市為主要市場）
+      final signalDateKey = result.listedDate.isNotEmpty ? result.listedDate : _listedDate;
       final todaySignals = result.lifecycles
-          .map((lc) => strategy.evaluate(lc, dateKey: _resolvedDate))
+          .map((lc) => strategy.evaluate(lc, dateKey: signalDateKey))
           .toList();
 
       // 比對前次訊號
@@ -229,7 +296,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
       for (final s in todaySignals) {
         if (watchedSet.contains(s.category)) toSave[s.category] = s.action.name;
       }
-      await _signalSnapshotRepository!.saveSignals(_resolvedDate, toSave);
+      await _signalSnapshotRepository!.saveSignals(signalDateKey, toSave);
 
       // 發送本地通知（有異動才觸發，不影響主流程）
       await NotificationService.showSignalChanges(changes);
@@ -347,7 +414,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
               ),
             Expanded(
               child: MainNavigationContainer(
-                tradeDate: _resolvedDate,
+                listedDate: bootstrapResult!.listedDate.isNotEmpty ? bootstrapResult!.listedDate : _listedDate,
+                otcDate:    bootstrapResult!.otcDate.isNotEmpty    ? bootstrapResult!.otcDate    : _otcDate,
                 listedCategories: bootstrapResult!.listedCategories,
                 otcCategories: bootstrapResult!.otcCategories,
                 listedRiseCount: bootstrapResult!.listedRiseCount,
@@ -363,6 +431,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 historyRepository: _categoryHistoryRepository!,
                 watchlistRepository: _watchlistRepository!,
                 storageService: _storageService,
+                onRefresh: _refresh,
               ),
             ),
           ],

@@ -6,7 +6,9 @@ import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
 class StockService {
   static final Map<String, Map<String, String>> _mapping = {};
-  static String lastDataDate = ""; // 新增：記錄最後一次抓取的日期
+  static String lastDataDate   = ""; // 相容保留：最後一次抓取的日期
+  static String lastListedDate = ""; // TWSE 上市日期（民國年 YYYMMDD）
+  static String lastOtcDate    = ""; // TPEX 上櫃日期（民國年 YYYMMDD）
 
   static Future<void> loadMapping() async {
     try {
@@ -54,6 +56,7 @@ class StockService {
         } else {
           lastDataDate = rawDate;
         }
+        lastListedDate = lastDataDate;
       }
 
       final filtered = data
@@ -81,6 +84,9 @@ class StockService {
             final value =
                 int.tryParse(item['TradeValue']?.toString() ?? '0') ?? 0;
 
+            // 昨日收盤 = 今日收盤 - 漲跌值；changePercent 必須除以昨日收盤才與 Yahoo 一致
+            final prevClose = close - change;
+
             return StockData(
               code: code,
               name: item['Name'],
@@ -93,7 +99,7 @@ class StockService {
               low: double.tryParse(item['LowestPrice']?.toString() ?? '') ?? 0,
               close: close,
               change: change,
-              changePercent: open != 0 ? (change / open) * 100 : 0,
+              changePercent: prevClose != 0 ? (change / prevClose) * 100 : 0,
               volume: volume,
               value: value,
             );
@@ -140,6 +146,7 @@ class StockService {
         } else {
           lastDataDate = rawDate;
         }
+        lastOtcDate = lastDataDate;
       }
 
       final filtered = data
@@ -173,6 +180,9 @@ class StockService {
                 ) ??
                 0;
 
+            // 昨日收盤 = 今日收盤 - 漲跌值；changePercent 必須除以昨日收盤才與 Yahoo 一致
+            final prevClose = close - change;
+
             return StockData(
               code: code,
               name: item['CompanyName'],
@@ -184,7 +194,7 @@ class StockService {
               low: double.tryParse(item['Low']?.toString() ?? '') ?? 0,
               close: close,
               change: change,
-              changePercent: open != 0 ? (change / open) * 100 : 0,
+              changePercent: prevClose != 0 ? (change / prevClose) * 100 : 0,
               volume: volume,
               value: value,
             );

@@ -8,15 +8,12 @@ import 'package:tw_stock_capital_flow/data/services/stock_service.dart';
 
 class SyncResult {
   final bool success;
-
   final bool saved;
-
   final String message;
-
-  final String date;
-
+  final String date;        // 相容欄位 = max(listedDate, otcDate)
+  final String listedDate;  // TWSE 上市日期（民國年 YYYMMDD）
+  final String otcDate;     // TPEX 上櫃日期（民國年 YYYMMDD）
   final int stockCount;
-
   final List<StockData> stocks;
 
   SyncResult({
@@ -24,6 +21,8 @@ class SyncResult {
     required this.saved,
     required this.message,
     required this.date,
+    required this.listedDate,
+    required this.otcDate,
     required this.stockCount,
     required this.stocks,
   });
@@ -36,13 +35,15 @@ class SyncManager {
 
   SyncManager({required this.storageService, required this.calendarService});
 
-  Future<SyncResult> syncTodayData() async {
+  /// [forceSync] 為 true 時完全略過 18:00 時間護欄（用於手動刷新）。
+  Future<SyncResult> syncTodayData({bool forceSync = false}) async {
     try {
       // ── 時間護欄：18:00 前優先使用本地快照，但若資料超過 3 個日曆天則強制同步 ──
       // 台股收盤 13:30，TWSE/TPEX 資料通常 18:00 後才穩定。
       // 例外：連假後本地資料可能超過 3 天，此時即使未到 18:00 也必須強制取得新資料。
+      // forceSync=true（手動刷新）時整段護欄跳過，直接向 API 取最新資料。
       final now = DateTime.now();
-      if (now.hour < 18) {
+      if (!forceSync && now.hour < 18) {
         final localDate = await storageService.getLatestAvailableDate();
         if (localDate != null && localDate.isNotEmpty) {
           final localDt = _parseRocDate(localDate);
@@ -60,6 +61,8 @@ class SyncManager {
               saved: false,
               message: '未達 18:00，使用本地快照（$localDate）',
               date: localDate,
+              listedDate: localDate,
+              otcDate: localDate,
               stockCount: snapshot?.stocks.length ?? 0,
               stocks: snapshot?.stocks ?? [],
             );
@@ -81,7 +84,7 @@ class SyncManager {
 
       final listed = await StockService.fetchListed();
 
-      final listedDate = StockService.lastDataDate;
+      final listedDate = StockService.lastListedDate;
 
       dev.log('上市資料筆數: ${listed.length}', name: 'SyncManager');
 
@@ -89,7 +92,7 @@ class SyncManager {
 
       final otc = await StockService.fetchOTC();
 
-      final otcDate = StockService.lastDataDate;
+      final otcDate = StockService.lastOtcDate;
 
       dev.log('上櫃資料筆數: ${otc.length}', name: 'SyncManager');
 
@@ -99,6 +102,8 @@ class SyncManager {
           saved: false,
           message: '上市與上櫃資料皆為空',
           date: '',
+          listedDate: '',
+          otcDate: '',
           stockCount: 0,
           stocks: [],
         );
@@ -115,6 +120,8 @@ class SyncManager {
           saved: false,
           message: '無法取得有效交易日期',
           date: '',
+          listedDate: listedDate,
+          otcDate: otcDate,
           stockCount: 0,
           stocks: [],
         );
@@ -141,9 +148,19 @@ class SyncManager {
         localDates: localDates,
       );
 
-      // ── Rule 2：不論本地是否已有同日期資料，一律 upsert 以保持最新 ──────
-      final snapshot = StockDaySnapshot(date: latestDate, stocks: allStocks);
-      await storageService.saveDailySnapshot(snapshot);
+      // ── Rule 2：分市場 upsert，各自以正確日期存檔 ──────────────────────
+      final effectiveListedDate = listedDate.isNotEmpty ? listedDate : latestDate;
+      final effectiveOtcDate    = otcDate.isNotEmpty    ? otcDate    : latestDate;
+      if (listed.isNotEmpty) {
+        await storageService.saveListedSnapshot(
+          StockDaySnapshot(date: effectiveListedDate, stocks: listed),
+        );
+      }
+      if (otc.isNotEmpty) {
+        await storageService.saveOtcSnapshot(
+          StockDaySnapshot(date: effectiveOtcDate, stocks: otc),
+        );
+      }
       await storageService.pruneOldSnapshots(keepCount: 7);
 
       dev.log(
@@ -158,6 +175,8 @@ class SyncManager {
         saved: true,
         message: isNewTradingDay ? '同步成功' : '已更新現有資料（$latestDate）',
         date: latestDate,
+        listedDate: listedDate.isNotEmpty ? listedDate : latestDate,
+        otcDate: otcDate.isNotEmpty ? otcDate : latestDate,
         stockCount: allStocks.length,
         stocks: allStocks,
       );
@@ -172,6 +191,8 @@ class SyncManager {
         saved: false,
         message: e.toString(),
         date: lastDate ?? '',
+        listedDate: lastDate ?? '',
+        otcDate: lastDate ?? '',
         stockCount: 0,
         stocks: [],
       );

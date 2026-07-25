@@ -37,6 +37,8 @@ class StorageService {
     return File(filePath).exists();
   }
 
+  // ── 快照存取（原始格式保留供向下相容）────────────────────────────────────
+
   Future<void> saveDailySnapshot(StockDaySnapshot snapshot) async {
     final filePath = await _buildFilePath(snapshot.date);
     dev.log('儲存快照: ${snapshot.date}', name: 'StorageService');
@@ -45,40 +47,93 @@ class StorageService {
     await file.writeAsString(jsonString);
   }
 
-  Future<StockDaySnapshot?> loadSnapshot(String date) async {
+  // ── 分市場存取（新格式：listed_YYYMMDD / otc_YYYMMDD）─────────────────
+
+  Future<void> saveListedSnapshot(StockDaySnapshot snapshot) async {
+    final filePath = await _buildFilePath('listed_${snapshot.date}');
+    dev.log('儲存上市快照: listed_${snapshot.date}', name: 'StorageService');
+    await File(filePath).writeAsString(jsonEncode(snapshot.toJson()));
+  }
+
+  Future<void> saveOtcSnapshot(StockDaySnapshot snapshot) async {
+    final filePath = await _buildFilePath('otc_${snapshot.date}');
+    dev.log('儲存上櫃快照: otc_${snapshot.date}', name: 'StorageService');
+    await File(filePath).writeAsString(jsonEncode(snapshot.toJson()));
+  }
+
+  Future<StockDaySnapshot?> loadListedSnapshot(String date) async {
+    return await _loadSnapshotFromFile('listed_$date');
+  }
+
+  Future<StockDaySnapshot?> loadOtcSnapshot(String date) async {
+    return await _loadSnapshotFromFile('otc_$date');
+  }
+
+  /// 從指定 fileKey 讀取快照（不含副檔名）。
+  Future<StockDaySnapshot?> _loadSnapshotFromFile(String fileKey) async {
     try {
-      final filePath = await _buildFilePath(date);
-
+      final filePath = await _buildFilePath(fileKey);
       final file = File(filePath);
-
-      if (!await file.exists()) {
-        return null;
-      }
-
+      if (!await file.exists()) return null;
       final content = await file.readAsString();
-
-      final jsonData = jsonDecode(content);
-
-      return StockDaySnapshot.fromJson(jsonData);
+      return StockDaySnapshot.fromJson(jsonDecode(content));
     } catch (e) {
-      dev.log('loadSnapshot 解析失敗($date)，已略過: $e', name: 'StorageService');
+      dev.log('loadSnapshot 解析失敗($fileKey)，已略過: $e', name: 'StorageService');
       return null;
     }
   }
 
-  /// 取得本地最新可用的交易日期（按日期由新到舊排序）
+  /// 讀取快照：優先嘗試新格式（listed_+otc_），若不存在則回退舊格式（YYYMMDD）。
+  Future<StockDaySnapshot?> loadSnapshot(String date) async {
+    final listed = await _loadSnapshotFromFile('listed_$date');
+    if (listed != null) {
+      final otc = await _loadSnapshotFromFile('otc_$date');
+      final merged = [...listed.stocks, ...?otc?.stocks];
+      return StockDaySnapshot(date: date, stocks: merged);
+    }
+    return await _loadSnapshotFromFile(date);
+  }
+
+  /// 取得已知的上市（listed_）日期清單（降序）。
+  Future<List<String>> listListedDates() async {
+    final all = await listAvailableDates();
+    final pattern = RegExp(r'^listed_(\d{7,8})$');
+    return all
+        .where((d) => pattern.hasMatch(d))
+        .map((d) => pattern.firstMatch(d)!.group(1)!)
+        .toList();
+  }
+
+  /// 取得已知的上櫃（otc_）日期清單（降序）。
+  Future<List<String>> listOtcDates() async {
+    final all = await listAvailableDates();
+    final pattern = RegExp(r'^otc_(\d{7,8})$');
+    return all
+        .where((d) => pattern.hasMatch(d))
+        .map((d) => pattern.firstMatch(d)!.group(1)!)
+        .toList();
+  }
+
+  /// 取得本地最新可用的交易日期（按日期由新到舊排序）。
+  /// 同時識別舊格式（YYYMMDD）與新格式（listed_YYYMMDD）。
   Future<String?> getLatestAvailableDate() async {
     try {
       final all = await listAvailableDates();
 
-      // 只保留純日期格式（民國年 7碼 或 西元年 8碼），過濾掉 institutional_flow_history 等非日期檔案
-      final datePattern = RegExp(r'^\d{7,8}$');
-      final dates = all.where((d) => datePattern.hasMatch(d)).toList();
+      final oldPattern = RegExp(r'^\d{7,8}$');
+      final newPattern = RegExp(r'^listed_(\d{7,8})$');
+
+      final dates = <String>{};
+      for (final d in all) {
+        if (oldPattern.hasMatch(d)) dates.add(d);
+        final m = newPattern.firstMatch(d);
+        if (m != null) dates.add(m.group(1)!);
+      }
 
       if (dates.isEmpty) return null;
 
-      dates.sort((a, b) => b.compareTo(a)); // 降序：最新的在前面
-      return dates.first;
+      final sorted = dates.toList()..sort((a, b) => b.compareTo(a));
+      return sorted.first;
     } catch (e) {
       dev.log('取得最新可用日期失敗: $e', name: 'StorageService', error: e);
       return null;
@@ -140,42 +195,33 @@ class StorageService {
 
   // ── 分級保留清理 ─────────────────────────────────────────────────────────
 
-  /// 保留最近 [keepCount] 筆原始快照（YYYYMMDD.json），刪除更舊的檔案。
-  /// 計算引擎只需 5 天；保留 7 天提供週末 / 補假緩衝，固定佔用約 3.5–7 MB。
+  /// 保留最近 [keepCount] 筆快照，刪除更舊的檔案。
+  /// 同時處理三種格式：舊版 YYYMMDD、新版 listed_YYYMMDD、otc_YYYMMDD。
   Future<void> pruneOldSnapshots({int keepCount = 7}) async {
     try {
       final dir = await _getDailyDirectory();
       final allFiles = dir.listSync().whereType<File>().toList();
 
-      // 只針對純日期格式檔案（民國年 YYYMMDD 7碼 或 西元年 YYYYMMDD 8碼），不觸碰快取或其他檔案
-      final datePattern = RegExp(r'^\d{7,8}$');
-      final dateFiles = allFiles
-          .where(
-            (f) => datePattern.hasMatch(path.basenameWithoutExtension(f.path)),
-          )
-          .toList();
-
-      if (dateFiles.length <= keepCount) return;
-
-      // 依檔名（即日期字串）降序排列，最新的在前
-      dateFiles.sort(
-        (a, b) => path
+      void pruneGroup(RegExp groupPattern) {
+        final group = allFiles
+            .where((f) => groupPattern.hasMatch(path.basenameWithoutExtension(f.path)))
+            .toList();
+        if (group.length <= keepCount) return;
+        group.sort((a, b) => path
             .basenameWithoutExtension(b.path)
-            .compareTo(path.basenameWithoutExtension(a.path)),
-      );
-
-      final toDelete = dateFiles.skip(keepCount).toList();
-      for (final file in toDelete) {
-        await file.delete();
-        dev.log(
-          '🗑️ 已清理舊快照: ${path.basename(file.path)}',
-          name: 'StorageService',
-        );
+            .compareTo(path.basenameWithoutExtension(a.path)));
+        final toDelete = group.skip(keepCount).toList();
+        for (final f in toDelete) {
+          f.deleteSync();
+          dev.log('🗑️ 已清理舊快照: ${path.basename(f.path)}', name: 'StorageService');
+        }
       }
-      dev.log(
-        '快照清理完成，保留最近 $keepCount 天，刪除 ${toDelete.length} 筆',
-        name: 'StorageService',
-      );
+
+      pruneGroup(RegExp(r'^\d{7,8}$'));           // 舊格式
+      pruneGroup(RegExp(r'^listed_\d{7,8}$'));    // 新格式 listed
+      pruneGroup(RegExp(r'^otc_\d{7,8}$'));       // 新格式 otc
+
+      dev.log('快照清理完成（三組各保留最近 $keepCount 筆）', name: 'StorageService');
     } catch (e) {
       dev.log('快照清理失敗（不影響主流程）: $e', name: 'StorageService', error: e);
     }

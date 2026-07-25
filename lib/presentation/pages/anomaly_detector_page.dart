@@ -38,14 +38,16 @@ class AnomalyDetectorPage extends StatefulWidget {
   final List<CategoryUiModel> listedCategories;
   final List<CategoryUiModel> otcCategories;
   final CategoryHistoryRepository historyRepository;
-  final String tradeDate;
+  final String listedDate; // TWSE 上市交易日
+  final String otcDate;    // TPEX 上櫃交易日
 
   const AnomalyDetectorPage({
     super.key,
     required this.listedCategories,
     required this.otcCategories,
     required this.historyRepository,
-    required this.tradeDate,
+    required this.listedDate,
+    required this.otcDate,
   });
 
   @override
@@ -53,8 +55,13 @@ class AnomalyDetectorPage extends StatefulWidget {
 }
 
 class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
-  List<_Anomaly> _inflows = [];
-  List<_Anomaly> _outflows = [];
+  // 上市異常清單
+  List<_Anomaly> _listedInflows  = [];
+  List<_Anomaly> _listedOutflows = [];
+  // 上櫃異常清單
+  List<_Anomaly> _otcInflows  = [];
+  List<_Anomaly> _otcOutflows = [];
+
   bool _isLoading = true;
   bool _hasEnoughHistory = false;
   int _totalAnalyzed = 0;
@@ -125,20 +132,22 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
 
     // 依 zScore 排序
     final sorted = [...anomalies]..sort((a, b) => b.zScore.compareTo(a.zScore));
+    final outflowsSorted = [...anomalies]..sort((a, b) => a.zScore.compareTo(b.zScore));
 
-    // 異常湧入：z > 0.8，取前 8
-    final inflows = sorted.where((a) => a.zScore > 0.8).take(8).toList();
+    // 全部異常清單
+    final inflows  = sorted.where((a) => a.zScore > 0.8).take(8).toList();
+    final outflows = outflowsSorted.where((a) => a.zScore < -0.8).take(8).toList();
 
-    // 異常流出：z < -0.8，從最低排起，取前 8
-    final outflowsSorted = [...anomalies]
-      ..sort((a, b) => a.zScore.compareTo(b.zScore));
-    final outflows =
-        outflowsSorted.where((a) => a.zScore < -0.8).take(8).toList();
+    // 依市場分流
+    final listedNames = widget.listedCategories.map((c) => c.name).toSet();
+    bool isListed(_Anomaly a) => listedNames.contains(a.category.name);
 
     if (mounted) {
       setState(() {
-        _inflows = inflows;
-        _outflows = outflows;
+        _listedInflows  = inflows.where(isListed).toList();
+        _listedOutflows = outflows.where(isListed).toList();
+        _otcInflows     = inflows.where((a) => !isListed(a)).toList();
+        _otcOutflows    = outflows.where((a) => !isListed(a)).toList();
         _hasEnoughHistory = anomalies.isNotEmpty;
         _totalAnalyzed = anomalies.length;
         _historyDaysAvailable = maxDays;
@@ -152,56 +161,91 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF3F6FB),
-      appBar: AppBar(
-        title: const Text(
-          '異常資金偵測器',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF3F6FB),
+        appBar: AppBar(
+          title: const Text(
+            '異常資金偵測器',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0,
+          bottom: const TabBar(
+            labelColor: Color(0xFF1A237E),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: Color(0xFF1A237E),
+            tabs: [
+              Tab(text: '上市'),
+              Tab(text: '上櫃'),
+            ],
+          ),
         ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : !_hasEnoughHistory
-                ? _buildNoHistoryState()
-                : _buildContent(),
+        body: SafeArea(
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : !_hasEnoughHistory
+                  ? _buildNoHistoryState()
+                  : TabBarView(
+                      children: [
+                        _buildMarketContent(
+                          inflows: _listedInflows,
+                          outflows: _listedOutflows,
+                          date: widget.listedDate,
+                          marketLabel: '上市',
+                        ),
+                        _buildMarketContent(
+                          inflows: _otcInflows,
+                          outflows: _otcOutflows,
+                          date: widget.otcDate,
+                          marketLabel: '上櫃',
+                        ),
+                      ],
+                    ),
+        ),
       ),
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildMarketContent({
+    required List<_Anomaly> inflows,
+    required List<_Anomaly> outflows,
+    required String date,
+    required String marketLabel,
+  }) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSummaryCard(),
+        _buildSummaryCard(date: date, marketLabel: marketLabel,
+            inflows: inflows, outflows: outflows),
         const SizedBox(height: 16),
 
-        if (_inflows.isNotEmpty) ...[
+        if (inflows.isNotEmpty) ...[
           _buildSectionHeader(
             '異常資金湧入',
             '今日趨勢強度顯著高於歷史均值',
             const Color(0xFFC62828),
             Icons.trending_up_rounded,
           ),
-          ..._inflows.map((a) => _buildAnomalyCard(context, a)),
+          ...inflows.map((a) => Builder(
+              builder: (ctx) => _buildAnomalyCard(ctx, a))),
           const SizedBox(height: 16),
         ],
 
-        if (_outflows.isNotEmpty) ...[
+        if (outflows.isNotEmpty) ...[
           _buildSectionHeader(
             '異常資金流出',
             '今日趨勢強度顯著低於歷史均值',
             const Color(0xFF2E7D32),
             Icons.trending_down_rounded,
           ),
-          ..._outflows.map((a) => _buildAnomalyCard(context, a)),
+          ...outflows.map((a) => Builder(
+              builder: (ctx) => _buildAnomalyCard(ctx, a))),
         ],
 
-        if (_inflows.isEmpty && _outflows.isEmpty) _buildNoAnomalyCard(),
+        if (inflows.isEmpty && outflows.isEmpty) _buildNoAnomalyCard(),
 
         const SizedBox(height: 20),
       ],
@@ -210,8 +254,13 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
 
   // ── 摘要卡 ─────────────────────────────────────────────────────────────────
 
-  Widget _buildSummaryCard() {
-    final dateLabel = _formatDate(widget.tradeDate);
+  Widget _buildSummaryCard({
+    required String date,
+    required String marketLabel,
+    required List<_Anomaly> inflows,
+    required List<_Anomaly> outflows,
+  }) {
+    final dateLabel = _formatDate(date);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -231,7 +280,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
               const Icon(Icons.radar_rounded, color: Colors.white70, size: 16),
               const SizedBox(width: 6),
               Text(
-                '偵測日期：$dateLabel',
+                '$marketLabel · $dateLabel',
                 style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
@@ -244,7 +293,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
               _buildStatChip('歷史基準', '$_historyDaysAvailable 日均值'),
               const SizedBox(width: 12),
               _buildStatChip('異常訊號',
-                  '${_inflows.length + _outflows.length} 個'),
+                  '${inflows.length + outflows.length} 個'),
             ],
           ),
           const SizedBox(height: 10),
