@@ -52,8 +52,7 @@ class _MainCategoryPageState extends State<MainCategoryPage> {
           _dbTrendCache[category.name] = scores;
         }
       }
-    } catch (e) {
-      debugPrint('撈取本地歷史數據失敗: $e');
+    } catch (_) {
     } finally {
       if (mounted) {
         setState(() {

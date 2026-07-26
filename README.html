@@ -1,0 +1,1076 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台股資金流向分析系統 — 技術文件</title>
+<style>
+/* ── Token system ──────────────────────────────────────────── */
+:root {
+  --ink:        #0F1724;
+  --ink-2:      #3D4F69;
+  --ink-3:      #64758B;
+  --surface:    #F6F9FD;
+  --surface-2:  #EDF1F7;
+  --surface-3:  #E2E9F3;
+  --border:     #D6DEE9;
+  --accent:     #1A6CE8;
+  --accent-bg:  #E8F0FD;
+  --listed:     #C8311A;
+  --listed-bg:  #FEF0ED;
+  --otc:        #1A5BB5;
+  --otc-bg:     #E6EEFA;
+  --green:      #1A7A45;
+  --green-bg:   #E6F5EC;
+  --code-bg:    #0D1117;
+  --code-text:  #C9D1D9;
+  --code-kw:    #79C0FF;
+  --code-ty:    #7EE787;
+  --code-str:   #A5D6FF;
+  --code-cm:    #6E7B8D;
+  --radius:     8px;
+  --sidebar-w:  260px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:       #E8EDF5;
+    --ink-2:     #A8B8CC;
+    --ink-3:     #6B7D93;
+    --surface:   #0D1520;
+    --surface-2: #141E2D;
+    --surface-3: #1C2A3C;
+    --border:    #2A3C52;
+    --accent:    #4B8EF0;
+    --accent-bg: #112140;
+    --listed:    #F08070;
+    --listed-bg: #2D1A15;
+    --otc:       #5A99E8;
+    --otc-bg:    #112240;
+    --green:     #5AC88A;
+    --green-bg:  #0E2A1C;
+    --code-bg:   #010409;
+  }
+}
+:root[data-theme="light"] {
+  --ink:#0F1724;--ink-2:#3D4F69;--ink-3:#64758B;
+  --surface:#F6F9FD;--surface-2:#EDF1F7;--surface-3:#E2E9F3;
+  --border:#D6DEE9;--accent:#1A6CE8;--accent-bg:#E8F0FD;
+  --listed:#C8311A;--listed-bg:#FEF0ED;--otc:#1A5BB5;--otc-bg:#E6EEFA;
+  --green:#1A7A45;--green-bg:#E6F5EC;--code-bg:#0D1117;
+}
+:root[data-theme="dark"] {
+  --ink:#E8EDF5;--ink-2:#A8B8CC;--ink-3:#6B7D93;
+  --surface:#0D1520;--surface-2:#141E2D;--surface-3:#1C2A3C;
+  --border:#2A3C52;--accent:#4B8EF0;--accent-bg:#112140;
+  --listed:#F08070;--listed-bg:#2D1A15;--otc:#5A99E8;--otc-bg:#112240;
+  --green:#5AC88A;--green-bg:#0E2A1C;--code-bg:#010409;
+}
+
+/* ── Reset / Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 14.5px;
+  line-height: 1.7;
+  color: var(--ink);
+  background: var(--surface);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, pre { font-family: 'Cascadia Code', 'Fira Mono', 'SF Mono', 'Consolas', monospace; }
+p { max-width: 72ch; }
+p + p { margin-top: .9em; }
+
+/* ── Layout ────────────────────────────────────────────────── */
+.layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  min-height: 100vh;
+  max-width: 1240px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+}
+
+/* ── Sidebar ────────────────────────────────────────────────── */
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 32px 0 32px 24px;
+  border-right: 1px solid var(--border);
+  background: var(--surface-2);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.sidebar-brand {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 20px;
+  padding-right: 16px;
+}
+.toc-section { margin-bottom: 20px; }
+.toc-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin-bottom: 6px;
+}
+.toc-link {
+  display: block;
+  font-size: 13px;
+  color: var(--ink-2);
+  padding: 3px 0;
+  border-left: 2px solid transparent;
+  padding-left: 10px;
+  margin-left: -12px;
+  transition: color .15s, border-color .15s;
+}
+.toc-link:hover { color: var(--accent); border-color: var(--accent); text-decoration: none; }
+.toc-link.sub { font-size: 12px; padding-left: 20px; margin-left: -12px; color: var(--ink-3); }
+.toc-link.sub:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Main content ────────────────────────────────────────────── */
+.main { padding: 48px 48px 80px; min-width: 0; }
+@media (max-width: 640px) { .main { padding: 24px 20px 60px; } }
+
+/* ── Page header ─────────────────────────────────────────────── */
+.page-header {
+  padding-bottom: 32px;
+  margin-bottom: 40px;
+  border-bottom: 1px solid var(--border);
+}
+.app-eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.app-title {
+  font-size: clamp(24px, 4vw, 38px);
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--ink);
+  letter-spacing: -.02em;
+  text-wrap: balance;
+  margin-bottom: 8px;
+}
+.app-subtitle {
+  font-size: 16px;
+  color: var(--ink-2);
+  margin-bottom: 20px;
+}
+.badge-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11.5px; font-weight: 600;
+  padding: 3px 10px; border-radius: 20px;
+  border: 1px solid;
+}
+.badge-platform { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+.badge-listed   { background: var(--listed-bg); color: var(--listed); border-color: var(--listed); }
+.badge-otc      { background: var(--otc-bg);    color: var(--otc);    border-color: var(--otc); }
+.badge-neutral  { background: var(--surface-3); color: var(--ink-2);  border-color: var(--border); }
+
+/* ── Section ──────────────────────────────────────────────────── */
+.section { margin-bottom: 52px; }
+.section-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+  color: var(--ink);
+  margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-title .num {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em;
+  color: var(--accent); background: var(--accent-bg);
+  padding: 2px 7px; border-radius: 4px;
+}
+.subsection { margin-bottom: 32px; }
+.subsection-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 10px;
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+}
+.subsection-title.listed { border-color: var(--listed); }
+.subsection-title.otc    { border-color: var(--otc); }
+h4 {
+  font-size: 13.5px; font-weight: 700;
+  color: var(--ink-2); margin: 16px 0 6px;
+  text-transform: uppercase; letter-spacing: .06em;
+}
+
+/* ── Cards ────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+.card.listed { border-left: 3px solid var(--listed); }
+.card.otc    { border-left: 3px solid var(--otc); }
+.card.accent { border-left: 3px solid var(--accent); }
+
+/* ── Feature grid ─────────────────────────────────────────────── */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.feature-card {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+}
+.feature-card .fc-label {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px;
+}
+.feature-card .fc-title {
+  font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 4px;
+}
+.feature-card .fc-desc { font-size: 12.5px; color: var(--ink-2); }
+
+/* ── Code blocks ──────────────────────────────────────────────── */
+.code-wrap { overflow-x: auto; margin: 12px 0; border-radius: var(--radius); }
+pre {
+  background: var(--code-bg);
+  color: var(--code-text);
+  font-size: 12.5px; line-height: 1.65;
+  padding: 16px 18px;
+  border-radius: var(--radius);
+  white-space: pre;
+  overflow-x: auto;
+}
+code:not(pre code) {
+  background: var(--surface-3);
+  color: var(--listed);
+  font-size: 12px;
+  padding: 1px 5px; border-radius: 3px;
+}
+.kw  { color: var(--code-kw); }
+.ty  { color: var(--code-ty); }
+.str { color: var(--code-str); }
+.cm  { color: var(--code-cm); font-style: italic; }
+
+/* ── Tables ───────────────────────────────────────────────────── */
+.table-wrap { overflow-x: auto; margin: 14px 0; }
+table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+th {
+  background: var(--surface-3); font-weight: 700; font-size: 11.5px;
+  text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-2); padding: 9px 12px;
+  text-align: left; border-bottom: 1px solid var(--border);
+}
+td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--ink); }
+tr:last-child td { border-bottom: none; }
+tr:nth-child(even) td { background: var(--surface-2); }
+
+/* ── Algo pseudocode ──────────────────────────────────────────── */
+.algo {
+  background: var(--code-bg); color: var(--code-text);
+  font-family: 'Cascadia Code','Fira Mono','SF Mono',monospace;
+  font-size: 12px; line-height: 1.75;
+  padding: 16px 18px; border-radius: var(--radius);
+  overflow-x: auto; margin: 12px 0;
+  white-space: pre;
+}
+.algo .hl { color: #FFD700; }
+.algo .gr { color: var(--code-ty); }
+.algo .re { color: #FF7B72; }
+.algo .bl { color: var(--code-kw); }
+
+/* ── Market chips ──────────────────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 4px;
+  vertical-align: middle; margin-left: 4px;
+}
+.chip-listed { background: var(--listed-bg); color: var(--listed); }
+.chip-otc    { background: var(--otc-bg);    color: var(--otc); }
+.chip-new    { background: var(--green-bg);  color: var(--green); }
+
+/* ── Drill-down ────────────────────────────────────────────────── */
+.drill {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  font-family: 'Cascadia Code','Fira Mono','SF Mono',monospace;
+  font-size: 12.5px; line-height: 2; color: var(--ink-2);
+  overflow-x: auto; white-space: pre;
+}
+.drill .hl { color: var(--accent); font-weight: 700; }
+
+/* ── Note / callout ───────────────────────────────────────────── */
+.note {
+  background: var(--accent-bg); border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 12px 16px; font-size: 13px; color: var(--ink);
+  margin: 14px 0;
+}
+.note.listed { background: var(--listed-bg); border-color: var(--listed); }
+.note.otc    { background: var(--otc-bg);    border-color: var(--otc); }
+.note strong { color: inherit; }
+
+/* ── Separator, list ──────────────────────────────────────────── */
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+ul, ol { padding-left: 20px; }
+li { margin-bottom: .3em; }
+
+/* ── Schema diagram ───────────────────────────────────────────── */
+.schema-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px; margin: 14px 0;
+}
+.schema-table {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.schema-table .st-head {
+  background: var(--surface-3); padding: 8px 12px;
+  font-size: 12px; font-weight: 700; color: var(--ink);
+}
+.schema-table .st-body { padding: 8px 12px; font-size: 11.5px; color: var(--ink-2); line-height: 1.8; }
+.schema-table.keep .st-head { background: var(--green-bg); color: var(--green); }
+.schema-table.history .st-head { background: var(--listed-bg); color: var(--listed); }
+
+/* ── Theme toggle ─────────────────────────────────────────────── */
+.theme-toggle {
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 12px; color: var(--ink-2); cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,.12); z-index: 100;
+  transition: background .2s;
+}
+.theme-toggle:hover { background: var(--surface-3); }
+
+/* ── Market arch diagram ─────────────────────────────────────── */
+.arch-row {
+  display: grid;
+  grid-template-columns: 1fr 36px 1fr;
+  align-items: center; gap: 0;
+  margin-bottom: 10px;
+}
+.arch-box {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 14px;
+  font-size: 12.5px; text-align: center;
+}
+.arch-box.listed { border-color: var(--listed); color: var(--listed); background: var(--listed-bg); }
+.arch-box.otc    { border-color: var(--otc);    color: var(--otc);    background: var(--otc-bg); }
+.arch-box.merged { border-color: var(--accent); color: var(--accent); background: var(--accent-bg); }
+.arch-arrow { text-align: center; color: var(--ink-3); font-size: 18px; }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="(function(){var r=document.documentElement,t=r.getAttribute('data-theme');r.setAttribute('data-theme',t==='dark'?'light':'dark')})()">切換主題</button>
+
+<div class="layout">
+
+<!-- ── Sidebar TOC ── -->
+<aside class="sidebar">
+  <div class="sidebar-brand">台股資金流向</div>
+  <div class="toc-section">
+    <div class="toc-label">概覽</div>
+    <a class="toc-link" href="#intro">專案簡介</a>
+    <a class="toc-link" href="#features">功能總覽</a>
+    <a class="toc-link sub" href="#feat-home">大盤診斷</a>
+    <a class="toc-link sub" href="#feat-anomaly">異常偵測</a>
+    <a class="toc-link sub" href="#feat-strategy">動量決策</a>
+    <a class="toc-link sub" href="#feat-leading">領先雷達</a>
+    <a class="toc-link sub" href="#feat-watchlist">觀察清單</a>
+    <a class="toc-link sub" href="#feat-notify">訊號通知</a>
+    <a class="toc-link sub" href="#feat-institutional">三大法人</a>
+    <a class="toc-link sub" href="#feat-chart">板塊走勢圖</a>
+    <a class="toc-link sub" href="#feat-mtf">多週期確認</a>
+    <a class="toc-link sub" href="#feat-scanner">個股掃描</a>
+    <a class="toc-link" href="#drilldown">鑽入導覽</a>
+  </div>
+  <div class="toc-section">
+    <div class="toc-label">演算引擎</div>
+    <a class="toc-link sub" href="#eng-capitalflow">CapitalFlowEngine</a>
+    <a class="toc-link sub" href="#eng-mainstream">MainstreamEngine</a>
+    <a class="toc-link sub" href="#eng-trend">TrendMetricsEngine</a>
+    <a class="toc-link sub" href="#eng-lifecycle">LifecycleEngine</a>
+    <a class="toc-link sub" href="#eng-momentum">MomentumStrategy</a>
+    <a class="toc-link sub" href="#eng-rotation">RotationEngine</a>
+    <a class="toc-link sub" href="#eng-leading">RotationLeadingAnalyser</a>
+    <a class="toc-link sub" href="#eng-sentiment">MarketSentimentEngine</a>
+    <a class="toc-link sub" href="#eng-anomaly">AnomalyDetector</a>
+    <a class="toc-link sub" href="#eng-mtf">MultiTimeframeConfirmBadge</a>
+    <a class="toc-link sub" href="#eng-scanner">StockScanner</a>
+  </div>
+  <div class="toc-section">
+    <div class="toc-label">架構</div>
+    <a class="toc-link" href="#market-split">上市 / 上櫃分離架構 <span class="chip chip-new">NEW</span></a>
+    <a class="toc-link" href="#database">資料庫設計</a>
+    <a class="toc-link" href="#tech">技術棧</a>
+    <a class="toc-link" href="#structure">專案結構</a>
+    <a class="toc-link" href="#install">安裝與執行</a>
+    <a class="toc-link" href="#disclaimer">免責聲明</a>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+
+<!-- Header -->
+<header class="page-header">
+  <div class="app-eyebrow">Flutter · iOS / Android</div>
+  <h1 class="app-title">台股資金流向分析系統</h1>
+  <p class="app-subtitle">Tw Stock Capital Flow — 板塊輪動追蹤與動量決策工具</p>
+  <div class="badge-row">
+    <span class="badge badge-platform">Flutter 3.x / Dart 3</span>
+    <span class="badge badge-listed">TWSE 上市</span>
+    <span class="badge badge-otc">TPEX 上櫃</span>
+    <span class="badge badge-neutral">Schema V6</span>
+    <span class="badge badge-neutral">11 演算引擎</span>
+  </div>
+</header>
+
+<!-- ── 專案簡介 ── -->
+<section class="section" id="intro">
+  <h2 class="section-title">專案簡介</h2>
+  <p>本 App 是一套專為台灣股市一般投資人設計的<strong>板塊資金流向監控與量化決策系統</strong>。</p>
+  <p>傳統看盤工具只告訴你今天哪支股票漲最多，但無法回答：</p>
+  <div style="margin:16px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
+    <div class="card accent"><strong>主力集中哪裡？</strong><br><span style="font-size:13px;color:var(--ink-2)">今日資金正往哪個板塊集中</span></div>
+    <div class="card accent"><strong>週期在哪？</strong><br><span style="font-size:13px;color:var(--ink-2)">上漲是點火還是即將出貨</span></div>
+    <div class="card accent"><strong>潛伏訊號？</strong><br><span style="font-size:13px;color:var(--ink-2)">股價底部但主力已悄悄建倉</span></div>
+    <div class="card accent"><strong>今日異常？</strong><br><span style="font-size:13px;color:var(--ink-2)">統計上顯著異常的資金動向</span></div>
+  </div>
+  <div class="note" style="margin-top:18px">資料來源：臺灣證券交易所（TWSE）/ 證券櫃檯買賣中心（TPEX）開放資料。所有運算皆在設備本地端執行，不上傳任何個人資料。</div>
+</section>
+
+<!-- ── 功能總覽 ── -->
+<section class="section" id="features">
+  <h2 class="section-title">功能總覽</h2>
+
+  <div class="subsection" id="feat-home">
+    <h3 class="subsection-title">大盤診斷 <span style="font-size:12px;font-weight:400;color:var(--ink-3)">Tab 0</span></h3>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fc-label">今日訊號快照</div><div class="fc-title">BUY / HOLD / SELL 計數</div><div class="fc-desc">全市場板塊狀態圓圈 + 點火期板塊清單</div></div>
+      <div class="feature-card"><div class="fc-label">個人觀察清單</div><div class="fc-title">即時訊號監控</div><div class="fc-desc">StreamBuilder 即時更新，星號快速收藏/取消</div></div>
+      <div class="feature-card"><div class="fc-label">大盤多空診斷</div><div class="fc-title">上市 / 上櫃分開顯示</div><div class="fc-desc">各市場獨立日期標籤、漲跌家數、分數</div></div>
+      <div class="feature-card"><div class="fc-label">三大法人籌碼</div><div class="fc-title">外資 / 投信 / 自營商</div><div class="fc-desc">差額（億元）+ 30 日歷史流向圖</div></div>
+    </div>
+    <div class="note"><strong>上市 / 上櫃日期獨立</strong>：首頁各市場卡片各自顯示對應交易日，不再合用單一日期標籤。詳見 <a href="#market-split">上市/上櫃分離架構</a>。</div>
+  </div>
+
+  <div class="subsection" id="feat-anomaly">
+    <h3 class="subsection-title">異常偵測器 <span style="font-size:12px;font-weight:400;color:var(--ink-3)">Tab 1</span></h3>
+    <p>以 <strong>Z-score 統計分析</strong>識別今日資金動向在歷史基準上「顯著異常」的板塊。</p>
+    <div class="card" style="margin-top:12px">
+      <h4>運算邏輯</h4>
+      <div class="algo">載入最近 35 天歷史 → 至少 5 天才分析
+
+<span class="hl">Z = ( today_trendStrength − μ ) / σ</span>
+
+<span class="gr">Z > +0.8</span>  → 異常資金湧入（取前 8 名，按 Z 值降序）
+<span class="re">Z < −0.8</span>  → 異常資金流出（取前 8 名，按 Z 值升序）</div>
+      <h4>Tab 分市場</h4>
+      <p style="font-size:13px">上市 Tab <span class="chip chip-listed">上市</span> 與 上櫃 Tab <span class="chip chip-otc">上櫃</span> 分別計算，各自顯示對應交易日。</p>
+    </div>
+  </div>
+
+  <div class="subsection" id="feat-strategy">
+    <h3 class="subsection-title">動量決策 <span style="font-size:12px;font-weight:400;color:var(--ink-3)">Tab 2</span></h3>
+    <p>依據七期生命週期理論自動分類，給出 BUY / HOLD / SELL / 觀望訊號。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>訊號</th><th>觸發條件</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:var(--green)">🟢 BUY</strong></td><td>點火期+熱錢流入+正加速；或擴散/主升期+熱錢+擴散度≥50%</td></tr>
+          <tr><td><strong style="color:#B7791F">🟡 HOLD</strong></td><td>熱錢仍在 + 延續力≥40，尚未達加碼條件</td></tr>
+          <tr><td><strong style="color:var(--listed)">🔴 SELL</strong></td><td>結構性（出貨/退潮/死亡期）；或熱錢撤+延續力&lt;40 雙殺</td></tr>
+          <tr><td><strong style="color:var(--ink-3)">⚪ 觀望</strong></td><td>盤整期 / 訊號不明確</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note"><strong>上市 / 上櫃 Tab 完全獨立</strong>：各市場由獨立 LifecycleEngine 計算，點擊卡片後導航至對應市場的板塊頁。</div>
+  </div>
+
+  <div class="subsection" id="feat-leading">
+    <h3 class="subsection-title">領先雷達 <span style="font-size:12px;font-weight:400;color:var(--ink-3)">Tab 3</span></h3>
+    <p>透過輪動淨動能指數（RNM）辨識「股價在底部、但主力已悄悄建倉」的板塊。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>評級</th><th>條件</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>🟢 強力吸籌</td><td>RNM ≥ 45 且 feederCount ≥ 2</td><td>多方資金同時灌入</td></tr>
+        <tr><td>🍏 溫和流入</td><td>RNM > 15</td><td>資金穩步潛伏</td></tr>
+        <tr><td>⚪ 中性觀望</td><td>−15 ≤ RNM ≤ 15</td><td>無明顯搬移</td></tr>
+        <tr><td>🟠 派發風險</td><td>RNM &lt; −15</td><td>主力逐步派發</td></tr>
+        <tr><td>🔴 大量出逃</td><td>RNM ≤ −45</td><td>資金不計成本被抽走</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="subsection" id="feat-watchlist">
+    <h3 class="subsection-title">觀察清單（Watchlist）</h3>
+    <ul>
+      <li>在動量決策或領先雷達任何卡片右上角點擊 ⭐ 加入收藏</li>
+      <li>首頁「我的觀察清單」即時顯示所有關注板塊的當前訊號</li>
+      <li>取消收藏時自動清除訊號歷史快照</li>
+      <li>持久化於 SQLite <code>watchlist</code> 表，App 重啟後保留</li>
+    </ul>
+  </div>
+
+  <div class="subsection" id="feat-notify">
+    <h3 class="subsection-title">訊號異動通知</h3>
+    <p>每次開啟 App 演算完成後自動執行，同時觸發 App 內 Dialog 與系統本地推播通知。</p>
+    <ol style="margin-top:8px">
+      <li>讀取個人觀察清單；若清單為空，<strong>完全跳過（零額外運算）</strong></li>
+      <li>載入 <code>signal_snapshot</code> 表的上次訊號記錄</li>
+      <li>重新計算今日訊號，偵測升級（觀望→買進）或降級（持股→出清）</li>
+      <li>儲存今日訊號作為下次比對基準</li>
+      <li>若有異動：彈出 App 內 Dialog + 推送系統本地通知（iOS / Android）</li>
+    </ol>
+  </div>
+
+  <div class="subsection" id="feat-institutional">
+    <h3 class="subsection-title">三大法人籌碼與歷史流向圖</h3>
+    <p>直接呼叫 TWSE <code>BFI82U</code> API，不依賴第三方服務。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>分組</th><th>組成來源</th></tr></thead>
+      <tbody>
+        <tr><td>外資</td><td>外資及陸資（不含外資自營商）+ 外資自營商</td></tr>
+        <tr><td>投信</td><td>投信</td></tr>
+        <tr><td>自營商</td><td>自營商（自行買賣）+ 自營商（避險）</td></tr>
+        <tr><td>三大合計</td><td>API 合計行（與 TWSE 官方一致）</td></tr>
+      </tbody>
+    </table></div>
+    <ul style="margin-top:8px">
+      <li>民國年（7碼 YYYMMDD）自動轉換為西元年（8碼 YYYYMMDD）</li>
+      <li>Fallback：當日無資料時往前找最多 5 個日曆日</li>
+      <li>歷史以 <code>institutional_flow_history.json</code> 儲存，最多 30 筆</li>
+      <li>色彩慣例：<span style="color:var(--listed);font-weight:700">紅=買超</span> / <span style="color:var(--green);font-weight:700">綠=賣超</span>（台股慣例）</li>
+    </ul>
+  </div>
+
+  <div class="subsection" id="feat-chart">
+    <h3 class="subsection-title">板塊走勢互動圖</h3>
+    <p>細類板塊頁頂部，近 30 日互動折線圖，支援 5 種指標即時切換。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>指標</th><th>欄位</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>趨勢強度</td><td><code>trendStrength</code></td><td>多日複合指標，反映板塊中期強弱</td></tr>
+        <tr><td>資金流分</td><td><code>score</code></td><td>當日資金流原始分數</td></tr>
+        <tr><td>持續力</td><td><code>persistence</code></td><td>主力持倉延續強度</td></tr>
+        <tr><td>上漲占比</td><td><code>riseCount/totalCount×100</code></td><td>板塊個股多空廣度</td></tr>
+        <tr><td>累積走向</td><td><code>Σ trendStrength</code></td><td>觀察中期方向漂移</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="subsection" id="feat-mtf">
+    <h3 class="subsection-title">多週期訊號確認</h3>
+    <p>整合在每張動量決策信號卡片中，要求「短周期（日線）訊號」與「中周期（週線）趨勢」同向才算高勝率進場點。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>徽章</th><th>意義</th></tr></thead>
+      <tbody>
+        <tr><td>✅ 週期確認</td><td>BUY 訊號 + 近週趨勢向上，雙週期共振</td></tr>
+        <tr><td>⚠️ 逆週線</td><td>BUY 訊號 + 近週趨勢仍走弱，可能為短線反彈</td></tr>
+        <tr><td>週線降溫</td><td>HOLD 訊號 + 近週趨勢惡化，持股需注意</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="subsection" id="feat-scanner">
+    <h3 class="subsection-title">個股掃描器</h3>
+    <p>整合在細類板塊頁（SubCategoryPage）的板塊個股排行卡片，以純日內資料即時計算。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>準則</th><th>判斷方式</th><th>排除的假訊號</th></tr></thead>
+      <tbody>
+        <tr><td>今日上漲</td><td><code>changePercent > 0</code></td><td>排除下跌日虛假形態</td></tr>
+        <tr><td>強收 ≥ 70%</td><td><code>(close−low)/(high−low) ≥ 0.7</code></td><td>排除上影線陷阱型</td></tr>
+        <tr><td>日內向上</td><td><code>close > open</code></td><td>排除開高走低的假漲</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ── 鑽入導覽 ── -->
+<section class="section" id="drilldown">
+  <h2 class="section-title">鑽入導覽</h2>
+  <div class="drill"><span class="hl">大類股列表</span> (MainCategoryPage)
+    ↓ 點擊板塊
+<span class="hl">細類股列表</span> (SubCategoryPage)
+    ├── 頂部：30日互動走勢圖（fl_chart，5種指標）
+    ├── 中段：板塊個股排行 + 個股掃描器
+    └── 下方：細類股卡片列表
+         ↓ 點擊細類股
+成分股清單 (Bottom Sheet)
+    ↓ 點擊個股
+Yahoo 股市個股頁面（外部瀏覽器）</div>
+  <p style="margin-top:12px;font-size:13px;color:var(--ink-2)">動量決策、領先雷達、異常偵測器的卡片點擊後均走相同鑽入路徑。</p>
+</section>
+
+<!-- ── 核心演算引擎 ── -->
+<section class="section" id="engines">
+  <h2 class="section-title">核心演算引擎</h2>
+
+  <!-- CapitalFlowEngine -->
+  <div class="subsection" id="eng-capitalflow">
+    <h3 class="subsection-title">1. CapitalFlowEngine — 個股資金流引擎</h3>
+    <p>計算每支個股今日資金流分數，作為板塊層級計算的原子輸入。</p>
+    <div class="code-wrap"><div class="algo"><span class="cm">── 成交量比（volumeRatio）─────────────────────────────</span>
+volumeRatio   = today.value / avg(N-day value)
+
+<span class="cm">── 動能分數（momentumScore）──────────────────────────</span>
+volatility    = (high − low) / close × 100
+momentumScore = changePercent × 0.7 + volatility × 0.3
+
+<span class="cm">── 延續分數（persistenceScore）───────────────────────</span>
+persistenceScore = today.changePercent × (positiveDays / totalDays)
+
+<span class="cm">── 綜合資金流分數（flowScore）────────────────────────</span>
+<span class="hl">flowScore = volumeRatio × 0.35
+          + momentumScore × 0.40
+          + persistenceScore × 0.25</span>
+
+<span class="cm">── 流向判定 ────────────────────────────────────────────</span>
+<span class="gr">flowScore > 1</span>   → inflow
+<span class="re">flowScore < −1</span>  → outflow
+              → neutral</div></div>
+  </div>
+
+  <!-- MainstreamEngine -->
+  <div class="subsection" id="eng-mainstream">
+    <h3 class="subsection-title">2. MainstreamEngine — 主流方向引擎</h3>
+    <p>聚合個股至<strong>板塊層級</strong>，計算主流資金強度分數（需至少 3 天資料計算延續力）。</p>
+    <div class="note">各市場獨立運行：上市 <span class="chip chip-listed">上市</span> 的 MainstreamEngine 只處理上市股票，上櫃 <span class="chip chip-otc">上櫃</span> 同理，確保跨市場板塊名稱不互相干擾。</div>
+    <div class="code-wrap"><div class="algo">flowScore        = mean( changePercent × value/億, per stock )
+persistenceScore = day1×0.5 + day2×0.3 + day3×0.2  <span class="cm">(近3日衰減加權)</span>
+diffusionScore   = riseCount / totalCount × 100
+leaderScore      = leader.value/億 × 0.6 + leader.changePercent × 0.4
+
+<span class="hl">mainstreamScore  = flowScore×0.35 + persistenceScore×0.30
+                 + diffusionScore×0.20 + leaderScore×0.15</span>
+
+hotMoneyIn = flowScore > 0 AND diffusionScore > 45</div></div>
+  </div>
+
+  <!-- TrendMetricsEngine -->
+  <div class="subsection" id="eng-trend">
+    <h3 class="subsection-title">3. TrendMetricsEngine — 趨勢指標引擎</h3>
+    <p>對任意時序數列計算四個趨勢特徵，供 LifecycleEngine 使用。</p>
+    <div class="code-wrap"><div class="algo">slope        = vₙ − v₀                              <span class="cm">(頭尾差)</span>
+acceleration = (vₙ − mid) − (mid − v₀)              <span class="cm">(後段加速 − 前段加速)</span>
+volatility   = mean( |vᵢ − avg| )
+stability    = 100 − volatility</div></div>
+  </div>
+
+  <!-- LifecycleEngine -->
+  <div class="subsection" id="eng-lifecycle">
+    <h3 class="subsection-title">4. LifecycleEngine — 生命週期引擎</h3>
+    <p>對每個板塊建立3條時間序列（分數/流量/擴散），透過 TrendMetricsEngine 取得趨勢特徵，依規則判定所屬生命週期階段。</p>
+    <div class="note"><strong>市場獨立計算</strong>：上市與上櫃各自有一個獨立的 LifecycleEngine 實例（由 <code>_runLifecycleForMarket</code> 在 Isolate 中執行），避免同名板塊跨市場干擾。詳見 <a href="#market-split">上市/上櫃分離架構</a>。</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>優先</th><th>階段</th><th>判斷條件（簡）</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>死亡 (Dead)</td><td>score &lt; 10 AND slope &lt; 0 AND flow &lt; 0</td></tr>
+        <tr><td>2</td><td>退潮 (Decline)</td><td>slope &lt; 0 AND accel &lt; 0 AND flow &lt; 0</td></tr>
+        <tr><td>3</td><td>出貨 (Distribution)</td><td>score &gt; 70 AND accel &lt; 0 AND volatility &gt; 15</td></tr>
+        <tr><td>4</td><td>狂熱 (Euphoric)</td><td>score &gt; 85 AND diffusion &gt; 75 AND volatility &gt; 20</td></tr>
+        <tr><td>5</td><td>主升 (Markup)</td><td>score &gt; 60 AND slope &gt; 20 AND stability &gt; 70</td></tr>
+        <tr><td>6</td><td>擴散 (Expansion)</td><td>diffusion &gt; 45 AND slope &gt; 10 AND flowTrend.slope &gt; 0</td></tr>
+        <tr><td>7</td><td>點火 (Ignition)</td><td>accel &gt; 5 OR flowTrend.accel &gt; 0</td></tr>
+        <tr><td>8</td><td>盤整 (Consolidation)</td><td>（以上條件皆不符）</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <!-- MomentumStrategy -->
+  <div class="subsection" id="eng-momentum">
+    <h3 class="subsection-title">5. MomentumStrategy — 動量決策策略</h3>
+    <div class="code-wrap"><div class="algo"><span class="cm">① 結構性 SELL（最高優先，無條件出清）</span>
+   stage ∈ {distribution, decline, dead}
+
+<span class="cm">② BUY — 點火試單</span>
+   stage == ignition AND hotMoneyIn AND acceleration > 0
+
+<span class="cm">③ BUY — 主升全面加碼</span>
+   stage ∈ {expansion, markup} AND hotMoneyIn AND diffusion ≥ 50.0
+
+<span class="cm">④ HOLD — 鎖籌續抱</span>
+   hotMoneyIn AND persistence ≥ 40.0
+
+<span class="cm">⑤ SELL — 動能渙散（雙殺條件）</span>
+   !hotMoneyIn AND persistence < 40.0
+
+<span class="cm">⑥ NEUTRAL — 盤整觀望</span></div></div>
+    <p><small>關鍵設計：SELL 需<strong>兩項同時惡化</strong>，避免在橫盤整理時誤殺部位。</small></p>
+  </div>
+
+  <!-- RotationEngine -->
+  <div class="subsection" id="eng-rotation">
+    <h3 class="subsection-title">6. RotationEngine — 輪動引擎</h3>
+    <p>比較今日與昨日各板塊資金流分，計算資金在板塊間的搬移路徑。</p>
+    <div class="code-wrap"><div class="algo">diff = todayScore − yesterdayScore
+<span class="gr">diff > 0</span> → 流入板塊   <span class="re">diff < 0</span> → 流出板塊
+
+<span class="hl">rotationScore = ( |outflow_diff| + |inflow_diff| ) / 2</span></div></div>
+  </div>
+
+  <!-- RotationLeadingAnalyser -->
+  <div class="subsection" id="eng-leading">
+    <h3 class="subsection-title">7. RotationLeadingAnalyser — 領先分析器</h3>
+    <div class="code-wrap"><div class="algo">inflowSum   = Σ rotationScore（此板塊為流入方）
+outflowSum  = Σ rotationScore（此板塊為流出方）
+feederCount = 有多少不同板塊正在向此板塊輸血
+
+<span class="hl">RNM = inflowSum − outflowSum</span>
+
+RNM ≥ 45 AND feederCount ≥ 2 → 🟢 強力吸籌
+RNM > 15                      → 🍏 溫和流入
+−15 ≤ RNM ≤ 15               → ⚪ 中性觀望
+RNM < −15                     → 🟠 派發風險
+RNM ≤ −45                     → 🔴 大量出逃</div></div>
+  </div>
+
+  <!-- MarketSentimentEngine -->
+  <div class="subsection" id="eng-sentiment">
+    <h3 class="subsection-title">8. MarketSentimentEngine — 市場情緒引擎</h3>
+    <div class="code-wrap"><div class="algo">hotMoneyStrength = mean( value/億 × changePercent, per stock )
+
+<span class="hl">score = riseRatio × 30
+      + strongCategoryCount × 8
+      + mainstreamAverage × 0.35
+      + hotMoneyStrength × 0.25</span>
+
+score ≥ 85 → 過熱警惕   score ≥ 65 → 資金樂觀
+score ≥ 40 → 中性觀望   score ≥ 20 → 偏空悲觀   else → 市場恐慌</div></div>
+  </div>
+
+  <!-- AnomalyDetector -->
+  <div class="subsection" id="eng-anomaly">
+    <h3 class="subsection-title">9. AnomalyDetector — 異常偵測（Z-score）</h3>
+    <div class="code-wrap"><div class="algo">μ = mean( trendStrength, 最近 N 天 )
+σ = std ( trendStrength, 最近 N 天 )
+
+<span class="hl">Z = ( today_trendStrength − μ ) / σ</span>
+
+<span class="gr">Z > +0.8</span>  → 異常資金湧入（取前 8 名）
+<span class="re">Z < −0.8</span>  → 異常資金流出（取前 8 名）
+
+最少樣本：≥ 5 天   最大回溯：35 天</div></div>
+    <div class="note"><strong>市場歸類修正</strong>：以 object identity（<code>CategoryUiModel</code> 物件參考）而非名稱字串判斷上市/上櫃，確保同名板塊（如「半導體業」）正確分流。</div>
+  </div>
+
+  <!-- MultiTimeframeConfirmBadge -->
+  <div class="subsection" id="eng-mtf">
+    <h3 class="subsection-title">10. MultiTimeframeConfirmBadge — 多週期訊號確認</h3>
+    <div class="code-wrap"><div class="algo">scores   = getCategoryTrend(limit: 5)   <span class="cm">// 由舊到新</span>
+recentAvg = ( scores[n-1] + scores[n-2] ) / 2
+olderAvg  = mean( scores[0 .. n-3] )
+<span class="hl">weeklyUp  = recentAvg > olderAvg</span>
+
+BUY  AND  weeklyUp → ✅ 週期確認
+BUY  AND !weeklyUp → ⚠️ 逆週線
+HOLD AND !weeklyUp → 週線降溫</div></div>
+  </div>
+
+  <!-- StockScanner -->
+  <div class="subsection" id="eng-scanner">
+    <h3 class="subsection-title">11. StockScanner — 個股掃描器</h3>
+    <div class="code-wrap"><div class="algo">closePosition  = (close − low) / (high − low)
+intradayReturn = (close − open) / open × 100
+
+<span class="hl">命中 = changePercent > 0
+     AND closePosition ≥ 0.7
+     AND intradayReturn > 0</span></div></div>
+  </div>
+</section>
+
+<!-- ── 上市/上櫃分離架構 (NEW) ── -->
+<section class="section" id="market-split">
+  <h2 class="section-title">上市 / 上櫃分離架構 <span class="chip chip-new">V6 新增</span></h2>
+
+  <div class="note"><strong>背景</strong>：TWSE（上市）與 TPEX（上櫃）API 更新時間不一致，往往差一個交易日。舊版以單一日期記錄兩市場，導致 SQLite 日期標籤混亂、Tab UI 資料互相干擾。</div>
+
+  <div class="subsection">
+    <h3 class="subsection-title listed">快照檔案格式</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="card listed">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--listed);margin-bottom:6px">上市 TWSE</div>
+        <code style="color:var(--listed)">listed_1150722.json</code><br>
+        <span style="font-size:12px;color:var(--ink-2)">只包含 <code>market == listed</code> 的股票</span>
+      </div>
+      <div class="card otc">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--otc);margin-bottom:6px">上櫃 TPEX</div>
+        <code style="color:var(--otc)">otc_1150723.json</code><br>
+        <span style="font-size:12px;color:var(--ink-2)">只包含 <code>market == otc</code> 的股票</span>
+      </div>
+    </div>
+    <p>讀取時兩檔合併為單一 <code>StockDaySnapshot</code> 供分析引擎使用。舊格式 <code>YYYMMDD.json</code>（無前綴）透過 fallback 機制向下相容，升級後第一次啟動不會空白。</p>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">日期欄位拆分</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>欄位</th><th>說明</th><th>使用於</th></tr></thead>
+      <tbody>
+        <tr><td><code>listedDate</code></td><td>TWSE 上市交易日（YYYMMDD）</td><td>首頁上市卡片、SQLite listed 寫入、Tab 日期標籤</td></tr>
+        <tr><td><code>otcDate</code></td><td>TPEX 上櫃交易日（YYYMMDD）</td><td>首頁上櫃卡片、SQLite OTC 寫入、Tab 日期標籤</td></tr>
+        <tr><td><code>date</code></td><td>相容欄位 = max(listed, otc)</td><td>舊版快取讀取時的 fallback</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">BootstrapAnalyzer 並行計算圖</h3>
+    <div class="code-wrap"><div class="algo"><span class="cm">Phase 1（並行，5 個 Isolate）</span>
+  <span class="chip chip-listed">上市</span> _runLifecycleForMarket(listed) ─────────────┐
+  <span class="chip chip-otc">上櫃</span> _runLifecycleForMarket(otc)    ─────────────┤
+  _runCapitalFlow(snapshots)   ───────────────────┤ → AppBootstrapResult
+  _runMainstream(snapshots)    ───────────────────┤
+  _runRotation(snapshots)      ───────────────────┘
+
+<span class="cm">Phase 2（並行，2 個 Isolate，依賴 Phase 1 的 mainstreams）</span>
+  _runLifecycle(snapshots, mainstreams)   <span class="cm">← 混合，供首頁訊號用</span>
+  _runSentiment(snapshots, mainstreams)</div></div>
+    <div class="note"><strong>為何需要獨立週期計算？</strong> TWSE 與 TPEX 使用相同的板塊分類名稱（如「半導體業」同時出現在上市與上櫃）。若混合計算後以名稱過濾，同名板塊會同時進入兩個 Tab。獨立計算後，每個 Tab 只含該市場的板塊資料，點擊導航也只開啟該市場的 CategoryUiModel。</div>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">SQLite Migration（Schema V6）</h3>
+    <p>升級至 V6 時，四張歷史表會被清空（watchlist 與 signal_snapshot 保留），讓 App 從當天起重新累積日期標籤正確的歷史資料。</p>
+    <div class="code-wrap"><pre><span class="kw">if</span> (from &lt; 6) {
+  <span class="cm">// 清除舊的日期標籤錯誤資料；watchlist / signal_snapshot 不受影響</span>
+  <span class="kw">await</span> delete(categoryHistoryTable).go();
+  <span class="kw">await</span> delete(mainstreamHistoryTable).go();
+  <span class="kw">await</span> delete(lifecycleHistoryTable).go();
+  <span class="kw">await</span> delete(rotationHistoryTable).go();
+}</pre></div>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">Tab 市場資料正確分流</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>頁面</th><th>修正前</th><th>修正後</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>StrategyDashboardPage</td>
+          <td>以板塊名稱字串過濾 lifecycles，同名板塊進兩個 Tab</td>
+          <td>上市/上櫃各自由獨立 LifecycleEngine 計算，直接使用 <code>listedLifecycles</code> / <code>otcLifecycles</code></td>
+        </tr>
+        <tr>
+          <td>AnomalyDetectorPage</td>
+          <td>以 <code>c.name</code> 字串比對歸類市場</td>
+          <td>以 <code>CategoryUiModel</code> object identity 比對，精確區分同名板塊</td>
+        </tr>
+        <tr>
+          <td>卡片導航</td>
+          <td><code>_findCategory()</code> 搜尋合併清單，永遠回傳上市版本</td>
+          <td><code>_findCategoryIn(name, marketCategories)</code> 只在當前市場清單中查找</td>
+        </tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ── 資料庫設計 ── -->
+<section class="section" id="database">
+  <h2 class="section-title">資料庫設計</h2>
+  <p>使用 <strong>Drift（SQLite ORM）</strong>持久化，共 <strong>6 張表</strong>，Schema V6：</p>
+  <div class="schema-grid">
+    <div class="schema-table history">
+      <div class="st-head">category_history</div>
+      <div class="st-body">每日板塊歷史快照<br><code>(tradeDate, categoryName)</code><br>保留 365 天</div>
+    </div>
+    <div class="schema-table history">
+      <div class="st-head">mainstream_history</div>
+      <div class="st-body">每日主流排行<br><code>(tradeDate, categoryName)</code><br>保留 365 天</div>
+    </div>
+    <div class="schema-table history">
+      <div class="st-head">lifecycle_history</div>
+      <div class="st-body">每日生命週期階段<br><code>(tradeDate, categoryName)</code><br>保留 365 天</div>
+    </div>
+    <div class="schema-table history">
+      <div class="st-head">rotation_history</div>
+      <div class="st-body">每日輪動路徑<br><code>(tradeDate, from, to)</code><br>保留 365 天</div>
+    </div>
+    <div class="schema-table keep">
+      <div class="st-head">watchlist</div>
+      <div class="st-body">個人觀察清單<br><code>(categoryName)</code><br>永久保留</div>
+    </div>
+    <div class="schema-table keep">
+      <div class="st-head">signal_snapshot</div>
+      <div class="st-body">最近一次訊號快照<br><code>(categoryName)</code><br>隨收藏移除</div>
+    </div>
+  </div>
+
+  <h4 style="margin-top:24px">JSON 本地檔案（非 SQLite）</h4>
+  <div class="table-wrap"><table>
+    <thead><tr><th>檔案</th><th>說明</th><th>保留</th></tr></thead>
+    <tbody>
+      <tr><td><code>listed_YYYMMDD.json</code> <span class="chip chip-listed">上市</span></td><td>上市個股快照（新格式）</td><td>最近 7 天</td></tr>
+      <tr><td><code>otc_YYYMMDD.json</code> <span class="chip chip-otc">上櫃</span></td><td>上櫃個股快照（新格式）</td><td>最近 7 天</td></tr>
+      <tr><td><code>YYYMMDD.json</code></td><td>舊格式（向下相容，逐步淘汰）</td><td>最近 7 天</td></tr>
+      <tr><td><code>bootstrap_cache_YYYMMDD.json</code></td><td>啟動分析結果快取（離線防禦）</td><td>最近 3 份</td></tr>
+      <tr><td><code>institutional_flow_history.json</code></td><td>三大法人 30 日流向歷史</td><td>最近 30 筆</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ── 技術棧 ── -->
+<section class="section" id="tech">
+  <h2 class="section-title">技術棧</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>類別</th><th>套件 / 技術</th></tr></thead>
+    <tbody>
+      <tr><td>框架</td><td>Flutter 3.x / Dart SDK ^3.11.5</td></tr>
+      <tr><td>本地資料庫</td><td>Drift 2.28.1（SQLite ORM，響應式 Stream）</td></tr>
+      <tr><td>圖表</td><td>fl_chart 1.2.0（互動折線圖 + 長條圖）</td></tr>
+      <tr><td>動畫</td><td>flutter_animate 4.5.0 / animations 2.0.11</td></tr>
+      <tr><td>字型</td><td>google_fonts 8.1.0</td></tr>
+      <tr><td>外部連結</td><td>url_launcher 6.3.1</td></tr>
+      <tr><td>快取</td><td>shared_preferences（分析結果 JSON 快取）</td></tr>
+      <tr><td>網路</td><td>http 1.2.0（TWSE / TPEX 開放 API）</td></tr>
+      <tr><td>推播通知</td><td>flutter_local_notifications 17.2.4</td></tr>
+      <tr><td>Code Gen</td><td>drift_dev + build_runner</td></tr>
+      <tr><td>自訂圖表</td><td>CustomPainter（Sparkline、多空分佈圓餅圖）</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ── 專案結構 ── -->
+<section class="section" id="structure">
+  <h2 class="section-title">專案結構</h2>
+  <div class="code-wrap"><pre style="font-size:12px">lib/
+├── core/
+│   ├── constants/              <span class="cm"># 全域常數（API endpoint、分析參數）</span>
+│   ├── extensions/             <span class="cm"># List 擴充方法</span>
+│   ├── navigation/             <span class="cm"># CategoryNavigation（板塊鑽入、Yahoo Finance）</span>
+│   └── services/
+│       └── notification_service.dart  <span class="cm"># 本地推播通知</span>
+│
+├── data/
+│   ├── database/
+│   │   ├── app_database.dart   <span class="cm"># Drift AppDatabase（Schema V6）</span>
+│   │   └── tables/             <span class="cm"># 6 張 Table 定義</span>
+│   ├── history/repositories/   <span class="cm"># CategoryHistoryRepository（SQLite）</span>
+│   ├── watchlist/repositories/ <span class="cm"># WatchlistRepository（CRUD + Stream）</span>
+│   ├── signal/repositories/    <span class="cm"># SignalSnapshotRepository</span>
+│   ├── managers/               <span class="cm"># SyncManager（資料同步排程）</span>
+│   ├── models/                 <span class="cm"># 資料層模型（StockData, StockDaySnapshot...）</span>
+│   ├── repositories/           <span class="cm"># HistoryRepository（本地 JSON 快照，支援 listed_* / otc_* 格式）</span>
+│   └── services/
+│       ├── stock_service.dart              <span class="cm"># lastListedDate / lastOtcDate 分離</span>
+│       ├── storage_service.dart            <span class="cm"># saveListedSnapshot / saveOtcSnapshot</span>
+│       ├── analysis_cache_service.dart
+│       ├── institutional_flow_service.dart
+│       └── institutional_flow_history_service.dart
+│
+├── domain/
+│   ├── engines/
+│   │   ├── capital_flow_engine.dart
+│   │   ├── mainstream_engine.dart          <span class="cm"># 依市場過濾後獨立執行</span>
+│   │   ├── trend_metrics_engine.dart
+│   │   ├── lifecycle_engine.dart           <span class="cm"># 依市場獨立執行（listedLifecycles / otcLifecycles）</span>
+│   │   ├── rotation_engine.dart
+│   │   └── market_sentiment_engine.dart
+│   ├── analysers/
+│   │   └── rotation_leading_analyser.dart
+│   ├── enums/
+│   ├── models/
+│   ├── strategies/
+│   │   └── momentum_strategy.dart
+│   └── usecases/
+│       ├── bootstrap_analyzer.dart         <span class="cm"># Phase1 並行 5 Isolate；_runLifecycleForMarket</span>
+│       └── app_bootstrap_result.dart       <span class="cm"># listedDate/otcDate/listedLifecycles/otcLifecycles</span>
+│
+└── presentation/
+    ├── models/                 <span class="cm"># CategoryUiModel / StockUiModel</span>
+    ├── pages/
+    │   ├── home_page.dart                  <span class="cm"># 各市場卡片顯示獨立日期</span>
+    │   ├── main_navigation_container.dart  <span class="cm"># IndexedStack，傳遞 listedLifecycles/otcLifecycles</span>
+    │   ├── anomaly_detector_page.dart      <span class="cm"># Object identity 分流，上市/上櫃 Tab</span>
+    │   ├── strategy_dashboard_page.dart    <span class="cm"># 獨立 lifecycles，市場專屬 CategoryUiModel</span>
+    │   ├── leading_indicator_page.dart
+    │   ├── main_category_page.dart
+    │   └── sub_category_page.dart          <span class="cm"># 走勢圖 + 個股掃描器</span>
+    └── widgets/
+        ├── market_summary_card.dart        <span class="cm"># dateLabel 顯示各市場交易日</span>
+        ├── category_history_summary.dart
+        ├── category_trend_chart.dart
+        ├── institutional_flow_chart.dart
+        ├── multi_timeframe_confirm_badge.dart
+        ├── signal_change_dialog.dart
+        └── watchlist_button.dart</pre></div>
+</section>
+
+<!-- ── 安裝與執行 ── -->
+<section class="section" id="install">
+  <h2 class="section-title">安裝與執行</h2>
+  <h4>前置需求</h4>
+  <ul>
+    <li>Flutter SDK ≥ 3.11.5 / Dart SDK ≥ 3.0.0</li>
+    <li>Android Studio / Xcode（依目標平台）</li>
+  </ul>
+  <div class="code-wrap"><pre><span class="cm"># 1. 安裝套件</span>
+flutter pub get
+
+<span class="cm"># 2. 產生 Drift 程式碼（首次或修改 Table 後需執行）</span>
+dart run build_runner build
+
+<span class="cm"># 3. 執行</span>
+flutter run</pre></div>
+  <div class="note" style="margin-top:16px">首次啟動需要網路連線，App 會自動從 TWSE / TPEX 同步最新交易日資料。同步完成後可離線使用快取資料。三大法人籌碼每次啟動即時抓取，離線時不顯示此卡片。</div>
+  <h4>推播通知權限</h4>
+  <ul>
+    <li><strong>iOS</strong>：首次啟動時系統彈窗請求通知權限</li>
+    <li><strong>Android</strong>：透過 <code>signal_changes_v1</code> 頻道發送，無需額外設定</li>
+  </ul>
+  <h4>更新 Drift Schema</h4>
+  <div class="code-wrap"><pre>dart run build_runner build --delete-conflicting-outputs</pre></div>
+  <p>同步更新 <code>AppDatabase.schemaVersion</code>（目前 V6）並在 <code>onUpgrade</code> 中加入對應 migration。</p>
+</section>
+
+<!-- ── 免責聲明 ── -->
+<section class="section" id="disclaimer">
+  <h2 class="section-title">免責聲明</h2>
+  <div class="card" style="background:var(--surface-3)">
+    <p>本 App 所有計算結果與訊號，<strong>僅供參考，不構成任何投資建議</strong>。</p>
+    <p>所有數據來源自臺灣證券交易所及證券櫃檯買賣中心官方開放資料，由設備本地端運算，不上傳任何個人資料至任何伺服器。</p>
+    <p>投資涉及風險，請依自身財務狀況與判斷審慎操作，本 App 開發者不負擔任何因使用本工具而導致之投資損失責任。</p>
+  </div>
+  <p style="margin-top:20px;font-size:12.5px;color:var(--ink-3)">使用 <a href="https://flutter.dev">Flutter</a> 開發 ・ 資料來源 TWSE 開放資料 / TPEX 開放資料</p>
+</section>
+
+</main>
+</div>
+
+</body>
+</html>

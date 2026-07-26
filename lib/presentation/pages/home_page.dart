@@ -116,11 +116,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _fetchFlow() async {
     final dateKey = _toGregorianKey(tradeDate);
-    debugPrint('[法人籌碼] _fetchFlow 啟動: dateKey=$dateKey (原始: $tradeDate)');
-    if (dateKey.length != 8) {
-      debugPrint('[法人籌碼] _fetchFlow 跳過 — 日期格式錯誤');
-      return;
-    }
+    if (dateKey.length != 8) return;
     try {
       // 先嘗試股票資料同一天，若非交易日最多往前找 5 個日曆日
       InstitutionalFlowResult? result =
@@ -140,15 +136,13 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
-      debugPrint('[法人籌碼] _fetchFlow 結果: ${result?.date ?? "null"}');
       if (result != null && mounted) {
         // 存入歷史後重新載入，確保圖表包含今日資料
         await InstitutionalFlowHistoryService.save(storageService, result);
         _loadFlowHistory();
         setState(() => _institutionalFlow = result);
       }
-    } catch (e) {
-      debugPrint('[法人籌碼] _fetchFlow 例外: $e');
+    } catch (_) {
     }
   }
 

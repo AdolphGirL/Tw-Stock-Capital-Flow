@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:tw_stock_capital_flow/domain/models/institutional_flow_result.dart';
 
@@ -11,10 +10,7 @@ class InstitutionalFlowService {
   /// 若 API 不可用、非交易日或解析失敗，回傳 null。
   static Future<InstitutionalFlowResult?> fetchForDate(
       String dateKey) async {
-    if (dateKey.length != 8) {
-      debugPrint('[法人籌碼] dateKey 格式錯誤: "$dateKey"');
-      return null;
-    }
+    if (dateKey.length != 8) return null;
 
     try {
       final weekDate = _mondayOf(dateKey);
@@ -43,18 +39,12 @@ class InstitutionalFlowService {
           })
           .timeout(const Duration(seconds: 12));
 
-      if (response.statusCode != 200) {
-        debugPrint('[法人籌碼] HTTP ${response.statusCode}');
-        return null;
-      }
+      if (response.statusCode != 200) return null;
 
       final Map<String, dynamic> jsonBody =
           jsonDecode(response.body) as Map<String, dynamic>;
 
-      if (jsonBody['stat'] != 'OK') {
-        debugPrint('[法人籌碼] stat=${jsonBody["stat"]}，$dateKey 可能非交易日');
-        return null;
-      }
+      if (jsonBody['stat'] != 'OK') return null;
 
       // 逐元素安全轉換，避免 lazy cast 在非預期格式下拋出 CastError
       final rawList = jsonBody['data'] as List<dynamic>? ?? [];
@@ -79,7 +69,6 @@ class InstitutionalFlowService {
       if (rowForeignMain == null || rowTrust == null ||
           rowDealerSelf == null || rowDealerHedge == null ||
           rowTotal == null) {
-        debugPrint('[法人籌碼] 缺少必要欄位，rows=$rows');
         return null;
       }
 
@@ -129,10 +118,8 @@ class InstitutionalFlowService {
         total: total,
       );
 
-      _debugPrint(result);
       return result;
-    } catch (e) {
-      debugPrint('[法人籌碼] 抓取失敗（不影響主流程）: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -172,15 +159,4 @@ class InstitutionalFlowService {
         '${monday.day.toString().padLeft(2, '0')}';
   }
 
-  static void _debugPrint(InstitutionalFlowResult r) {
-    debugPrint('[法人籌碼] ${r.date}');
-    for (final g in [r.foreign, r.trust, r.dealer, r.total]) {
-      debugPrint(
-        '[法人籌碼]   ${g.name.padRight(8)}'
-        ' 買 ${g.buyLabel.padLeft(12)}'
-        ' / 賣 ${g.sellLabel.padLeft(12)}'
-        ' / 差額 ${g.netLabel.padLeft(12)}',
-      );
-    }
-  }
 }

@@ -108,7 +108,6 @@ class _BootstrapAppState extends State<BootstrapApp> {
           ? null
           : await cacheService.loadBootstrapCache(_listedDate);
       if (cachedResult != null) {
-        debugPrint('🚀 [Cache Hit] 命中快取: $_listedDate');
         // 若快取不含日期資訊（舊版快取），補上當前日期
         final resultWithDates = cachedResult.listedDate.isEmpty
             ? cachedResult.copyWith(listedDate: _listedDate, otcDate: _otcDate)
@@ -153,8 +152,6 @@ class _BootstrapAppState extends State<BootstrapApp> {
         _pendingSignalChanges = changes;
       });
     } catch (e) {
-      debugPrint('⚠️ [防禦機制觸發] 異常: $e，進入離線降級...');
-
       // 離線模式：優先使用本地最新日期
       final fallbackDate = await storageService.getLatestAvailableDate() ?? _getTodayDateKey();
       _listedDate = fallbackDate;
@@ -260,8 +257,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
           rotations: result.rotations,
         );
       }
-    } catch (e) {
-      debugPrint('歷史快照寫入失敗（不影響主流程）: $e');
+    } catch (_) {
     }
   }
 
@@ -302,8 +298,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
       await NotificationService.showSignalChanges(changes);
 
       return changes;
-    } catch (e) {
-      debugPrint('訊號異動偵測失敗（不影響主流程）: $e');
+    } catch (_) {
       return [];
     }
   }

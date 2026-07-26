@@ -270,8 +270,7 @@ class CategoryNavigation {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       }
-    } catch (e) {
-      debugPrint('無法開啟連結: $e');
+    } catch (_) {
     }
   }
 }
