@@ -177,7 +177,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
   }
 
   /// 手動刷新：強制向 API 同步、重新計算、upsert SQLite，並更新 UI。
-  /// 使用者點擊刷新按鈕時呼叫，完全繞過 18:00 時間護欄。
+  /// 使用者點擊刷新按鈕時呼叫，完全繞過隔日 06:00 時間護欄。
   Future<void> _refresh() async {
     if (_isRefreshing) return;
     _isRefreshing = true;

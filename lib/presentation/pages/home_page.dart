@@ -221,7 +221,7 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildHeader() {
     final now = DateTime.now();
-    final isBeforeCutoff = now.hour < 18;
+    final isBeforeCutoff = now.hour < 6;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,7 +297,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '收盤資料每日 18:00 後更新，目前顯示上一交易日數據',
+                    '收盤資料於隔日 06:00 後更新，目前顯示上一交易日數據',
                     style: TextStyle(
                       fontSize: 11.5,
                       color: Colors.amber.shade900,

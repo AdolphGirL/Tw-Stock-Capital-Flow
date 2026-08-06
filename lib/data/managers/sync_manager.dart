@@ -35,31 +35,42 @@ class SyncManager {
 
   SyncManager({required this.storageService, required this.calendarService});
 
-  /// [forceSync] 為 true 時完全略過 18:00 時間護欄（用於手動刷新）。
+  /// [forceSync] 為 true 時完全略過隔日 06:00 時間護欄（用於手動刷新）。
   Future<SyncResult> syncTodayData({bool forceSync = false}) async {
     try {
-      // ── 時間護欄：18:00 前優先使用本地快照，但若資料超過 3 個日曆天則強制同步 ──
-      // 台股收盤 13:30，TWSE/TPEX 資料通常 18:00 後才穩定。
-      // 例外：連假後本地資料可能超過 3 天，此時即使未到 18:00 也必須強制取得新資料。
+      // ── 時間護欄：隔日 06:00 前優先使用本地快照，但若資料超過 3 個日曆天則強制同步 ──
+      // 台股收盤 13:30，TWSE/TPEX 官方資料需至隔日 06:00 後才視為穩定可抓取。
+      // 例外 1：若「前一個日曆天」非交易日（週六、週日，簡化以星期幾判斷，未計入國定假日），
+      //        代表當下不會有新的收盤資料，即使已過 06:00 也略過 API 呼叫。
+      // 例外 2：連假後本地資料可能超過 3 天，此時即使未過門檻也必須強制取得新資料。
       // forceSync=true（手動刷新）時整段護欄跳過，直接向 API 取最新資料。
       final now = DateTime.now();
-      if (!forceSync && now.hour < 18) {
+      final today = DateTime(now.year, now.month, now.day);
+      final beforeCutoff = now.hour < 6;
+      final yesterday = today.subtract(const Duration(days: 1));
+      final yesterdayWasTradingDay =
+          yesterday.weekday != DateTime.saturday && yesterday.weekday != DateTime.sunday;
+      final shouldSkipFetch = beforeCutoff || !yesterdayWasTradingDay;
+
+      if (!forceSync && shouldSkipFetch) {
+        final yesterdayLabel =
+            '${yesterday.year}/${yesterday.month.toString().padLeft(2, '0')}/${yesterday.day.toString().padLeft(2, '0')}';
+        final skipReason = beforeCutoff ? '未達隔日 06:00 開放時間' : '前一日（$yesterdayLabel）非交易日（週末）';
         final localDate = await storageService.getLatestAvailableDate();
         if (localDate != null && localDate.isNotEmpty) {
           final localDt = _parseRocDate(localDate);
-          final today = DateTime(now.year, now.month, now.day);
           final isStale = localDt == null || today.difference(localDt).inDays > 3;
           if (!isStale) {
             dev.log(
               '現在時間 ${now.hour}:${now.minute.toString().padLeft(2, '0')}，'
-              '未達 18:00 且本地資料新鮮（$localDate），略過 API 同步',
+              '$skipReason 且本地資料新鮮（$localDate），略過 API 同步',
               name: 'SyncManager',
             );
             final snapshot = await storageService.loadSnapshot(localDate);
             return SyncResult(
               success: true,
               saved: false,
-              message: '未達 18:00，使用本地快照（$localDate）',
+              message: '$skipReason，使用本地快照（$localDate）',
               date: localDate,
               listedDate: localDate,
               otcDate: localDate,
@@ -68,11 +79,11 @@ class SyncManager {
             );
           }
           dev.log(
-            '本地資料超過 3 天（$localDate），18:00 前仍強制向 API 同步',
+            '本地資料超過 3 天（$localDate），$skipReason 仍強制向 API 同步',
             name: 'SyncManager',
           );
         } else {
-          dev.log('本地無快照，18:00 前仍需嘗試 API 同步', name: 'SyncManager');
+          dev.log('本地無快照，$skipReason 仍需嘗試 API 同步', name: 'SyncManager');
         }
       }
 
