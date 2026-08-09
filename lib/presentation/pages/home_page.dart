@@ -221,7 +221,8 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildHeader() {
     final now = DateTime.now();
-    final isBeforeCutoff = now.hour < 6;
+    // 白天靜默期（07:00–19:00）：與 SyncManager 的雙開口視窗模型一致，此期間確定沒有新收盤資料。
+    final isBeforeCutoff = now.hour >= 7 && now.hour < 19;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -297,7 +298,7 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
-                    '收盤資料於隔日 06:00 後更新，目前顯示上一交易日數據',
+                    '收盤資料於當日 19:00～隔日 07:00 間更新，目前顯示上一交易日數據',
                     style: TextStyle(
                       fontSize: 11.5,
                       color: Colors.amber.shade900,
@@ -305,6 +306,21 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+                if (widget.onRefresh != null) ...[
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: _isRefreshing ? null : _handleRefresh,
+                    child: Text(
+                      _isRefreshing ? '整理中…' : '立即重新整理',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: Colors.amber.shade900,
+                        fontWeight: FontWeight.w700,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

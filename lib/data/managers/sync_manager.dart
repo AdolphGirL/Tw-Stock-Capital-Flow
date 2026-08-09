@@ -35,27 +35,42 @@ class SyncManager {
 
   SyncManager({required this.storageService, required this.calendarService});
 
-  /// [forceSync] 為 true 時完全略過隔日 06:00 時間護欄（用於手動刷新）。
+  /// [forceSync] 為 true 時完全略過時間護欄（用於手動刷新）。
   Future<SyncResult> syncTodayData({bool forceSync = false}) async {
     try {
-      // ── 時間護欄：隔日 06:00 前優先使用本地快照，但若資料超過 3 個日曆天則強制同步 ──
-      // 台股收盤 13:30，TWSE/TPEX 官方資料需至隔日 06:00 後才視為穩定可抓取。
-      // 例外 1：若「前一個日曆天」非交易日（週六、週日，簡化以星期幾判斷，未計入國定假日），
-      //        代表當下不會有新的收盤資料，即使已過 06:00 也略過 API 呼叫。
-      // 例外 2：連假後本地資料可能超過 3 天，此時即使未過門檻也必須強制取得新資料。
+      // ── 時間護欄：雙開口視窗模型 ──────────────────────────────────────
+      // 07:00–19:00（白天靜默期）：台股收盤 13:30，官方資料在此期間確定不會有更新，一律略過 API 呼叫。
+      // 19:00（當天）～ 隔日 07:00：資料最快當晚 19:00 後就可能整理完成，最晚隔日 07:00 前保證穩定，
+      //                            此區間內（跨過午夜）皆可嘗試抓取。
+      // 例外 1：19:00 這端檢查「今天」、07:00 這端檢查「前一天」是否為交易日
+      //        （週六、週日，簡化以星期幾判斷，未計入國定假日），非交易日則沒有新資料可抓，略過。
+      // 例外 2：連假後本地資料可能超過 3 個日曆天，此時即使落在略過範圍內也必須強制取得新資料。
       // forceSync=true（手動刷新）時整段護欄跳過，直接向 API 取最新資料。
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final beforeCutoff = now.hour < 6;
-      final yesterday = today.subtract(const Duration(days: 1));
-      final yesterdayWasTradingDay =
-          yesterday.weekday != DateTime.saturday && yesterday.weekday != DateTime.sunday;
-      final shouldSkipFetch = beforeCutoff || !yesterdayWasTradingDay;
+      final hour = now.hour;
+      final isDaytimeBlackout = hour >= 7 && hour < 19;
+
+      bool relevantDayIsTradingDay;
+      DateTime relevantDay;
+      if (hour >= 19) {
+        relevantDay = today;
+      } else {
+        relevantDay = today.subtract(const Duration(days: 1));
+      }
+      relevantDayIsTradingDay =
+          relevantDay.weekday != DateTime.saturday && relevantDay.weekday != DateTime.sunday;
+
+      final shouldSkipFetch = isDaytimeBlackout || !relevantDayIsTradingDay;
 
       if (!forceSync && shouldSkipFetch) {
-        final yesterdayLabel =
-            '${yesterday.year}/${yesterday.month.toString().padLeft(2, '0')}/${yesterday.day.toString().padLeft(2, '0')}';
-        final skipReason = beforeCutoff ? '未達隔日 06:00 開放時間' : '前一日（$yesterdayLabel）非交易日（週末）';
+        final relevantDayLabel =
+            '${relevantDay.year}/${relevantDay.month.toString().padLeft(2, '0')}/${relevantDay.day.toString().padLeft(2, '0')}';
+        final skipReason = isDaytimeBlackout
+            ? '現在為白天靜默期（07:00–19:00），尚無新收盤資料'
+            : (hour >= 19
+                ? '今日（$relevantDayLabel）非交易日（週末）'
+                : '前一日（$relevantDayLabel）非交易日（週末）');
         final localDate = await storageService.getLatestAvailableDate();
         if (localDate != null && localDate.isNotEmpty) {
           final localDt = _parseRocDate(localDate);

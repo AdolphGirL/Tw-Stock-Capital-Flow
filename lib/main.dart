@@ -1,3 +1,5 @@
+import 'dart:developer' as dev;
+
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/presentation/theme/app_theme.dart';
 import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
@@ -177,7 +179,7 @@ class _BootstrapAppState extends State<BootstrapApp> {
   }
 
   /// 手動刷新：強制向 API 同步、重新計算、upsert SQLite，並更新 UI。
-  /// 使用者點擊刷新按鈕時呼叫，完全繞過隔日 06:00 時間護欄。
+  /// 使用者點擊刷新按鈕時呼叫，完全繞過 19:00～隔日 07:00 時間護欄。
   Future<void> _refresh() async {
     if (_isRefreshing) return;
     _isRefreshing = true;
@@ -226,39 +228,59 @@ class _BootstrapAppState extends State<BootstrapApp> {
 
   /// 將今日 bootstrap 計算結果寫入 SQLite 歷史表，供 30 日走勢圖使用。
   /// 上市板塊用上市日期、上櫃板塊用上櫃日期，確保歷史資料日期標籤正確。
+  ///
+  /// 寫入失敗時重試最多 3 次（遞增間隔）：saveDailySnapshot 內部為 upsert，
+  /// 重試整個方法（含已成功的部分）是安全的，不會產生重複紀錄。
   Future<void> _saveHistoryToSqlite(AppBootstrapResult result) async {
-    try {
-      // 上市板塊 → listedDate
-      await _categoryHistoryRepository!.saveDailySnapshot(
-        dateKey: result.listedDate.isNotEmpty ? result.listedDate : _listedDate,
-        categories: result.listedCategories,
-        mainstreams: result.mainstreams,
-        lifecycles: result.lifecycles,
-        rotations: result.rotations,
-      );
-      // 上櫃板塊 → otcDate（日期不同時才需要再寫一次）
-      final otcKey = result.otcDate.isNotEmpty ? result.otcDate : _otcDate;
-      final listedKey = result.listedDate.isNotEmpty ? result.listedDate : _listedDate;
-      if (result.otcCategories.isNotEmpty && otcKey != listedKey) {
+    const maxRetry = 3;
+    for (int attempt = 1; attempt <= maxRetry; attempt++) {
+      try {
+        // 上市板塊 → listedDate
         await _categoryHistoryRepository!.saveDailySnapshot(
-          dateKey: otcKey,
-          categories: result.otcCategories,
-          mainstreams: [],
-          lifecycles: [],
-          rotations: [],
-        );
-      } else if (result.otcCategories.isNotEmpty) {
-        // 同日期時合併在同一筆，避免重複寫入
-        await _categoryHistoryRepository!.saveDailySnapshot(
-          dateKey: otcKey,
-          categories: [...result.listedCategories, ...result.otcCategories],
+          dateKey: result.listedDate.isNotEmpty ? result.listedDate : _listedDate,
+          categories: result.listedCategories,
           mainstreams: result.mainstreams,
           lifecycles: result.lifecycles,
           rotations: result.rotations,
         );
+        // 上櫃板塊 → otcDate（日期不同時才需要再寫一次）
+        final otcKey = result.otcDate.isNotEmpty ? result.otcDate : _otcDate;
+        final listedKey = result.listedDate.isNotEmpty ? result.listedDate : _listedDate;
+        if (result.otcCategories.isNotEmpty && otcKey != listedKey) {
+          await _categoryHistoryRepository!.saveDailySnapshot(
+            dateKey: otcKey,
+            categories: result.otcCategories,
+            mainstreams: [],
+            lifecycles: [],
+            rotations: [],
+          );
+        } else if (result.otcCategories.isNotEmpty) {
+          // 同日期時合併在同一筆，避免重複寫入
+          await _categoryHistoryRepository!.saveDailySnapshot(
+            dateKey: otcKey,
+            categories: [...result.listedCategories, ...result.otcCategories],
+            mainstreams: result.mainstreams,
+            lifecycles: result.lifecycles,
+            rotations: result.rotations,
+          );
+        }
+        return; // 成功，結束重試
+      } catch (e, stack) {
+        dev.log(
+          'SQLite 歷史寫入失敗（第 $attempt/$maxRetry 次）: $e',
+          name: 'BootstrapApp',
+          error: e,
+          stackTrace: stack,
+        );
+        if (attempt < maxRetry) {
+          await Future.delayed(Duration(seconds: attempt));
+        }
       }
-    } catch (_) {
     }
+    dev.log(
+      'SQLite 歷史寫入重試 $maxRetry 次後仍失敗，本次啟動略過該日期歷史紀錄',
+      name: 'BootstrapApp',
+    );
   }
 
   /// 偵測關注板塊訊號異動，並儲存今日訊號供下次比對。
