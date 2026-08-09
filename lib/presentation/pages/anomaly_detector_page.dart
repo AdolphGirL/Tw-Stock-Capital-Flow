@@ -85,6 +85,15 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
     _compute();
   }
 
+  @override
+  void didUpdateWidget(AnomalyDetectorPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.listedDate != widget.listedDate ||
+        oldWidget.otcDate != widget.otcDate) {
+      _compute();
+    }
+  }
+
   Future<void> _compute() async {
     final historyMap =
         await widget.historyRepository.loadAllCategoriesHistory(days: 35);
