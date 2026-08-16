@@ -38,39 +38,19 @@ class SyncManager {
   /// [forceSync] 為 true 時完全略過時間護欄（用於手動刷新）。
   Future<SyncResult> syncTodayData({bool forceSync = false}) async {
     try {
-      // ── 時間護欄：雙開口視窗模型 ──────────────────────────────────────
-      // 07:00–19:00（白天靜默期）：台股收盤 13:30，官方資料在此期間確定不會有更新，一律略過 API 呼叫。
-      // 19:00（當天）～ 隔日 07:00：資料最快當晚 19:00 後就可能整理完成，最晚隔日 07:00 前保證穩定，
-      //                            此區間內（跨過午夜）皆可嘗試抓取。
-      // 例外 1：19:00 這端檢查「今天」、07:00 這端檢查「前一天」是否為交易日
-      //        （週六、週日，簡化以星期幾判斷，未計入國定假日），非交易日則沒有新資料可抓，略過。
-      // 例外 2：連假後本地資料可能超過 3 個日曆天，此時即使落在略過範圍內也必須強制取得新資料。
-      // forceSync=true（手動刷新）時整段護欄跳過，直接向 API 取最新資料。
+      // ── 時間護欄：僅保留確定的白天靜默期 ──────────────────────────────
+      // 07:00–19:00：台股收盤 13:30，官方資料在此期間確定不會有更新，一律略過 API 呼叫。
+      // 靜默期以外（當日 19:00～隔日 07:00，跨過午夜）：官方資料提供方實際更新時間點無法確切得知，
+      // 不再嘗試用「今天/前一天是否交易日」去猜測是否值得嘗試——嘗試抓取本身無害（抓不到新資料
+      // 只是白跑一趟，不會寫壞本地資料），因此一律嘗試，正確性交給呼叫端的 isNewTradingDay 判斷把關，
+      // 若使用者需要更即時的資料，可透過手動刷新（forceSync）隨時觸發。
+      // 例外：連假後本地資料可能超過 3 個日曆天，此時即使落在靜默期內也必須強制取得新資料。
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final hour = now.hour;
-      final isDaytimeBlackout = hour >= 7 && hour < 19;
+      final isDaytimeBlackout = now.hour >= 7 && now.hour < 19;
 
-      bool relevantDayIsTradingDay;
-      DateTime relevantDay;
-      if (hour >= 19) {
-        relevantDay = today;
-      } else {
-        relevantDay = today.subtract(const Duration(days: 1));
-      }
-      relevantDayIsTradingDay =
-          relevantDay.weekday != DateTime.saturday && relevantDay.weekday != DateTime.sunday;
-
-      final shouldSkipFetch = isDaytimeBlackout || !relevantDayIsTradingDay;
-
-      if (!forceSync && shouldSkipFetch) {
-        final relevantDayLabel =
-            '${relevantDay.year}/${relevantDay.month.toString().padLeft(2, '0')}/${relevantDay.day.toString().padLeft(2, '0')}';
-        final skipReason = isDaytimeBlackout
-            ? '現在為白天靜默期（07:00–19:00），尚無新收盤資料'
-            : (hour >= 19
-                ? '今日（$relevantDayLabel）非交易日（週末）'
-                : '前一日（$relevantDayLabel）非交易日（週末）');
+      if (!forceSync && isDaytimeBlackout) {
+        const skipReason = '現在為白天靜默期（07:00–19:00），尚無新收盤資料';
         final localDate = await storageService.getLatestAvailableDate();
         if (localDate != null && localDate.isNotEmpty) {
           final localDt = _parseRocDate(localDate);

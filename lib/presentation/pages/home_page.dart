@@ -285,47 +285,79 @@ class _HomePageState extends State<HomePage> {
         ),
         if (isBeforeCutoff) ...[
           const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.access_time_rounded, size: 13, color: Colors.amber.shade800),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(
-                    '收盤資料於當日 19:00～隔日 07:00 間更新，目前顯示上一交易日數據',
-                    style: TextStyle(
-                      fontSize: 11.5,
-                      color: Colors.amber.shade900,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                if (widget.onRefresh != null) ...[
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: _isRefreshing ? null : _handleRefresh,
-                    child: Text(
-                      _isRefreshing ? '整理中…' : '立即重新整理',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Colors.amber.shade900,
-                        fontWeight: FontWeight.w700,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+          _buildHintBanner(
+            icon: Icons.access_time_rounded,
+            color: Colors.amber,
+            text: '收盤資料於當日 19:00～隔日 07:00 間更新，目前顯示上一交易日數據',
+          ),
+        ],
+        if (_hasDateMismatch) ...[
+          const SizedBox(height: 8),
+          _buildHintBanner(
+            icon: Icons.warning_amber_rounded,
+            color: Colors.deepOrange,
+            text: _dateMismatchMessage,
           ),
         ],
       ],
+    );
+  }
+
+  // 上市/上櫃日期是否不一致（其中一邊可能抓取失敗或延遲）
+  bool get _hasDateMismatch =>
+      listedDate.isNotEmpty && otcDate.isNotEmpty && listedDate != otcDate;
+
+  String get _dateMismatchMessage {
+    final listedLabel = _formatTradeDate(listedDate);
+    final otcLabel = _formatTradeDate(otcDate);
+    // 7/8 碼定長字串可直接字典序比較，數值較小＝日期較舊
+    final laggingMarket = listedDate.compareTo(otcDate) < 0 ? '上市' : '上櫃';
+    return '上市 $listedLabel · 上櫃 $otcLabel，日期不一致，$laggingMarket資料可能抓取失敗或延遲';
+  }
+
+  Widget _buildHintBanner({
+    required IconData icon,
+    required MaterialColor color,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 13, color: color.shade800),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11.5,
+                color: color.shade900,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          if (widget.onRefresh != null) ...[
+            const SizedBox(width: 6),
+            GestureDetector(
+              onTap: _isRefreshing ? null : _handleRefresh,
+              child: Text(
+                _isRefreshing ? '整理中…' : '立即重新整理',
+                style: TextStyle(
+                  fontSize: 11.5,
+                  color: color.shade900,
+                  fontWeight: FontWeight.w700,
+                  decoration: TextDecoration.underline,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
