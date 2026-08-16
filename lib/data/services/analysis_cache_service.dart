@@ -40,9 +40,18 @@ class AnalysisCacheService {
             .map((e) => _mainstreamToMap(e))
             .toList(),
         'lifecycles': result.lifecycles.map((e) => _lifecycleToMap(e)).toList(),
-        'rotations': result.rotations
+        'listedLifecycles': result.listedLifecycles
+            .map((e) => _lifecycleToMap(e))
+            .toList(),
+        'otcLifecycles': result.otcLifecycles
+            .map((e) => _lifecycleToMap(e))
+            .toList(),
+        'listedRotations': result.listedRotations
             .map((e) => e.toJson())
             .toList(), // 點 4：使用專案內建的 toJson
+        'otcRotations': result.otcRotations
+            .map((e) => e.toJson())
+            .toList(),
         'sentiment': _sentimentToMap(result.sentiment),
       };
 
@@ -94,9 +103,28 @@ class AnalysisCacheService {
         lifecycles: (jsonMap['lifecycles'] as List)
             .map((e) => _mapToLifecycle(e))
             .toList(), // 點 3：對齊生命週期引擎
-        rotations: (jsonMap['rotations'] as List)
-            .map((e) => RotationResult.fromJson(e))
-            .toList(), // 點 4：使用專案內建的 fromJson
+        // listedLifecycles/otcLifecycles 為舊版快取所無的欄位，缺省時退回空清單
+        // （StrategyDashboardPage 會在下次有新資料時自然補齊，不影響其他頁面）
+        listedLifecycles: jsonMap['listedLifecycles'] == null
+            ? const []
+            : (jsonMap['listedLifecycles'] as List)
+                .map((e) => _mapToLifecycle(e))
+                .toList(),
+        otcLifecycles: jsonMap['otcLifecycles'] == null
+            ? const []
+            : (jsonMap['otcLifecycles'] as List)
+                .map((e) => _mapToLifecycle(e))
+                .toList(),
+        listedRotations: jsonMap['listedRotations'] == null
+            ? const []
+            : (jsonMap['listedRotations'] as List)
+                .map((e) => RotationResult.fromJson(e))
+                .toList(), // 點 4：使用專案內建的 fromJson
+        otcRotations: jsonMap['otcRotations'] == null
+            ? const []
+            : (jsonMap['otcRotations'] as List)
+                .map((e) => RotationResult.fromJson(e))
+                .toList(),
         sentiment: _mapToSentiment(jsonMap['sentiment']),
       );
     } catch (_) {

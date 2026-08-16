@@ -50,6 +50,12 @@ class _MarketLifecyclePayload {
   const _MarketLifecyclePayload(this.snapshots, this.market);
 }
 
+class _MarketRotationPayload {
+  final List<StockDaySnapshot> snapshots;
+  final MarketType market;
+  const _MarketRotationPayload(this.snapshots, this.market);
+}
+
 class _SentimentPayload {
   final List<StockDaySnapshot> snapshots;
   final List<MainstreamResult> mainstreams;
@@ -75,9 +81,6 @@ _CapitalFlowBundle _runCapitalFlow(List<StockDaySnapshot> snapshots) {
 List<MainstreamResult> _runMainstream(List<StockDaySnapshot> snapshots) =>
     MainstreamEngine(snapshots: snapshots).analyze();
 
-List<RotationResult> _runRotation(List<StockDaySnapshot> snapshots) =>
-    RotationEngine(snapshots: snapshots).analyze();
-
 List<LifecycleResult> _runLifecycle(_LifecyclePayload p) =>
     LifecycleEngine(snapshots: p.snapshots, mainstreams: p.mainstreams).analyze();
 
@@ -89,6 +92,16 @@ List<LifecycleResult> _runLifecycleForMarket(_MarketLifecyclePayload p) {
   )).toList();
   final ms = MainstreamEngine(snapshots: filtered).analyze();
   return LifecycleEngine(snapshots: filtered, mainstreams: ms).analyze();
+}
+
+// 對指定市場過濾快照後獨立跑 Rotation，避免上市/上櫃同名板塊（如「半導體業」）
+// 的個股被混在一起計算輪動分數
+List<RotationResult> _runRotationForMarket(_MarketRotationPayload p) {
+  final filtered = p.snapshots.map((s) => StockDaySnapshot(
+    date: s.date,
+    stocks: s.stocks.where((st) => st.market == p.market).toList(),
+  )).toList();
+  return RotationEngine(snapshots: filtered).analyze();
 }
 
 MarketSentimentResult _runSentiment(_SentimentPayload p) =>
@@ -119,7 +132,10 @@ class BootstrapAnalyzer {
           _MarketLifecyclePayload(snapshots, MarketType.listed)),
       otcLifecycles: _runLifecycleForMarket(
           _MarketLifecyclePayload(snapshots, MarketType.otc)),
-      rotations: RotationEngine(snapshots: snapshots).analyze(),
+      listedRotations: _runRotationForMarket(
+          _MarketRotationPayload(snapshots, MarketType.listed)),
+      otcRotations: _runRotationForMarket(
+          _MarketRotationPayload(snapshots, MarketType.otc)),
       sentiment: MarketSentimentEngine(
         snapshots: snapshots,
         mainstreams: mainstreams,
@@ -129,19 +145,28 @@ class BootstrapAnalyzer {
 
   /// 並行異步路徑：依引擎依賴圖分兩階段，每個引擎獨立跑在自己的 Isolate 中。
   ///
-  /// Phase 1（並行）：CapitalFlow、Mainstream、Rotation 三者互不依賴，同時啟動。
+  /// Phase 1（並行）：CapitalFlow、Mainstream 與各市場獨立的 Rotation、Lifecycle 互不依賴，同時啟動。
+  ///                 Rotation 依市場拆開跑（listed/otc），避免同名板塊（如「半導體業」）跨市場混算。
   /// Phase 2（並行）：Lifecycle 與 Sentiment 皆依賴 Phase 1 的 mainstreams，
   ///                 等 Phase 1 完成後同時啟動。
   static Future<AppBootstrapResult> analyzeAsync(
     List<StockDaySnapshot> snapshots,
   ) async {
-    // Phase 1（並行）：CapitalFlow、Mainstream、Rotation、上市週期、上櫃週期 互不依賴
-    final (capitalFlow, mainstreams, rotations, listedLifecycles, otcLifecycles) = await (
+    // Phase 1（並行）：CapitalFlow、Mainstream、上市/上櫃週期、上市/上櫃輪動 互不依賴
+    final (
+      capitalFlow,
+      mainstreams,
+      listedLifecycles,
+      otcLifecycles,
+      listedRotations,
+      otcRotations,
+    ) = await (
       compute(_runCapitalFlow, snapshots),
       compute(_runMainstream, snapshots),
-      compute(_runRotation, snapshots),
       compute(_runLifecycleForMarket, _MarketLifecyclePayload(snapshots, MarketType.listed)),
       compute(_runLifecycleForMarket, _MarketLifecyclePayload(snapshots, MarketType.otc)),
+      compute(_runRotationForMarket, _MarketRotationPayload(snapshots, MarketType.listed)),
+      compute(_runRotationForMarket, _MarketRotationPayload(snapshots, MarketType.otc)),
     ).wait;
 
     // Phase 2（並行）：Lifecycle（混合，供首頁訊號用）與 Sentiment 皆依賴 mainstreams
@@ -163,7 +188,8 @@ class BootstrapAnalyzer {
       lifecycles: lifecycles,
       listedLifecycles: listedLifecycles,
       otcLifecycles: otcLifecycles,
-      rotations: rotations,
+      listedRotations: listedRotations,
+      otcRotations: otcRotations,
       sentiment: sentiment,
     );
   }

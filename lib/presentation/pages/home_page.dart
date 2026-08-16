@@ -288,7 +288,7 @@ class _HomePageState extends State<HomePage> {
           _buildHintBanner(
             icon: Icons.access_time_rounded,
             color: Colors.amber,
-            text: '收盤資料於當日 19:00～隔日 07:00 間更新，目前顯示上一交易日數據',
+            text: '目前顯示上一交易日資料，官方資料整理時間不一定，最快當日傍晚、最晚隔日才會更新；如需查看最新狀況，請點擊：',
           ),
         ],
         if (_hasDateMismatch) ...[
@@ -312,7 +312,7 @@ class _HomePageState extends State<HomePage> {
     final otcLabel = _formatTradeDate(otcDate);
     // 7/8 碼定長字串可直接字典序比較，數值較小＝日期較舊
     final laggingMarket = listedDate.compareTo(otcDate) < 0 ? '上市' : '上櫃';
-    return '上市 $listedLabel · 上櫃 $otcLabel，日期不一致，$laggingMarket資料可能抓取失敗或延遲';
+    return '上市 $listedLabel · 上櫃 $otcLabel，日期不一致，$laggingMarket資料可能抓取失敗或延遲；如需重新嘗試，請點擊：';
   }
 
   Widget _buildHintBanner({

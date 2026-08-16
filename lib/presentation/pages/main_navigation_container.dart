@@ -24,7 +24,8 @@ class MainNavigationContainer extends StatefulWidget {
   final int otcRiseCount;
   final int otcFallCount;
   final double otcScore;
-  final List<RotationResult> rotations;
+  final List<RotationResult> listedRotations; // 上市市場獨立輪動
+  final List<RotationResult> otcRotations;    // 上櫃市場獨立輪動
   final List<MainstreamResult> mainstreams;
   final List<LifecycleResult> lifecycles;
   final List<LifecycleResult> listedLifecycles; // 上市獨立週期
@@ -47,7 +48,8 @@ class MainNavigationContainer extends StatefulWidget {
     required this.otcRiseCount,
     required this.otcFallCount,
     required this.otcScore,
-    required this.rotations,
+    required this.listedRotations,
+    required this.otcRotations,
     required this.mainstreams,
     required this.lifecycles,
     required this.listedLifecycles,
@@ -120,7 +122,10 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
 
                 // 📡 Tab 3: 輪動領先雷達
                 LeadingIndicatorPage(
-                  rotations: widget.rotations,
+                  listedRotations: widget.listedRotations,
+                  otcRotations: widget.otcRotations,
+                  listedDate: widget.listedDate,
+                  otcDate: widget.otcDate,
                   listedCategories: widget.listedCategories,
                   otcCategories: widget.otcCategories,
                   historyRepository: widget.historyRepository,

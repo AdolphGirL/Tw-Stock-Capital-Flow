@@ -19,7 +19,8 @@ class AppBootstrapResult {
   final List<LifecycleResult> lifecycles;
   final List<LifecycleResult> listedLifecycles; // 上市市場獨立週期（StrategyDashboard 用）
   final List<LifecycleResult> otcLifecycles;    // 上櫃市場獨立週期（StrategyDashboard 用）
-  final List<RotationResult> rotations;
+  final List<RotationResult> listedRotations;   // 上市市場獨立輪動（LeadingIndicator 用）
+  final List<RotationResult> otcRotations;      // 上櫃市場獨立輪動（LeadingIndicator 用）
   final MarketSentimentResult sentiment;
 
   const AppBootstrapResult({
@@ -37,7 +38,8 @@ class AppBootstrapResult {
     required this.lifecycles,
     this.listedLifecycles = const [],
     this.otcLifecycles = const [],
-    required this.rotations,
+    this.listedRotations = const [],
+    this.otcRotations = const [],
     required this.sentiment,
   });
 
@@ -57,7 +59,8 @@ class AppBootstrapResult {
       lifecycles: lifecycles,
       listedLifecycles: listedLifecycles,
       otcLifecycles: otcLifecycles,
-      rotations: rotations,
+      listedRotations: listedRotations,
+      otcRotations: otcRotations,
       sentiment: sentiment,
     );
   }

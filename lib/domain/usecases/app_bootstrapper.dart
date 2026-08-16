@@ -4,6 +4,7 @@ import 'package:tw_stock_capital_flow/domain/engines/mainstream_engine.dart';
 import 'package:tw_stock_capital_flow/domain/engines/market_sentiment_engine.dart';
 import 'package:tw_stock_capital_flow/domain/engines/rotation_engine.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/data/repositories/history_repository.dart';
 import 'package:tw_stock_capital_flow/data/services/capital_flow_analyzer.dart';
 import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
@@ -37,7 +38,23 @@ class AppBootstrapper {
       mainstreams: mainstreams,
     ).analyze();
 
-    final rotations = RotationEngine(snapshots: snapshots).analyze();
+    final listedRotations = RotationEngine(
+      snapshots: snapshots
+          .map((s) => StockDaySnapshot(
+                date: s.date,
+                stocks: s.stocks.where((st) => st.market == MarketType.listed).toList(),
+              ))
+          .toList(),
+    ).analyze();
+
+    final otcRotations = RotationEngine(
+      snapshots: snapshots
+          .map((s) => StockDaySnapshot(
+                date: s.date,
+                stocks: s.stocks.where((st) => st.market == MarketType.otc).toList(),
+              ))
+          .toList(),
+    ).analyze();
 
     final sentiment = MarketSentimentEngine(
       snapshots: snapshots,
@@ -65,7 +82,9 @@ class AppBootstrapper {
 
       lifecycles: lifecycles,
 
-      rotations: rotations,
+      listedRotations: listedRotations,
+
+      otcRotations: otcRotations,
 
       sentiment: sentiment,
     );

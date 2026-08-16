@@ -22,6 +22,10 @@
   --otc-bg:     #E6EEFA;
   --green:      #1A7A45;
   --green-bg:   #E6F5EC;
+  --warn:       #9A6400;
+  --warn-bg:    #FFF3D6;
+  --danger:     #B23A00;
+  --danger-bg:  #FFEDE0;
   --code-bg:    #0D1117;
   --code-text:  #C9D1D9;
   --code-kw:    #79C0FF;
@@ -48,6 +52,10 @@
     --otc-bg:    #112240;
     --green:     #5AC88A;
     --green-bg:  #0E2A1C;
+    --warn:      #F0B93D;
+    --warn-bg:   #2E2408;
+    --danger:    #FF8A50;
+    --danger-bg: #2E1608;
     --code-bg:   #010409;
   }
 }
@@ -56,14 +64,18 @@
   --surface:#F6F9FD;--surface-2:#EDF1F7;--surface-3:#E2E9F3;
   --border:#D6DEE9;--accent:#1A6CE8;--accent-bg:#E8F0FD;
   --listed:#C8311A;--listed-bg:#FEF0ED;--otc:#1A5BB5;--otc-bg:#E6EEFA;
-  --green:#1A7A45;--green-bg:#E6F5EC;--code-bg:#0D1117;
+  --green:#1A7A45;--green-bg:#E6F5EC;
+  --warn:#9A6400;--warn-bg:#FFF3D6;--danger:#B23A00;--danger-bg:#FFEDE0;
+  --code-bg:#0D1117;
 }
 :root[data-theme="dark"] {
   --ink:#E8EDF5;--ink-2:#A8B8CC;--ink-3:#6B7D93;
   --surface:#0D1520;--surface-2:#141E2D;--surface-3:#1C2A3C;
   --border:#2A3C52;--accent:#4B8EF0;--accent-bg:#112140;
   --listed:#F08070;--listed-bg:#2D1A15;--otc:#5A99E8;--otc-bg:#112240;
-  --green:#5AC88A;--green-bg:#0E2A1C;--code-bg:#010409;
+  --green:#5AC88A;--green-bg:#0E2A1C;
+  --warn:#F0B93D;--warn-bg:#2E2408;--danger:#FF8A50;--danger-bg:#2E1608;
+  --code-bg:#010409;
 }
 
 /* ── Reset / Base ─────────────────────────────────────────── */
@@ -338,7 +350,20 @@ tr:nth-child(even) td { background: var(--surface-2); }
 }
 .note.listed { background: var(--listed-bg); border-color: var(--listed); }
 .note.otc    { background: var(--otc-bg);    border-color: var(--otc); }
+.note.warn   { background: var(--warn-bg);   border-color: var(--warn); }
+.note.danger { background: var(--danger-bg); border-color: var(--danger); }
 .note strong { color: inherit; }
+
+/* ── Mock UI banner (for previewing in-app hint text) ───────────── */
+.mock-banner {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; border-radius: 7px;
+  font-size: 12.5px; font-weight: 500;
+  border: 1px solid; margin: 10px 0;
+}
+.mock-banner .link { font-weight: 700; text-decoration: underline; white-space: nowrap; }
+.mock-banner.warn   { background: var(--warn-bg);   border-color: var(--warn);   color: var(--warn); }
+.mock-banner.danger { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
 
 /* ── Separator, list ──────────────────────────────────────────── */
 hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
@@ -433,7 +458,8 @@ li { margin-bottom: .3em; }
   </div>
   <div class="toc-section">
     <div class="toc-label">架構</div>
-    <a class="toc-link" href="#market-split">上市 / 上櫃分離架構 <span class="chip chip-new">NEW</span></a>
+    <a class="toc-link" href="#market-split">上市 / 上櫃分離架構</a>
+    <a class="toc-link" href="#sync-guard">資料同步與更新機制 <span class="chip chip-new">NEW</span></a>
     <a class="toc-link" href="#database">資料庫設計</a>
     <a class="toc-link" href="#tech">技術棧</a>
     <a class="toc-link" href="#structure">專案結構</a>
@@ -534,6 +560,8 @@ li { margin-bottom: .3em; }
         <tr><td>🔴 大量出逃</td><td>RNM ≤ −45</td><td>資金不計成本被抽走</td></tr>
       </tbody>
     </table></div>
+    <h4>Tab 分市場 <span class="chip chip-new">NEW</span></h4>
+    <p style="font-size:13px">上市 Tab <span class="chip chip-listed">上市</span> 與 上櫃 Tab <span class="chip chip-otc">上櫃</span> 分別計算：<code>RotationEngine</code> 依市場拆開跑，避免同名板塊（如「半導體業」）的上市/上櫃個股被混算成同一個輪動分數，各自顯示對應交易日，詳見 <a href="#market-split">上市 / 上櫃分離架構</a>。</p>
   </div>
 
   <div class="subsection" id="feat-watchlist">
@@ -850,17 +878,18 @@ intradayReturn = (close − open) / open × 100
 
   <div class="subsection">
     <h3 class="subsection-title">BootstrapAnalyzer 並行計算圖</h3>
-    <div class="code-wrap"><div class="algo"><span class="cm">Phase 1（並行，5 個 Isolate）</span>
+    <div class="code-wrap"><div class="algo"><span class="cm">Phase 1（並行，6 個 Isolate）</span>
   <span class="chip chip-listed">上市</span> _runLifecycleForMarket(listed) ─────────────┐
   <span class="chip chip-otc">上櫃</span> _runLifecycleForMarket(otc)    ─────────────┤
-  _runCapitalFlow(snapshots)   ───────────────────┤ → AppBootstrapResult
-  _runMainstream(snapshots)    ───────────────────┤
-  _runRotation(snapshots)      ───────────────────┘
+  <span class="chip chip-listed">上市</span> _runRotationForMarket(listed)  ─────────────┤
+  <span class="chip chip-otc">上櫃</span> _runRotationForMarket(otc)     ─────────────┤ → AppBootstrapResult
+  _runCapitalFlow(snapshots)   ───────────────────┤
+  _runMainstream(snapshots)    ───────────────────┘
 
 <span class="cm">Phase 2（並行，2 個 Isolate，依賴 Phase 1 的 mainstreams）</span>
   _runLifecycle(snapshots, mainstreams)   <span class="cm">← 混合，供首頁訊號用</span>
   _runSentiment(snapshots, mainstreams)</div></div>
-    <div class="note"><strong>為何需要獨立週期計算？</strong> TWSE 與 TPEX 使用相同的板塊分類名稱（如「半導體業」同時出現在上市與上櫃）。若混合計算後以名稱過濾，同名板塊會同時進入兩個 Tab。獨立計算後，每個 Tab 只含該市場的板塊資料，點擊導航也只開啟該市場的 CategoryUiModel。</div>
+    <div class="note"><strong>為何需要獨立週期／輪動計算？</strong> TWSE 與 TPEX 使用相同的板塊分類名稱（如「半導體業」同時出現在上市與上櫃）。若混合計算後以名稱過濾，同名板塊會同時進入兩個 Tab；<code>RotationEngine</code> 更直接以板塊名稱分組計算輪動分數，混合快照會把兩個市場的個股加權平均在一起，算出一個誰都不代表的失真分數。獨立計算後，每個 Tab 只含該市場的板塊與輪動資料，點擊導航也只開啟該市場的 CategoryUiModel。</div>
   </div>
 
   <div class="subsection">
@@ -895,8 +924,75 @@ intradayReturn = (close − open) / open × 100
           <td><code>_findCategory()</code> 搜尋合併清單，永遠回傳上市版本</td>
           <td><code>_findCategoryIn(name, marketCategories)</code> 只在當前市場清單中查找</td>
         </tr>
+        <tr>
+          <td>LeadingIndicatorPage <span class="chip chip-new">NEW</span></td>
+          <td>單一頁面無 Tab；<code>RotationEngine</code> 吃混合快照，同名板塊的上市/上櫃個股被混算成同一個輪動分數，點卡片導航永遠回傳上市版本</td>
+          <td>比照 StrategyDashboardPage 改為上市/上櫃 TabBar；<code>RotationEngine</code> 依市場拆開跑，各自產出 <code>listedRotations</code> / <code>otcRotations</code>，卡片導航改用 <code>_findCategoryIn</code></td>
+        </tr>
       </tbody>
     </table></div>
+    <div class="note warn">領先雷達的修正跟前三列不同：前三列是「引擎資料已經正確拆分、但頁面查找邏輯沒跟上」；領先雷達則是<strong>引擎輸出本身</strong>就把兩個市場混在一起計算，屬於資料正確性問題，不只是介面顯示問題。</div>
+  </div>
+</section>
+
+<!-- ── 資料同步與更新機制 ── -->
+<section class="section" id="sync-guard">
+  <h2 class="section-title">資料同步與更新機制 <span class="chip chip-new">NEW</span></h2>
+
+  <div class="note"><strong>背景</strong>：TWSE / TPEX 官方開放資料實際整理完成的確切時間點無法得知（可能傍晚就緒，也可能延到隔天）。與其用一個猜測的精確時間點決定何時抓取，不如鎖定「確定沒有新資料」的區間直接略過、其餘時間都允許嘗試，並讓使用者隨時能自行手動刷新取得最新狀況。</div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">白天靜默期（07:00–19:00）</h3>
+    <p><code>SyncManager.syncTodayData()</code> 每次啟動 App 時執行，邏輯如下：</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>時段 / 條件</th><th>行為</th><th>原因</th></tr></thead>
+      <tbody>
+        <tr><td><strong>07:00–19:00</strong>（白天靜默期）</td><td>略過 API 呼叫，直接使用本地快照</td><td>台股收盤 13:30，此區間內確定不會有新收盤資料，是唯一有把握的判斷依據</td></tr>
+        <tr><td>19:00～隔日 07:00（靜默期以外）</td><td>一律嘗試向 API 抓取</td><td>官方實際整理完成時間不確定，抓不到新資料只是白跑一趟、不會寫壞本地資料，因此不再猜測精確時間點</td></tr>
+        <tr><td>本地資料超過 <strong>3 個日曆天</strong></td><td>無論在不在靜默期，強制向 API 同步</td><td>避免連假／網路異常後資料一直停留在舊快照</td></tr>
+        <tr><td>手動刷新（<code>forceSync</code>）</td><td>完全略過以上護欄，直接呼叫 API</td><td>使用者主動要求最新資料時的最高優先權</td></tr>
+      </tbody>
+    </table></div>
+    <div class="note warn">抓取失敗或抓到舊資料都不會覆蓋本地已存在的正確快照——正確性由 <code>isNewTradingDay</code> 比對日期把關，時間護欄只負責「要不要嘗試」，不影響資料正確性。</div>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">首頁提示條</h3>
+    <p>大盤診斷首頁的標題區塊會依資料狀態即時顯示對應提示，並附上手動刷新的文字連結：</p>
+
+    <p style="font-size:12.5px;color:var(--ink-3);margin-top:14px">白天靜默期（07:00–19:00）：</p>
+    <div class="mock-banner warn">
+      <span>⏱</span>
+      <span style="flex:1">目前顯示上一交易日資料，官方資料整理時間不一定，最快當日傍晚、最晚隔日才會更新；如需查看最新狀況，請點擊：</span>
+      <span class="link">立即重新整理</span>
+    </div>
+
+    <p style="font-size:12.5px;color:var(--ink-3);margin-top:14px">上市／上櫃日期不一致（可能其中一邊抓取失敗或延遲）：</p>
+    <div class="mock-banner danger">
+      <span>⚠</span>
+      <span style="flex:1">上市 2026-08-15 · 上櫃 2026-08-16，日期不一致，上市資料可能抓取失敗或延遲；如需重新嘗試，請點擊：</span>
+      <span class="link">立即重新整理</span>
+    </div>
+    <p>兩個提示條各自獨立顯示、互不影響；日期不一致警示不受靜默期限制，只要偵測到 <code>listedDate != otcDate</code> 就會出現，並明確點名是<span class="chip chip-listed">上市</span>還是<span class="chip chip-otc">上櫃</span>的資料較舊（以定長日期字串字典序比較）。</p>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">手動重新整理</h3>
+    <p>首頁右上角圖示按鈕與上述兩個提示條內的文字連結，都會觸發同一個 <code>forceSync</code> 流程：完全略過時間護欄、向 TWSE / TPEX 取最新資料、重新計算並寫回 SQLite。使用者不需等待任何時間窗口，隨時可自行取得最新狀態。</p>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">SQLite 歷史寫入重試</h3>
+    <p>每次同步到新資料後，<code>_saveHistoryToSqlite()</code> 會把當日板塊指標寫入 SQLite（供 30 日走勢圖、異常偵測 Z-score 基準使用）。寫入失敗時最多重試 <strong>3 次</strong>（間隔遞增），並記錄失敗 log，不再靜默吞錯：</p>
+    <div class="code-wrap"><pre><span class="kw">for</span> (attempt = 1; attempt &lt;= 3; attempt++) {
+  <span class="kw">try</span> { <span class="cm">// saveDailySnapshot 為 upsert，重試整個方法安全、不會重複</span>
+    <span class="kw">await</span> saveDailySnapshot(...);
+    <span class="kw">return</span>;
+  } <span class="kw">catch</span> (e) {
+    log(<span class="str">'SQLite 歷史寫入失敗（第 $attempt/3 次）'</span>);
+    <span class="kw">await</span> delay(Duration(seconds: attempt));
+  }
+}</pre></div>
   </div>
 </section>
 

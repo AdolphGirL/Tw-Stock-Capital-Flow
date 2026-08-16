@@ -10,7 +10,10 @@ import 'package:tw_stock_capital_flow/data/watchlist/repositories/watchlist_repo
 import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart';
 
 class LeadingIndicatorPage extends StatelessWidget {
-  final List<RotationResult> rotations;
+  final List<RotationResult> listedRotations; // 上市市場獨立輪動
+  final List<RotationResult> otcRotations;    // 上櫃市場獨立輪動
+  final String listedDate; // TWSE 上市交易日
+  final String otcDate;    // TPEX 上櫃交易日
   final List<CategoryUiModel> listedCategories;
   final List<CategoryUiModel> otcCategories;
   final CategoryHistoryRepository historyRepository;
@@ -19,66 +22,101 @@ class LeadingIndicatorPage extends StatelessWidget {
 
   LeadingIndicatorPage({
     super.key,
-    required this.rotations,
+    required this.listedRotations,
+    required this.otcRotations,
+    required this.listedDate,
+    required this.otcDate,
     required this.listedCategories,
     required this.otcCategories,
     required this.historyRepository,
     required this.watchlistRepository,
   });
 
+  String _fmtDate(String raw) {
+    if (raw.length == 7) {
+      return '${raw.substring(0, 3)}-${raw.substring(3, 5)}-${raw.substring(5, 7)}';
+    }
+    return raw;
+  }
+
   @override
   Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: const Color(0xfff3f6fb),
+        appBar: AppBar(
+          title: const Text(
+            '資金輪動領先指標雷達',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          elevation: 0,
+          bottom: TabBar(
+            labelColor: const Color(0xFF1A237E),
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: const Color(0xFF1A237E),
+            tabs: [
+              Tab(text: '上市  ${_fmtDate(listedDate)}'),
+              Tab(text: '上櫃  ${_fmtDate(otcDate)}'),
+            ],
+          ),
+        ),
+        body: SafeArea(
+          child: TabBarView(
+            children: [
+              _buildMarketView(context, listedRotations, listedCategories),
+              _buildMarketView(context, otcRotations, otcCategories),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMarketView(
+    BuildContext context,
+    List<RotationResult> rotations,
+    List<CategoryUiModel> marketCategories,
+  ) {
     final indicators = _analyser.calculateLeadingIndicators(rotations);
 
     final leaders = indicators.where((e) => e.netRotationScore > 0).toList();
     final laggards = indicators.where((e) => e.netRotationScore <= 0).toList();
     laggards.sort((a, b) => a.netRotationScore.compareTo(b.netRotationScore));
 
-    return Scaffold(
-      backgroundColor: const Color(0xfff3f6fb),
-      appBar: AppBar(
-        title: const Text(
-          '資金輪動領先指標雷達',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-        ),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildConceptCard(),
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        _buildConceptCard(),
+        const SizedBox(height: 20),
+
+        if (rotations.isEmpty) ...[
+          _buildNoDataCard(),
+        ] else ...[
+          if (leaders.isNotEmpty) ...[
+            _buildSectionHeader(
+              '🔥 領先吸籌板塊 (資金正灌入充電)',
+              Colors.green.shade800,
+              Icons.bolt,
+            ),
+            ...leaders.map((e) => _buildIndicatorCard(context, e, marketCategories)),
             const SizedBox(height: 20),
-
-            if (rotations.isEmpty) ...[
-              _buildNoDataCard(),
-            ] else ...[
-              if (leaders.isNotEmpty) ...[
-                _buildSectionHeader(
-                  '🔥 領先吸籌板塊 (資金正灌入充電)',
-                  Colors.green.shade800,
-                  Icons.bolt,
-                ),
-                ...leaders.map((e) => _buildIndicatorCard(context, e)),
-                const SizedBox(height: 20),
-              ],
-
-              if (laggards.isNotEmpty) ...[
-                _buildSectionHeader(
-                  '⚠️ 領先失血板塊 (資金正被當提款機)',
-                  Colors.red.shade800,
-                  Icons.money_off,
-                ),
-                ...laggards.map((e) => _buildIndicatorCard(context, e)),
-              ],
-
-              if (leaders.isEmpty && laggards.isEmpty) _buildNoDataCard(),
-            ],
           ],
-        ),
-      ),
+
+          if (laggards.isNotEmpty) ...[
+            _buildSectionHeader(
+              '⚠️ 領先失血板塊 (資金正被當提款機)',
+              Colors.red.shade800,
+              Icons.money_off,
+            ),
+            ...laggards.map((e) => _buildIndicatorCard(context, e, marketCategories)),
+          ],
+
+          if (leaders.isEmpty && laggards.isEmpty) _buildNoDataCard(),
+        ],
+      ],
     );
   }
 
@@ -116,10 +154,10 @@ class LeadingIndicatorPage extends StatelessWidget {
     );
   }
 
-  CategoryUiModel? _findCategory(String name) {
-    final all = [...listedCategories, ...otcCategories];
+  // 只在指定市場的 categories 中查找，避免上市/上櫃同名板塊互相干擾
+  CategoryUiModel? _findCategoryIn(String name, List<CategoryUiModel> categories) {
     try {
-      return all.firstWhere((c) => c.name == name);
+      return categories.firstWhere((c) => c.name == name);
     } catch (_) {
       return null;
     }
@@ -220,12 +258,17 @@ class LeadingIndicatorPage extends StatelessWidget {
     );
   }
 
-  Widget _buildIndicatorCard(BuildContext context, LeadingIndicatorResult item) {
+  Widget _buildIndicatorCard(
+    BuildContext context,
+    LeadingIndicatorResult item,
+    List<CategoryUiModel> marketCategories,
+  ) {
     final isPositive = item.netRotationScore > 0;
     final themeColor = isPositive
         ? const Color(0xff2e7d32)
         : const Color(0xffc62828);
-    final category = _findCategory(item.category);
+    // 只在當前市場的 categories 中查找，確保導航至正確市場的板塊
+    final category = _findCategoryIn(item.category, marketCategories);
     final sigInfo = _signalInfo(item.signal);
 
     // vs 昨日（同步，CapitalFlow 三日記錄）

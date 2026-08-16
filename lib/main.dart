@@ -235,15 +235,15 @@ class _BootstrapAppState extends State<BootstrapApp> {
     const maxRetry = 3;
     for (int attempt = 1; attempt <= maxRetry; attempt++) {
       try {
-        // 上市板塊 → listedDate
+        // 上市板塊 → listedDate（輪動歷史使用上市獨立計算的 listedRotations）
         await _categoryHistoryRepository!.saveDailySnapshot(
           dateKey: result.listedDate.isNotEmpty ? result.listedDate : _listedDate,
           categories: result.listedCategories,
           mainstreams: result.mainstreams,
           lifecycles: result.lifecycles,
-          rotations: result.rotations,
+          rotations: result.listedRotations,
         );
-        // 上櫃板塊 → otcDate（日期不同時才需要再寫一次）
+        // 上櫃板塊 → otcDate（日期不同時才需要再寫一次，輪動歷史使用 otcRotations）
         final otcKey = result.otcDate.isNotEmpty ? result.otcDate : _otcDate;
         final listedKey = result.listedDate.isNotEmpty ? result.listedDate : _listedDate;
         if (result.otcCategories.isNotEmpty && otcKey != listedKey) {
@@ -252,16 +252,16 @@ class _BootstrapAppState extends State<BootstrapApp> {
             categories: result.otcCategories,
             mainstreams: [],
             lifecycles: [],
-            rotations: [],
+            rotations: result.otcRotations,
           );
         } else if (result.otcCategories.isNotEmpty) {
-          // 同日期時合併在同一筆，避免重複寫入
+          // 同日期時合併在同一筆，避免重複寫入（輪動歷史合併上市+上櫃兩份獨立結果）
           await _categoryHistoryRepository!.saveDailySnapshot(
             dateKey: otcKey,
             categories: [...result.listedCategories, ...result.otcCategories],
             mainstreams: result.mainstreams,
             lifecycles: result.lifecycles,
-            rotations: result.rotations,
+            rotations: [...result.listedRotations, ...result.otcRotations],
           );
         }
         return; // 成功，結束重試
@@ -441,7 +441,8 @@ class _BootstrapAppState extends State<BootstrapApp> {
                 otcRiseCount: bootstrapResult!.otcRiseCount,
                 otcFallCount: bootstrapResult!.otcFallCount,
                 otcScore: bootstrapResult!.otcScore,
-                rotations: bootstrapResult!.rotations,
+                listedRotations: bootstrapResult!.listedRotations,
+                otcRotations: bootstrapResult!.otcRotations,
                 mainstreams: bootstrapResult!.mainstreams,
                 lifecycles: bootstrapResult!.lifecycles,
                 listedLifecycles: bootstrapResult!.listedLifecycles,
