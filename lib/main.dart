@@ -34,7 +34,7 @@ class BootstrapApp extends StatefulWidget {
   State<BootstrapApp> createState() => _BootstrapAppState();
 }
 
-class _BootstrapAppState extends State<BootstrapApp> {
+class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver {
   String _listedDate = ''; // 上市（TWSE）交易日（民國年 YYYMMDD）
   String _otcDate    = ''; // 上櫃（TPEX）交易日（民國年 YYYMMDD）
   bool loading = true;
@@ -55,10 +55,32 @@ class _BootstrapAppState extends State<BootstrapApp> {
   // 防止 _refresh 重複並發
   bool _isRefreshing = false;
 
+  // 節流背景恢復同步，避免使用者短時間內反覆切換 App 造成 API 被連續打爆
+  DateTime? _lastResumeSyncAt;
+  static const _resumeSyncCooldown = Duration(seconds: 30);
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     initialize();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// App 沒有背景常駐同步機制：從背景恢復前景時 Flutter 進程通常不會重新
+  /// 執行 initState，畫面會停留在上次冷啟動/手動刷新當下抓到的數據。這裡
+  /// 補上恢復前景時的靜默重新同步，沿用 syncTodayData 既有的白天靜默期
+  /// 護欄（非 forceSync），確定有新資料才重新計算並更新畫面。
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !loading) {
+      _resyncOnResume();
+    }
   }
 
   /// 取得今天日期字串（格式：民國年 YYYMMDD，與 StockService 格式一致）
@@ -221,6 +243,65 @@ class _BootstrapAppState extends State<BootstrapApp> {
           bootstrapResult = result;
         });
       }
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
+  /// 背景恢復前景時的靜默重新同步：只有確實抓到新資料（saved=true）才
+  /// 重新計算並更新畫面；命中白天靜默期、無新資料或失敗時悄悄跳過，
+  /// 維持目前畫面顯示的內容，不彈錯誤、不顯示 loading。
+  Future<void> _resyncOnResume() async {
+    final now = DateTime.now();
+    if (_lastResumeSyncAt != null &&
+        now.difference(_lastResumeSyncAt!) < _resumeSyncCooldown) {
+      return;
+    }
+    if (_isRefreshing) return;
+    _isRefreshing = true;
+    _lastResumeSyncAt = now;
+    try {
+      final syncManager = SyncManager(
+        storageService: _storageService,
+        calendarService: MarketCalendarService(),
+      );
+      final syncResult = await syncManager.syncTodayData().timeout(
+        const Duration(seconds: 120),
+      );
+
+      if (!syncResult.saved) return;
+
+      final newListedDate =
+          syncResult.listedDate.isNotEmpty ? syncResult.listedDate : _listedDate;
+      final newOtcDate =
+          syncResult.otcDate.isNotEmpty ? syncResult.otcDate : _otcDate;
+
+      await _categoryHistoryRepository!.pruneOldHistory(keepDays: 365);
+
+      final historyRepository = HistoryRepository(storageService: _storageService);
+      final snapshots = await historyRepository.loadRecentSnapshots(5);
+      if (snapshots.isEmpty) return;
+
+      final rawResult = await BootstrapAnalyzer.analyzeAsync(snapshots);
+      final result = rawResult.copyWith(listedDate: newListedDate, otcDate: newOtcDate);
+
+      final cacheService = AnalysisCacheService(_storageService);
+      await cacheService.saveBootstrapCache(newListedDate, result);
+      await _storageService.pruneOldBootstrapCaches(keepCount: 3);
+      await _saveHistoryToSqlite(result);
+
+      final changes = await _detectAndSaveSignalChanges(result);
+
+      if (!mounted) return;
+      setState(() {
+        _listedDate = newListedDate;
+        _otcDate = newOtcDate;
+        bootstrapResult = result;
+        _pendingSignalChanges = changes;
+        if (changes.isNotEmpty) _signalDialogShown = false;
+      });
+    } catch (_) {
+      // 悄悄失敗，維持現有畫面資料
     } finally {
       _isRefreshing = false;
     }
