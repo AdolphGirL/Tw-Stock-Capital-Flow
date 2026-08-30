@@ -7,10 +7,14 @@ import 'package:tw_stock_capital_flow/domain/enums/sentiment_level.dart';
 import 'package:tw_stock_capital_flow/domain/models/institutional_flow_result.dart';
 import 'package:tw_stock_capital_flow/data/services/institutional_flow_service.dart';
 import 'package:tw_stock_capital_flow/data/services/institutional_flow_history_service.dart';
+import 'package:tw_stock_capital_flow/domain/models/margin_trading_result.dart';
+import 'package:tw_stock_capital_flow/data/services/margin_trading_service.dart';
+import 'package:tw_stock_capital_flow/data/services/margin_trading_history_service.dart';
 import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/market_summary_card.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/market_signal_summary.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/institutional_flow_chart.dart';
+import 'package:tw_stock_capital_flow/presentation/widgets/margin_trading_chart.dart';
 
 import 'package:tw_stock_capital_flow/presentation/pages/main_category_page.dart';
 
@@ -86,6 +90,8 @@ class _HomePageState extends State<HomePage> {
 
   InstitutionalFlowResult? _institutionalFlow;
   List<InstitutionalFlowResult> _flowHistory = [];
+  MarginTradingResult? _marginTrading;
+  List<MarginTradingResult> _marginHistory = [];
   bool _isRefreshing = false;
 
   @override
@@ -93,6 +99,8 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     _fetchFlow();
     _loadFlowHistory();
+    _fetchMargin();
+    _loadMarginHistory();
   }
 
   @override
@@ -101,6 +109,7 @@ class _HomePageState extends State<HomePage> {
     if (oldWidget.listedDate != widget.listedDate ||
         oldWidget.otcDate != widget.otcDate) {
       _fetchFlow();
+      _fetchMargin();
     }
   }
 
@@ -171,6 +180,27 @@ class _HomePageState extends State<HomePage> {
     if (mounted) setState(() => _flowHistory = history);
   }
 
+  /// 融資融券餘額為集中市場（上市）統計。不帶日期查詢，由 TWSE 直接回傳最新
+  /// 可用資料，實際日期以回應內容為準（MarginTradingService 內部處理），
+  /// 不需要像三大法人那樣自行回溯猜測日期。
+  Future<void> _fetchMargin() async {
+    try {
+      final result = await MarginTradingService.fetchLatest();
+      if (result != null && mounted) {
+        // 存入歷史後重新載入，確保圖表包含今日資料
+        await MarginTradingHistoryService.save(storageService, result);
+        _loadMarginHistory();
+        setState(() => _marginTrading = result);
+      }
+    } catch (_) {
+    }
+  }
+
+  Future<void> _loadMarginHistory() async {
+    final history = await MarginTradingHistoryService.loadRecent(storageService);
+    if (mounted) setState(() => _marginHistory = history);
+  }
+
   /// 民國年 YYYMMDD (7碼) 或西元年 YYYYMMDD (8碼) → 帶分隔符顯示字串
   String _formatTradeDate(String rawDate) {
     if (rawDate.length == 7) {
@@ -206,6 +236,9 @@ class _HomePageState extends State<HomePage> {
 
             // 🏦 2. 三大法人籌碼
             _buildInstitutionalSection(),
+
+            // 📇 2.5 融資融券餘額（散戶指標）
+            _buildMarginSection(),
 
             // 🧠 3. 市場熱錢情緒（直接內嵌顯示）
             _buildSentimentSection(),
@@ -928,6 +961,186 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMarginSection() {
+    if (_marginTrading == null) return const SizedBox.shrink();
+    final margin = _marginTrading!;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Header ──────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+            child: Row(
+              children: [
+                const Icon(Icons.credit_score_rounded,
+                    size: 17, color: Color(0xFF5C6BC0)),
+                const SizedBox(width: 7),
+                const Text(
+                  '融資融券餘額',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '散戶指標',
+                  style: TextStyle(fontSize: 10.5, color: Colors.grey.shade400),
+                ),
+                const Spacer(),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withValues(alpha: 0.07),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    _formatTradeDate(margin.date),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.blueAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, indent: 16, endIndent: 16),
+
+          // ── 融資 / 融券 兩欄 ─────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+            child: Row(
+              children: [
+                _buildMarginCell(margin.margin),
+                _buildGroupVerticalDivider(),
+                _buildMarginCell(margin.shortSale),
+              ],
+            ),
+          ),
+
+          const Divider(height: 1, indent: 16, endIndent: 16),
+
+          // ── 融資金額 ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      '融資金額',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '今日餘額 ${margin.marginBalanceValueYi.toStringAsFixed(1)} 億',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade400,
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${margin.isMarginIncrease ? "+" : ""}${margin.marginBalanceValueChangeYi.toStringAsFixed(2)} 億',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: margin.isMarginIncrease
+                        ? const Color(0xFFC62828)
+                        : const Color(0xFF2E7D32),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── 歷史增減圖（有歷史資料才顯示）──────────────────────────────
+          if (_marginHistory.length >= 2) ...[
+            const Divider(height: 1, indent: 16, endIndent: 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_marginHistory.length} 日歷史增減',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade500,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  MarginTradingChart(history: _marginHistory),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMarginCell(MarginEntry entry) {
+    final color = entry.isIncrease
+        ? const Color(0xFFC62828)
+        : const Color(0xFF2E7D32);
+
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            entry.name,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade500,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            entry.changeLabel,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '餘額 ${entry.todayBalanceLabel}',
+            style: TextStyle(fontSize: 10, color: Colors.grey.shade400),
+          ),
         ],
       ),
     );

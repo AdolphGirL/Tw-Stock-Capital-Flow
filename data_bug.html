@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>資料同步 Bug 報告 — 上櫃資料日期遮蔽</title>
+<style>
+:root {
+  --ink:#0F1724; --ink-2:#3D4F69; --ink-3:#64758B;
+  --surface:#F6F9FD; --surface-2:#EDF1F7; --surface-3:#E2E9F3;
+  --border:#D6DEE9; --accent:#1A6CE8; --accent-bg:#E8F0FD;
+  --listed:#C8311A; --listed-bg:#FEF0ED; --otc:#1A5BB5; --otc-bg:#E6EEFA;
+  --green:#1A7A45; --green-bg:#E6F5EC;
+  --warn:#9A6400; --warn-bg:#FFF3D6;
+  --danger:#B23A00; --danger-bg:#FFEDE0;
+  --code-bg:#0D1117; --code-text:#C9D1D9; --code-kw:#79C0FF; --code-str:#A5D6FF; --code-cm:#6E7B8D; --code-re:#FF7B72;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink:#E8EDF5; --ink-2:#A8B8CC; --ink-3:#6B7D93;
+    --surface:#0D1520; --surface-2:#141E2D; --surface-3:#1C2A3C;
+    --border:#2A3C52; --accent:#4B8EF0; --accent-bg:#112140;
+    --listed:#F08070; --listed-bg:#2D1A15; --otc:#5A99E8; --otc-bg:#112240;
+    --green:#5AC88A; --green-bg:#0E2A1C;
+    --warn:#F0B93D; --warn-bg:#2E2408;
+    --danger:#FF8A50; --danger-bg:#2E1608;
+    --code-bg:#010409;
+  }
+}
+:root[data-theme="light"] {
+  --ink:#0F1724; --ink-2:#3D4F69; --ink-3:#64758B;
+  --surface:#F6F9FD; --surface-2:#EDF1F7; --surface-3:#E2E9F3;
+  --border:#D6DEE9; --accent:#1A6CE8; --accent-bg:#E8F0FD;
+  --listed:#C8311A; --listed-bg:#FEF0ED; --otc:#1A5BB5; --otc-bg:#E6EEFA;
+  --green:#1A7A45; --green-bg:#E6F5EC;
+  --warn:#9A6400; --warn-bg:#FFF3D6;
+  --danger:#B23A00; --danger-bg:#FFEDE0;
+  --code-bg:#0D1117;
+}
+:root[data-theme="dark"] {
+  --ink:#E8EDF5; --ink-2:#A8B8CC; --ink-3:#6B7D93;
+  --surface:#0D1520; --surface-2:#141E2D; --surface-3:#1C2A3C;
+  --border:#2A3C52; --accent:#4B8EF0; --accent-bg:#112140;
+  --listed:#F08070; --listed-bg:#2D1A15; --otc:#5A99E8; --otc-bg:#112240;
+  --green:#5AC88A; --green-bg:#0E2A1C;
+  --warn:#F0B93D; --warn-bg:#2E2408;
+  --danger:#FF8A50; --danger-bg:#2E1608;
+  --code-bg:#010409;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  font-size:14.5px; line-height:1.7; color:var(--ink); background:var(--surface);
+  -webkit-font-smoothing:antialiased;
+}
+main{max-width:860px;margin:0 auto;padding:48px 24px 80px}
+a{color:var(--accent)}
+code,pre{font-family:'Cascadia Code','Fira Mono','SF Mono',Consolas,monospace}
+code:not(pre code){background:var(--surface-3);color:var(--listed);font-size:12px;padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);color:var(--code-text);font-size:12.5px;line-height:1.65;padding:16px 18px;border-radius:8px;white-space:pre;overflow-x:auto}
+.kw{color:var(--code-kw)} .str{color:var(--code-str)} .cm{color:var(--code-cm);font-style:italic} .re{color:var(--code-re)}
+.eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
+h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:8px}
+.subtitle{font-size:14.5px;color:var(--ink-2);margin-bottom:20px}
+.meta-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:36px}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 10px;border-radius:20px;border:1px solid}
+.badge-danger{background:var(--danger-bg);color:var(--danger);border-color:var(--danger)}
+.badge-neutral{background:var(--surface-3);color:var(--ink-2);border-color:var(--border)}
+.badge-otc{background:var(--otc-bg);color:var(--otc);border-color:var(--otc)}
+section{margin-bottom:40px}
+h2{font-size:19px;font-weight:800;margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;align-items:center;gap:8px}
+h2 .num{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-bg);padding:2px 7px;border-radius:4px}
+h3{font-size:15px;font-weight:700;margin:20px 0 8px;padding-left:11px;border-left:3px solid var(--accent)}
+p{max-width:70ch}
+p+p{margin-top:.8em}
+ol,ul{margin:10px 0 10px 22px}
+li{margin-bottom:6px}
+.note{background:var(--accent-bg);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:12px 16px;font-size:13px;margin:14px 0}
+.note.danger{background:var(--danger-bg);border-color:var(--danger)}
+.note.warn{background:var(--warn-bg);border-color:var(--warn)}
+.note strong{color:inherit}
+.card{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:12px}
+.card.danger{border-left:3px solid var(--danger)}
+.card.otc{border-left:3px solid var(--otc)}
+.table-wrap{overflow-x:auto;margin:14px 0}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+th{background:var(--surface-3);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-2);padding:8px 11px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:8px 11px;border-bottom:1px solid var(--border);color:var(--ink)}
+tr:last-child td{border-bottom:none}
+.diff-label{font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin-bottom:4px}
+.diff-label.before{color:var(--danger)}
+.diff-label.after{color:var(--green)}
+.chain{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;font-family:'Cascadia Code','Fira Mono','SF Mono',monospace;font-size:12.5px;line-height:2;color:var(--ink-2);overflow-x:auto}
+.chain .step{color:var(--ink);font-weight:700}
+.chain .bad{color:var(--danger);font-weight:700}
+.chain .arrow{color:var(--ink-3)}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--border);font-size:12px;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<main>
+  <div class="eyebrow">Bug Report</div>
+  <h1>上櫃資料「假新鮮」— 抓取失敗被靜默偽裝成已更新</h1>
+  <p class="subtitle">個股掃描器顯示的上櫃成交金額與實際不符，追查後定位為 SyncManager 的日期回報邏輯遮蔽了單一市場抓取失敗的事實。</p>
+  <div class="meta-row">
+    <span class="badge badge-danger">Confirmed Bug</span>
+    <span class="badge badge-otc">上櫃 TPEX</span>
+    <span class="badge badge-neutral">已修正</span>
+    <span class="badge badge-neutral">2026-08-27</span>
+  </div>
+
+  <section>
+    <h2><span class="num">01</span>問題回報</h2>
+    <p>以 4991 環宇-KY（115/08/27）為例，App「板塊個股排行」顯示的成交金額與漲跌幅明顯異常：</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>欄位</th><th>App 顯示（錯誤）</th><th>官方正確值</th></tr></thead>
+      <tbody>
+        <tr><td>成交金額</td><td style="color:var(--danger);font-weight:700">24.04 億</td><td style="color:var(--green);font-weight:700">42.89 億（4,288,968,520 元）</td></tr>
+        <tr><td>漲跌幅</td><td>+10%</td><td>+9.91%（538.00 − 48.50 為前收 489.50）</td></tr>
+      </tbody>
+    </table></div>
+    <p>使用者已嘗試點擊「立即重新整理」手動刷新，畫面數字仍未改變。</p>
+  </section>
+
+  <section>
+    <h2><span class="num">02</span>驗證：官方 API 本身沒有問題</h2>
+    <p>直接以 curl 呼叫 App 目前使用的端點，確認 TPEX 官方資料在當下是正確、即時的：</p>
+    <pre>GET https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes
+
+<span class="cm">// 4991 環宇-KY，Date: "1150827"（今日）</span>
+{
+  <span class="str">"Date"</span>: <span class="str">"1150827"</span>,
+  <span class="str">"SecuritiesCompanyCode"</span>: <span class="str">"4991"</span>,
+  <span class="str">"CompanyName"</span>: <span class="str">"環宇-KY"</span>,
+  <span class="str">"Close"</span>: <span class="str">"538.00"</span>,
+  <span class="str">"Change"</span>: <span class="str">"+48.50"</span>,
+  <span class="str">"TransactionAmount"</span>: <span class="str">"4288968520"</span>  <span class="cm">// = 42.89 億，與正確值完全吻合</span>
+}</pre>
+    <div class="note"><strong>結論</strong>：API 資料正確、<code>stock_service.dart</code> 的欄位對應（<code>TransactionAmount</code> 等）也正確。問題不在資料源頭，也不在解析邏輯。</div>
+  </section>
+
+  <section>
+    <h2><span class="num">03</span>根因：失敗的市場被另一市場的日期「頂替」</h2>
+    <p><code>lib/data/managers/sync_manager.dart</code> 在組裝 <code>SyncResult</code> 時，若某一市場本次抓取失敗（<code>fetchOTC()</code> 重試 3 次後仍回傳空清單），其日期欄位會直接 fallback 成 <code>latestDate</code>——也就是另一個市場成功抓到的日期：</p>
+
+    <div class="diff-label before">修正前</div>
+    <pre><span class="kw">return</span> SyncResult(
+  ...
+  listedDate: listedDate.isNotEmpty ? listedDate : latestDate,
+  otcDate:    otcDate.isNotEmpty    ? otcDate    : latestDate,  <span class="re">// ⚠️ 上櫃失敗時，直接冒用上市的日期</span>
+);</pre>
+
+    <p>這造成一條被完全隱藏的失敗鏈路：</p>
+    <div class="chain">
+<span class="step">① fetchOTC() 失敗</span>          <span class="arrow">→</span> 回傳 []，<code>otc.isEmpty == true</code>
+<span class="step">② saveOtcSnapshot() 被略過</span>   <span class="arrow">→</span> 本地<span class="bad">沒有</span> otc_今天.json 這個檔案
+<span class="step">③ SyncResult.otcDate</span>        <span class="arrow">→</span> 被覆蓋成 latestDate（<span class="bad">冒充「今天」</span>）
+<span class="step">④ 上市/上櫃日期不一致警示</span>     <span class="arrow">→</span> 因為兩個回報日期「看起來一致」，<span class="bad">完全不會觸發</span>
+<span class="step">⑤ HistoryRepository 讀取</span>     <span class="arrow">→</span> 找不到今天的上櫃檔案，<span class="bad">靜默 fallback</span> 到最近一份舊快照（例如前一天）
+<span class="step">⑥ 個股排行畫面</span>              <span class="arrow">→</span> 顯示「今天」標籤，內容卻是<span class="bad">舊資料</span>（4991 的 24.04 億）
+<span class="step">⑦ SQLite 歷史寫入</span>           <span class="arrow">→</span> 舊資料被誤標成「今天」<span class="bad">永久寫入</span>歷史表
+    </div>
+
+    <div class="note danger"><strong>為什麼手動刷新也沒用？</strong> <code>forceSync</code> 只是跳過時間護欄、強制重新呼叫 API，如果那次呼叫本身仍然失敗（例如當下的網路狀況、TPEX 端瞬時限流等外部因素），上述遮蔽鏈路依然會發生——使用者完全看不到任何錯誤提示，只會看到「刷新了但數字沒變」。</div>
+  </section>
+
+  <section>
+    <h2><span class="num">04</span>修正內容</h2>
+    <p>當任一市場本次抓取失敗時，回報的日期改為該市場「本地實際可用」的最新一筆舊日期，不再冒用另一市場的 <code>latestDate</code>：</p>
+
+    <div class="diff-label after">修正後</div>
+    <pre><span class="cm">// 若上市/上櫃其中一方本次抓取失敗，回報日期改用本地實際可用的舊日期</span>
+<span class="kw">String</span> reportedListedDate = effectiveListedDate;
+<span class="kw">if</span> (listed.isEmpty) {
+  <span class="kw">final</span> localListedDates = <span class="kw">await</span> storageService.listListedDates();
+  reportedListedDate = localListedDates.isNotEmpty ? localListedDates.first : <span class="str">''</span>;
+}
+<span class="kw">String</span> reportedOtcDate = effectiveOtcDate;
+<span class="kw">if</span> (otc.isEmpty) {
+  <span class="kw">final</span> localOtcDates = <span class="kw">await</span> storageService.listOtcDates();
+  reportedOtcDate = localOtcDates.isNotEmpty ? localOtcDates.first : <span class="str">''</span>;
+}
+
+<span class="kw">return</span> SyncResult(
+  ...
+  listedDate: reportedListedDate,
+  otcDate: reportedOtcDate,
+);</pre>
+
+    <p>修正後的效果：</p>
+    <ul>
+      <li>不會再有「宣稱今天、實際是舊資料」的假象。</li>
+      <li>首頁的上市/上櫃<strong>日期不一致警示會正確觸發</strong>，明確告訴使用者「上櫃資料可能抓取失敗或延遲」。</li>
+      <li>不會再把舊資料誤標成今天，寫進 SQLite 歷史表造成永久污染。</li>
+    </ul>
+    <div class="note">檔案：<code>lib/data/managers/sync_manager.dart</code>；<code>flutter analyze</code> 全專案通過。</div>
+  </section>
+
+  <section>
+    <h2><span class="num">05</span>已知限制／後續待觀察</h2>
+    <p>這次修正解決的是「失敗被隱藏」的問題，但無法確定<strong>當下那次 <code>fetchOTC()</code> 為何會失敗</strong>——開發機用 curl 直接測試官方 API 是正常的，實際失敗原因可能是使用者裝置當下的網路狀況、或 TPEX 端瞬時限流等外部因素，無法在這次修正中複現或根除。</p>
+    <div class="note warn">後續若再遇到類似狀況，請先確認首頁有沒有跳出橘色的「日期不一致」警示：
+      <ul style="margin-top:8px">
+        <li>有警示 → 代表這次修正生效，問題是網路面的抓取失敗，可以再點一次「立即重新整理」重試。</li>
+        <li>修正後仍完全沒有警示、卻還是舊資料 → 代表還有其他未發現的問題，需要再深入查。</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>Tw Stock Capital Flow · 內部 Bug 追蹤記錄，非產品文件（不列入 README.html）</footer>
+</main>
+</body>
+</html>

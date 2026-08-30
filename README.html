@@ -437,6 +437,7 @@ li { margin-bottom: .3em; }
     <a class="toc-link sub" href="#feat-watchlist">觀察清單</a>
     <a class="toc-link sub" href="#feat-notify">訊號通知</a>
     <a class="toc-link sub" href="#feat-institutional">三大法人</a>
+    <a class="toc-link sub" href="#feat-margin">融資融券 <span class="chip chip-new">NEW</span></a>
     <a class="toc-link sub" href="#feat-chart">板塊走勢圖</a>
     <a class="toc-link sub" href="#feat-mtf">多週期確認</a>
     <a class="toc-link sub" href="#feat-scanner">個股掃描</a>
@@ -603,6 +604,24 @@ li { margin-bottom: .3em; }
       <li>Fallback：當日無資料時往前找最多 5 個日曆日</li>
       <li>歷史以 <code>institutional_flow_history.json</code> 儲存，最多 30 筆</li>
       <li>色彩慣例：<span style="color:var(--listed);font-weight:700">紅=買超</span> / <span style="color:var(--green);font-weight:700">綠=賣超</span>（台股慣例）</li>
+    </ul>
+  </div>
+
+  <div class="subsection" id="feat-margin">
+    <h3 class="subsection-title">融資融券餘額 <span class="chip chip-new">NEW</span></h3>
+    <p>直接呼叫 TWSE <code>/rwd/zh/marginTrading/MI_MARGN</code> API（集中市場信用交易統計），架構與呈現方式比照三大法人籌碼卡片。因法人不能使用信用交易，融資融券餘額增減常被視為<strong>散戶反指標</strong>：融資（借錢買股）增加代表散戶偏多，融券（借股賣出）增加代表散戶偏空。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>項目</th><th>單位</th><th>說明</th></tr></thead>
+      <tbody>
+        <tr><td>融資</td><td>張</td><td>今日餘額 − 前日餘額 = 當日增減，卡片顯示增減與今日餘額張數</td></tr>
+        <tr><td>融券</td><td>張</td><td>同上；官方 API 未提供融券金額欄位，僅有交易單位（張）</td></tr>
+        <tr><td>融資金額</td><td>億元</td><td>仟元換算：<code>raw ÷ 100000</code>；顯示今日餘額與較前日增減</td></tr>
+      </tbody>
+    </table></div>
+    <ul style="margin-top:8px">
+      <li>資料範圍為集中市場（上市）。<strong>不帶 <code>date</code> 參數查詢</strong>，由 TWSE 直接回傳最新可用資料，實際日期一律以回應內容的 <code>date</code> 欄位為準，不自行猜測或回溯日期（比三大法人籌碼的 5 日回溯 fallback 更簡單直接）</li>
+      <li>歷史以 <code>margin_trading_history.json</code> 儲存，最多 30 筆</li>
+      <li>色彩慣例：<span style="color:var(--listed);font-weight:700">紅=增加</span> / <span style="color:var(--green);font-weight:700">綠=減少</span></li>
     </ul>
   </div>
 
@@ -1036,6 +1055,7 @@ intradayReturn = (close − open) / open × 100
       <tr><td><code>YYYMMDD.json</code></td><td>舊格式（向下相容，逐步淘汰）</td><td>最近 7 天</td></tr>
       <tr><td><code>bootstrap_cache_YYYMMDD.json</code></td><td>啟動分析結果快取（離線防禦）</td><td>最近 3 份</td></tr>
       <tr><td><code>institutional_flow_history.json</code></td><td>三大法人 30 日流向歷史</td><td>最近 30 筆</td></tr>
+      <tr><td><code>margin_trading_history.json</code></td><td>融資融券 30 日餘額歷史</td><td>最近 30 筆</td></tr>
     </tbody>
   </table></div>
 </section>
@@ -1087,7 +1107,9 @@ intradayReturn = (close − open) / open × 100
 │       ├── storage_service.dart            <span class="cm"># saveListedSnapshot / saveOtcSnapshot</span>
 │       ├── analysis_cache_service.dart
 │       ├── institutional_flow_service.dart
-│       └── institutional_flow_history_service.dart
+│       ├── institutional_flow_history_service.dart
+│       ├── margin_trading_service.dart     <span class="cm"># TWSE MI_MARGN，散戶指標</span>
+│       └── margin_trading_history_service.dart
 │
 ├── domain/
 │   ├── engines/
@@ -1122,6 +1144,7 @@ intradayReturn = (close − open) / open × 100
         ├── category_history_summary.dart
         ├── category_trend_chart.dart
         ├── institutional_flow_chart.dart
+        ├── margin_trading_chart.dart
         ├── multi_timeframe_confirm_badge.dart
         ├── signal_change_dialog.dart
         └── watchlist_button.dart</pre></div>

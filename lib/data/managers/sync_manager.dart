@@ -177,13 +177,31 @@ class SyncManager {
         name: 'SyncManager',
       );
 
+      // 回報日期不可用 latestDate 頂替失敗的那一方——若上市/上櫃其中一方本次
+      // 抓取失敗（空清單，未寫入新快照檔），回報的日期必須反映該市場「本地實際
+      // 可用」的舊日期，而不是另一市場成功抓到的 latestDate。否則會讓失敗被掩蓋
+      // 成「看起來已更新到最新」，使用者完全看不出來其中一個市場其實還是舊資料，
+      // 上市/上櫃日期不一致警示也會因此失效（因為回報的兩個日期會被誤判為一致）。
+      String reportedListedDate = effectiveListedDate;
+      if (listed.isEmpty) {
+        final localListedDates = await storageService.listListedDates();
+        reportedListedDate = localListedDates.isNotEmpty ? localListedDates.first : '';
+        dev.log('⚠️ 上市資料本次抓取失敗，回報日期改用本地舊快照：$reportedListedDate', name: 'SyncManager');
+      }
+      String reportedOtcDate = effectiveOtcDate;
+      if (otc.isEmpty) {
+        final localOtcDates = await storageService.listOtcDates();
+        reportedOtcDate = localOtcDates.isNotEmpty ? localOtcDates.first : '';
+        dev.log('⚠️ 上櫃資料本次抓取失敗，回報日期改用本地舊快照：$reportedOtcDate', name: 'SyncManager');
+      }
+
       return SyncResult(
         success: true,
         saved: true,
         message: isNewTradingDay ? '同步成功' : '已更新現有資料（$latestDate）',
         date: latestDate,
-        listedDate: listedDate.isNotEmpty ? listedDate : latestDate,
-        otcDate: otcDate.isNotEmpty ? otcDate : latestDate,
+        listedDate: reportedListedDate,
+        otcDate: reportedOtcDate,
         stockCount: allStocks.length,
         stocks: allStocks,
       );
