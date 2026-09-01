@@ -25,6 +25,7 @@ import 'package:tw_stock_capital_flow/domain/strategies/momentum_strategy.dart';
 import 'package:tw_stock_capital_flow/domain/models/strategy_signal.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
+import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
 
 class HomePage extends StatefulWidget {
   final String listedDate; // TWSE 上市交易日
@@ -43,7 +44,7 @@ class HomePage extends StatefulWidget {
   final CategoryHistoryRepository historyRepository;
   final WatchlistRepository watchlistRepository;
   final StorageService storageService;
-  final Future<void> Function()? onRefresh;
+  final Future<SyncResult?> Function()? onRefresh;
 
   const HomePage({
     super.key,
@@ -159,7 +160,25 @@ class _HomePageState extends State<HomePage> {
     if (_isRefreshing || widget.onRefresh == null) return;
     setState(() => _isRefreshing = true);
     try {
-      await widget.onRefresh!();
+      final result = await widget.onRefresh!();
+      // 整趟刷新流程沒有拋例外，不代表每個市場都真的抓到新資料——
+      // 明確檢查這輪的結果，讓使用者知道哪個市場這次其實沒更新到，
+      // 而不是安靜地維持舊資料、看起來像刷新有效但其實沒有。
+      if (result != null && mounted) {
+        final failedMarkets = [
+          if (!result.listedFetchSucceeded) '上市',
+          if (!result.otcFetchSucceeded) '上櫃',
+        ];
+        if (failedMarkets.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${failedMarkets.join("、")}資料本次未成功更新，可能仍是先前資料'),
+              backgroundColor: Colors.orange.shade800,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

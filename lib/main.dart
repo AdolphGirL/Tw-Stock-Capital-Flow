@@ -164,9 +164,13 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
       await cacheService.saveBootstrapCache(_listedDate, result);
       await storageService.pruneOldBootstrapCaches(keepCount: 3);
 
-      // 6. 儲存今日板塊指標至 SQLite 歷史（30日走勢圖資料來源），分市場使用正確日期
+      // 6. 儲存今日板塊指標至 SQLite 歷史（30日走勢圖資料來源），只寫這輪真的抓到新資料的市場
       if (syncResult.saved) {
-        await _saveHistoryToSqlite(result);
+        await _saveHistoryToSqlite(
+          result,
+          saveListed: syncResult.listedFetchSucceeded,
+          saveOtc: syncResult.otcFetchSucceeded,
+        );
       }
 
       final changes = await _detectAndSaveSignalChanges(result);
@@ -202,8 +206,12 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
 
   /// 手動刷新：強制向 API 同步、重新計算、upsert SQLite，並更新 UI。
   /// 使用者點擊刷新按鈕時呼叫，完全繞過 07:00–19:00 白天靜默期護欄。
-  Future<void> _refresh() async {
-    if (_isRefreshing) return;
+  ///
+  /// 回傳這輪的 [SyncResult]（含 listedFetchSucceeded／otcFetchSucceeded），
+  /// 讓呼叫端（HomePage._handleRefresh）能判斷這次刷新是否真的更新到每個
+  /// 市場的新資料，進而提示使用者；本地完全無資料可用時回傳 null。
+  Future<SyncResult?> _refresh() async {
+    if (_isRefreshing) return null;
     _isRefreshing = true;
     try {
       final storageService = _storageService;
@@ -227,7 +235,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
 
       final historyRepository = HistoryRepository(storageService: storageService);
       final snapshots = await historyRepository.loadRecentSnapshots(5);
-      if (snapshots.isEmpty) return;
+      if (snapshots.isEmpty) return syncResult;
 
       final rawResult = await BootstrapAnalyzer.analyzeAsync(snapshots);
       final result = rawResult.copyWith(listedDate: _listedDate, otcDate: _otcDate);
@@ -235,7 +243,11 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
       await storageService.pruneOldBootstrapCaches(keepCount: 3);
 
       if (syncResult.saved) {
-        await _saveHistoryToSqlite(result);
+        await _saveHistoryToSqlite(
+          result,
+          saveListed: syncResult.listedFetchSucceeded,
+          saveOtc: syncResult.otcFetchSucceeded,
+        );
       }
 
       if (mounted) {
@@ -243,6 +255,8 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
           bootstrapResult = result;
         });
       }
+
+      return syncResult;
     } finally {
       _isRefreshing = false;
     }
@@ -288,7 +302,11 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
       final cacheService = AnalysisCacheService(_storageService);
       await cacheService.saveBootstrapCache(newListedDate, result);
       await _storageService.pruneOldBootstrapCaches(keepCount: 3);
-      await _saveHistoryToSqlite(result);
+      await _saveHistoryToSqlite(
+        result,
+        saveListed: syncResult.listedFetchSucceeded,
+        saveOtc: syncResult.otcFetchSucceeded,
+      );
 
       final changes = await _detectAndSaveSignalChanges(result);
 
@@ -308,41 +326,42 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
   }
 
   /// 將今日 bootstrap 計算結果寫入 SQLite 歷史表，供 30 日走勢圖使用。
-  /// 上市板塊用上市日期、上櫃板塊用上櫃日期，確保歷史資料日期標籤正確。
   ///
-  /// 寫入失敗時重試最多 3 次（遞增間隔）：saveDailySnapshot 內部為 upsert，
-  /// 重試整個方法（含已成功的部分）是安全的，不會產生重複紀錄。
-  Future<void> _saveHistoryToSqlite(AppBootstrapResult result) async {
+  /// [saveListed]／[saveOtc] 對應「這一輪是否真的抓到該市場的新資料」
+  /// （來自 SyncResult.listedFetchSucceeded／otcFetchSucceeded）。只有真的
+  /// 抓到新資料的市場才會寫入、以其實際回傳的日期為 key；沒抓到的市場這輪
+  /// 完全不動它在 SQLite 裡的既有紀錄，避免用還沒更新的舊資料覆蓋掉正確的
+  /// 歷史紀錄，也避免明明沒抓到卻硬寫一筆「看起來是今天」的假資料。
+  /// saveDailySnapshot 本身是 upsert，只會更新/新增傳入的板塊，不會刪除
+  /// 該日期底下沒被傳入的既有板塊，因此上市／上櫃分開呼叫是安全的。
+  ///
+  /// 寫入失敗時重試最多 3 次（遞增間隔），重試整個方法是安全的（upsert 冪等）。
+  Future<void> _saveHistoryToSqlite(
+    AppBootstrapResult result, {
+    required bool saveListed,
+    required bool saveOtc,
+  }) async {
+    if (!saveListed && !saveOtc) return;
+
     const maxRetry = 3;
     for (int attempt = 1; attempt <= maxRetry; attempt++) {
       try {
-        // 上市板塊 → listedDate（輪動歷史使用上市獨立計算的 listedRotations）
-        await _categoryHistoryRepository!.saveDailySnapshot(
-          dateKey: result.listedDate.isNotEmpty ? result.listedDate : _listedDate,
-          categories: result.listedCategories,
-          mainstreams: result.mainstreams,
-          lifecycles: result.lifecycles,
-          rotations: result.listedRotations,
-        );
-        // 上櫃板塊 → otcDate（日期不同時才需要再寫一次，輪動歷史使用 otcRotations）
-        final otcKey = result.otcDate.isNotEmpty ? result.otcDate : _otcDate;
-        final listedKey = result.listedDate.isNotEmpty ? result.listedDate : _listedDate;
-        if (result.otcCategories.isNotEmpty && otcKey != listedKey) {
+        if (saveListed) {
           await _categoryHistoryRepository!.saveDailySnapshot(
-            dateKey: otcKey,
-            categories: result.otcCategories,
-            mainstreams: [],
-            lifecycles: [],
-            rotations: result.otcRotations,
-          );
-        } else if (result.otcCategories.isNotEmpty) {
-          // 同日期時合併在同一筆，避免重複寫入（輪動歷史合併上市+上櫃兩份獨立結果）
-          await _categoryHistoryRepository!.saveDailySnapshot(
-            dateKey: otcKey,
-            categories: [...result.listedCategories, ...result.otcCategories],
+            dateKey: result.listedDate.isNotEmpty ? result.listedDate : _listedDate,
+            categories: result.listedCategories,
             mainstreams: result.mainstreams,
             lifecycles: result.lifecycles,
-            rotations: [...result.listedRotations, ...result.otcRotations],
+            rotations: result.listedRotations,
+          );
+        }
+        if (saveOtc && result.otcCategories.isNotEmpty) {
+          await _categoryHistoryRepository!.saveDailySnapshot(
+            dateKey: result.otcDate.isNotEmpty ? result.otcDate : _otcDate,
+            categories: result.otcCategories,
+            mainstreams: const [],
+            lifecycles: const [],
+            rotations: result.otcRotations,
           );
         }
         return; // 成功，結束重試

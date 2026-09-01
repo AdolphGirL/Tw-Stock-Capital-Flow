@@ -15,6 +15,12 @@ class SyncResult {
   final String otcDate;     // TPEX 上櫃日期（民國年 YYYMMDD）
   final int stockCount;
   final List<StockData> stocks;
+  // 本次呼叫是否「真的」成功抓到該市場的新資料（非空清單）。
+  // 與 listedDate/otcDate 不同：那兩者永遠有值（失敗時 fallback 成本地舊日期），
+  // 這兩個旗標則明確標示「這一輪有沒有真的抓到東西」，供呼叫端判斷要不要把
+  // 這次結果寫入 SQLite、或提示使用者這次刷新其實沒有真正更新到某個市場。
+  final bool listedFetchSucceeded;
+  final bool otcFetchSucceeded;
 
   SyncResult({
     required this.success,
@@ -25,6 +31,8 @@ class SyncResult {
     required this.otcDate,
     required this.stockCount,
     required this.stocks,
+    this.listedFetchSucceeded = false,
+    this.otcFetchSucceeded = false,
   });
 }
 
@@ -204,6 +212,8 @@ class SyncManager {
         otcDate: reportedOtcDate,
         stockCount: allStocks.length,
         stocks: allStocks,
+        listedFetchSucceeded: listed.isNotEmpty,
+        otcFetchSucceeded: otc.isNotEmpty,
       );
     } catch (e, stack) {
       dev.log('同步失敗: $e', name: 'SyncManager', error: e, stackTrace: stack);

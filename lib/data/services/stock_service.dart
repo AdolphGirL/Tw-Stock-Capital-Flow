@@ -232,10 +232,16 @@ class StockService {
 
           final request = http.Request('GET', Uri.parse(url));
 
-          final streamedResponse = await client.send(request);
+          // 上櫃等大型回應（上萬筆、數 MB）在較慢的行動網路下可能長時間卡住；
+          // 原本完全沒有逾時保護，卡住的連線會拖到重試機制失去意義。
+          // 每次嘗試最多等 20 秒，逾時就視為本次失敗、盡快進入下一次重試。
+          final streamedResponse =
+              await client.send(request).timeout(const Duration(seconds: 20));
 
           if (streamedResponse.statusCode == 200) {
-            final responseBody = await streamedResponse.stream.bytesToString();
+            final responseBody = await streamedResponse.stream
+                .bytesToString()
+                .timeout(const Duration(seconds: 20));
 
             final decoded = json.decode(responseBody);
 
@@ -254,8 +260,10 @@ class StockService {
             name: 'StockService',
           );
         } catch (e, stack) {
+          // 記錄實際錯誤類型與內容（例如 TimeoutException、SocketException），
+          // 方便日後對照使用者回報的失敗時間點，診斷是逾時、斷線還是伺服器錯誤。
           dev.log(
-            '第 $attempt 次請求失敗',
+            '第 $attempt 次請求失敗（${e.runtimeType}）: $e',
             name: 'StockService',
             error: e,
             stackTrace: stack,
