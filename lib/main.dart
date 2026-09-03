@@ -21,6 +21,7 @@ import 'package:tw_stock_capital_flow/domain/strategies/momentum_strategy.dart';
 import 'package:tw_stock_capital_flow/domain/services/signal_change_detector.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/signal_change_dialog.dart';
 import 'package:tw_stock_capital_flow/core/services/notification_service.dart';
+import 'package:tw_stock_capital_flow/data/services/debug_log_service.dart'; // TODO(debug): 除錯用
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,6 +94,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
   }
 
   Future<void> initialize() async {
+    DebugLogService.log('Init', '=== App 冷啟動 initialize() 開始 ===');
     await NotificationService.initialize();
 
     final storageService = _storageService;
@@ -132,6 +134,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
           ? null
           : await cacheService.loadBootstrapCache(_listedDate);
       if (cachedResult != null) {
+        DebugLogService.log('Init', '命中 bootstrap 快取（$_listedDate），直接使用，未重新計算');
         // 若快取不含日期資訊（舊版快取），補上當前日期
         final resultWithDates = cachedResult.listedDate.isEmpty
             ? cachedResult.copyWith(listedDate: _listedDate, otcDate: _otcDate)
@@ -179,7 +182,9 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         loading = false;
         _pendingSignalChanges = changes;
       });
+      DebugLogService.log('Init', '✅ 冷啟動完成，listedDate=$_listedDate，otcDate=$_otcDate');
     } catch (e) {
+      DebugLogService.log('Init', '❌ 冷啟動例外（${e.runtimeType}）: $e');
       // 離線模式：優先使用本地最新日期
       final fallbackDate = await storageService.getLatestAvailableDate() ?? _getTodayDateKey();
       _listedDate = fallbackDate;
@@ -210,8 +215,30 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
   /// 回傳這輪的 [SyncResult]（含 listedFetchSucceeded／otcFetchSucceeded），
   /// 讓呼叫端（HomePage._handleRefresh）能判斷這次刷新是否真的更新到每個
   /// 市場的新資料，進而提示使用者；本地完全無資料可用時回傳 null。
+  ///
+  /// `_isRefreshing` 與 `_resyncOnResume()`（App 從背景回前景時的靜默同步）
+  /// 共用同一把鎖。使用者主動點擊刷新的優先權高於那個靜默背景任務，因此若
+  /// 背景同步剛好在跑，這裡改成等它結束再繼續，而不是直接放棄——否則使用
+  /// 者點擊刷新會被靜默吃掉，畫面完全沒反應也沒有任何錯誤提示，這正是先
+  /// 前實機「點了重新整理但資料沒變化」最可能的成因。
   Future<SyncResult?> _refresh() async {
-    if (_isRefreshing) return null;
+    DebugLogService.log('Refresh', '手動刷新按下');
+    var waited = 0;
+    while (_isRefreshing && waited < 30000) {
+      if (waited == 0) {
+        DebugLogService.log('Refresh', '⏳ 背景同步正在進行中，等待它結束…');
+      }
+      await Future.delayed(const Duration(milliseconds: 300));
+      waited += 300;
+    }
+    if (waited > 0) {
+      DebugLogService.log('Refresh', '等待了 ${waited}ms 後繼續');
+    }
+    // 極端情況：背景同步異常卡住超過 30 秒仍未釋放鎖，放棄避免無限等待。
+    if (_isRefreshing) {
+      DebugLogService.log('Refresh', '❌❌ 等待 30 秒後背景同步仍未結束，本次刷新放棄');
+      return null;
+    }
     _isRefreshing = true;
     try {
       final storageService = _storageService;
@@ -256,6 +283,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         });
       }
 
+      DebugLogService.log('Refresh', '✅ 手動刷新完成，畫面已更新');
       return syncResult;
     } finally {
       _isRefreshing = false;
@@ -269,9 +297,14 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
     final now = DateTime.now();
     if (_lastResumeSyncAt != null &&
         now.difference(_lastResumeSyncAt!) < _resumeSyncCooldown) {
+      DebugLogService.log('Resume', '⏭ 冷卻中（30 秒內剛同步過），跳過這次背景恢復同步');
       return;
     }
-    if (_isRefreshing) return;
+    if (_isRefreshing) {
+      DebugLogService.log('Resume', '⏭ 手動刷新正在進行中，跳過這次背景恢復同步');
+      return;
+    }
+    DebugLogService.log('Resume', 'App 從背景回前景，開始靜默同步');
     _isRefreshing = true;
     _lastResumeSyncAt = now;
     try {
@@ -283,7 +316,10 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         const Duration(seconds: 120),
       );
 
-      if (!syncResult.saved) return;
+      if (!syncResult.saved) {
+        DebugLogService.log('Resume', '本次未抓到新資料（靜默期或失敗），維持現有畫面');
+        return;
+      }
 
       final newListedDate =
           syncResult.listedDate.isNotEmpty ? syncResult.listedDate : _listedDate;
@@ -318,8 +354,10 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         _pendingSignalChanges = changes;
         if (changes.isNotEmpty) _signalDialogShown = false;
       });
-    } catch (_) {
+      DebugLogService.log('Resume', '✅ 背景恢復同步完成，畫面已更新');
+    } catch (e) {
       // 悄悄失敗，維持現有畫面資料
+      DebugLogService.log('Resume', '❌ 背景恢復同步例外（${e.runtimeType}）: $e');
     } finally {
       _isRefreshing = false;
     }
@@ -341,31 +379,39 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
     required bool saveListed,
     required bool saveOtc,
   }) async {
-    if (!saveListed && !saveOtc) return;
+    if (!saveListed && !saveOtc) {
+      DebugLogService.log('SQLite', '⏭ 這輪兩個市場都沒抓到新資料，略過寫入');
+      return;
+    }
 
     const maxRetry = 3;
     for (int attempt = 1; attempt <= maxRetry; attempt++) {
       try {
         if (saveListed) {
+          final key = result.listedDate.isNotEmpty ? result.listedDate : _listedDate;
           await _categoryHistoryRepository!.saveDailySnapshot(
-            dateKey: result.listedDate.isNotEmpty ? result.listedDate : _listedDate,
+            dateKey: key,
             categories: result.listedCategories,
             mainstreams: result.mainstreams,
             lifecycles: result.lifecycles,
             rotations: result.listedRotations,
           );
+          DebugLogService.log('SQLite', '✅ 上市已寫入，dateKey=$key，${result.listedCategories.length} 個板塊');
         }
         if (saveOtc && result.otcCategories.isNotEmpty) {
+          final key = result.otcDate.isNotEmpty ? result.otcDate : _otcDate;
           await _categoryHistoryRepository!.saveDailySnapshot(
-            dateKey: result.otcDate.isNotEmpty ? result.otcDate : _otcDate,
+            dateKey: key,
             categories: result.otcCategories,
             mainstreams: const [],
             lifecycles: const [],
             rotations: result.otcRotations,
           );
+          DebugLogService.log('SQLite', '✅ 上櫃已寫入，dateKey=$key，${result.otcCategories.length} 個板塊');
         }
         return; // 成功，結束重試
       } catch (e, stack) {
+        DebugLogService.log('SQLite', '❌ 寫入失敗（第 $attempt/$maxRetry 次，${e.runtimeType}）: $e');
         dev.log(
           'SQLite 歷史寫入失敗（第 $attempt/$maxRetry 次）: $e',
           name: 'BootstrapApp',

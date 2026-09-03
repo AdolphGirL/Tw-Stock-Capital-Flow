@@ -26,6 +26,7 @@ import 'package:tw_stock_capital_flow/domain/models/strategy_signal.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/debug_log_page.dart'; // TODO(debug): 除錯用
 
 class HomePage extends StatefulWidget {
   final String listedDate; // TWSE 上市交易日
@@ -333,6 +334,27 @@ class _HomePageState extends State<HomePage> {
                         ),
                 ),
               ),
+            // TODO(debug): 除錯用，問題排除後移除。開啟同步除錯 log 頁面。
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const DebugLogPage()),
+              ),
+              child: Container(
+                margin: const EdgeInsets.only(top: 4, left: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.25)),
+                ),
+                child: const Icon(
+                  Icons.bug_report_outlined,
+                  size: 14,
+                  color: Colors.grey,
+                ),
+              ),
+            ),
           ],
         ),
         if (isBeforeCutoff) ...[

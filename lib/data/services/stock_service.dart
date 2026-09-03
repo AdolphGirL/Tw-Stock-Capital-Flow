@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:developer' as dev; // 用於專業日誌
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/data/services/debug_log_service.dart'; // TODO(debug): 除錯用
 
 class StockService {
   static final Map<String, Map<String, String>> _mapping = {};
@@ -36,12 +37,16 @@ class StockService {
 
   static Future<List<StockData>> fetchListed() async {
     dev.log('抓取上市資料中...', name: 'StockService');
+    DebugLogService.log('上市', '開始抓取 fetchListed()');
     try {
       final data = await _fetchJsonWithRetry(
-        'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL',
+        'https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL'
+        '?_=${DateTime.now().millisecondsSinceEpoch}', // 避免中間層/系統 HTTP 快取回傳舊回應
+        marketTag: '上市',
       );
 
       if (data.isEmpty) {
+        DebugLogService.log('上市', '⚠️ 回應為空清單（重試 3 次後仍失敗，或伺服器回傳空陣列）');
         return [];
       }
 
@@ -58,6 +63,7 @@ class StockService {
         }
         lastListedDate = lastDataDate;
       }
+      DebugLogService.log('上市', '回應原始日期欄位: ${data[0]['Date']}，換算後 lastListedDate=$lastListedDate');
 
       final filtered = data
           .where((item) {
@@ -110,6 +116,10 @@ class StockService {
         '上市資料處理完成，${StockService.lastDataDate}，共 ${filtered.length} 檔',
         name: 'StockService',
       );
+      DebugLogService.log(
+        '上市',
+        '✅ 完成：日期=$lastListedDate，篩選後共 ${filtered.length} 檔（原始 ${data.length} 筆）',
+      );
 
       return filtered;
     } catch (e, stack) {
@@ -119,6 +129,7 @@ class StockService {
         error: e,
         stackTrace: stack,
       );
+      DebugLogService.log('上市', '❌ 例外（${e.runtimeType}）: $e');
 
       return [];
     }
@@ -126,12 +137,16 @@ class StockService {
 
   static Future<List<StockData>> fetchOTC() async {
     dev.log('抓取上櫃資料中...', name: 'StockService');
+    DebugLogService.log('上櫃', '開始抓取 fetchOTC()');
     try {
       final data = await _fetchJsonWithRetry(
-        'https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes',
+        'https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes'
+        '?_=${DateTime.now().millisecondsSinceEpoch}', // 避免中間層/系統 HTTP 快取回傳舊回應
+        marketTag: '上櫃',
       );
 
       if (data.isEmpty) {
+        DebugLogService.log('上櫃', '⚠️ 回應為空清單（重試 3 次後仍失敗，或伺服器回傳空陣列）');
         return [];
       }
 
@@ -148,6 +163,7 @@ class StockService {
         }
         lastOtcDate = lastDataDate;
       }
+      DebugLogService.log('上櫃', '回應原始日期欄位: ${data[0]['Date']}，換算後 lastOtcDate=$lastOtcDate');
 
       final filtered = data
           .where((item) {
@@ -205,6 +221,10 @@ class StockService {
         '上櫃資料處理完成，${StockService.lastDataDate}，共 ${filtered.length} 檔',
         name: 'StockService',
       );
+      DebugLogService.log(
+        '上櫃',
+        '✅ 完成：日期=$lastOtcDate，篩選後共 ${filtered.length} 檔（原始 ${data.length} 筆）',
+      );
 
       return filtered;
     } catch (e, stack) {
@@ -214,6 +234,7 @@ class StockService {
         error: e,
         stackTrace: stack,
       );
+      DebugLogService.log('上櫃', '❌ 例外（${e.runtimeType}）: $e');
 
       return [];
     }
@@ -222,15 +243,21 @@ class StockService {
   static Future<List<dynamic>> _fetchJsonWithRetry(
     String url, {
     int maxRetry = 3,
+    String marketTag = '',
   }) async {
     final client = http.Client();
+    final tag = marketTag.isNotEmpty ? marketTag : 'StockService';
 
     try {
       for (int attempt = 1; attempt <= maxRetry; attempt++) {
+        final attemptStart = DateTime.now();
         try {
           dev.log('開始請求 [$attempt/$maxRetry] $url', name: 'StockService');
+          DebugLogService.log(tag, '請求 [$attempt/$maxRetry]…');
 
-          final request = http.Request('GET', Uri.parse(url));
+          final request = http.Request('GET', Uri.parse(url))
+            ..headers['Cache-Control'] = 'no-cache'
+            ..headers['Pragma'] = 'no-cache';
 
           // 上櫃等大型回應（上萬筆、數 MB）在較慢的行動網路下可能長時間卡住；
           // 原本完全沒有逾時保護，卡住的連線會拖到重試機制失去意義。
@@ -243,14 +270,20 @@ class StockService {
                 .bytesToString()
                 .timeout(const Duration(seconds: 20));
 
+            final elapsedMs = DateTime.now().difference(attemptStart).inMilliseconds;
             final decoded = json.decode(responseBody);
 
             if (decoded is List<dynamic>) {
               dev.log('請求成功，共 ${decoded.length} 筆', name: 'StockService');
+              DebugLogService.log(
+                tag,
+                '[$attempt/$maxRetry] HTTP 200，耗時 ${elapsedMs}ms，共 ${decoded.length} 筆',
+              );
               return decoded;
             }
 
             dev.log('資料格式異常，不是 List', name: 'StockService');
+            DebugLogService.log(tag, '[$attempt/$maxRetry] ⚠️ 回應格式異常，不是 List');
 
             return [];
           }
@@ -259,14 +292,20 @@ class StockService {
             'HTTP Error: ${streamedResponse.statusCode}',
             name: 'StockService',
           );
+          DebugLogService.log(tag, '[$attempt/$maxRetry] ❌ HTTP ${streamedResponse.statusCode}');
         } catch (e, stack) {
           // 記錄實際錯誤類型與內容（例如 TimeoutException、SocketException），
           // 方便日後對照使用者回報的失敗時間點，診斷是逾時、斷線還是伺服器錯誤。
+          final elapsedMs = DateTime.now().difference(attemptStart).inMilliseconds;
           dev.log(
             '第 $attempt 次請求失敗（${e.runtimeType}）: $e',
             name: 'StockService',
             error: e,
             stackTrace: stack,
+          );
+          DebugLogService.log(
+            tag,
+            '[$attempt/$maxRetry] ❌ ${e.runtimeType} after ${elapsedMs}ms: $e',
           );
         }
 
@@ -276,6 +315,7 @@ class StockService {
       }
 
       dev.log('重試 $maxRetry 次後仍失敗：$url', name: 'StockService');
+      DebugLogService.log(tag, '❌❌ 重試 $maxRetry 次後仍失敗，本次回傳空清單');
 
       return [];
     } finally {

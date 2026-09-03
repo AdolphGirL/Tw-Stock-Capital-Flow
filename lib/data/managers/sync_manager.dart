@@ -5,6 +5,7 @@ import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/data/services/market_calendar_service.dart';
 import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
 import 'package:tw_stock_capital_flow/data/services/stock_service.dart';
+import 'package:tw_stock_capital_flow/data/services/debug_log_service.dart'; // TODO(debug): 除錯用
 
 class SyncResult {
   final bool success;
@@ -45,6 +46,7 @@ class SyncManager {
 
   /// [forceSync] 為 true 時完全略過時間護欄（用於手動刷新）。
   Future<SyncResult> syncTodayData({bool forceSync = false}) async {
+    DebugLogService.log('Sync', '=== syncTodayData(forceSync: $forceSync) 開始 ===');
     try {
       // ── 時間護欄：僅保留確定的白天靜默期 ──────────────────────────────
       // 07:00–19:00：台股收盤 13:30，官方資料在此期間確定不會有更新，一律略過 API 呼叫。
@@ -70,6 +72,7 @@ class SyncManager {
               '$skipReason 且本地資料新鮮（$localDate），略過 API 同步',
               name: 'SyncManager',
             );
+            DebugLogService.log('Sync', '⏭ 靜默期跳過，未實際打 API，沿用本地快照 $localDate');
             final snapshot = await storageService.loadSnapshot(localDate);
             return SyncResult(
               success: true,
@@ -112,6 +115,7 @@ class SyncManager {
       dev.log('上櫃資料筆數: ${otc.length}', name: 'SyncManager');
 
       if (listed.isEmpty && otc.isEmpty) {
+        DebugLogService.log('Sync', '❌❌ 上市與上櫃這輪都完全沒抓到資料');
         return SyncResult(
           success: false,
           saved: false,
@@ -195,13 +199,21 @@ class SyncManager {
         final localListedDates = await storageService.listListedDates();
         reportedListedDate = localListedDates.isNotEmpty ? localListedDates.first : '';
         dev.log('⚠️ 上市資料本次抓取失敗，回報日期改用本地舊快照：$reportedListedDate', name: 'SyncManager');
+        DebugLogService.log('上市', '⚠️ 本輪抓取失敗，SQLite 這次不會寫入上市資料');
       }
       String reportedOtcDate = effectiveOtcDate;
       if (otc.isEmpty) {
         final localOtcDates = await storageService.listOtcDates();
         reportedOtcDate = localOtcDates.isNotEmpty ? localOtcDates.first : '';
         dev.log('⚠️ 上櫃資料本次抓取失敗，回報日期改用本地舊快照：$reportedOtcDate', name: 'SyncManager');
+        DebugLogService.log('上櫃', '⚠️ 本輪抓取失敗，SQLite 這次不會寫入上櫃資料');
       }
+
+      DebugLogService.log(
+        'Sync',
+        '=== 結果：listedFetchSucceeded=${listed.isNotEmpty}（日期$reportedListedDate）、'
+        'otcFetchSucceeded=${otc.isNotEmpty}（日期$reportedOtcDate）、isNewTradingDay=$isNewTradingDay ===',
+      );
 
       return SyncResult(
         success: true,
@@ -217,6 +229,7 @@ class SyncManager {
       );
     } catch (e, stack) {
       dev.log('同步失敗: $e', name: 'SyncManager', error: e, stackTrace: stack);
+      DebugLogService.log('Sync', '❌❌ syncTodayData 整體例外（${e.runtimeType}）: $e');
 
       // 即使失敗，也盡量返回本地最新日期
       final lastDate = await storageService.getLatestAvailableDate();
