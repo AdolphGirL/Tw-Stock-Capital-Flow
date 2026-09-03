@@ -6,6 +6,7 @@ import 'package:tw_stock_capital_flow/domain/enums/lifecycle_stage.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
 /// 今日全市場訊號快照：一眼掌握 BUY/HOLD/SELL 分佈 + 點火板塊 + 風險警示
 class MarketSignalSummary extends StatelessWidget {
@@ -33,10 +34,15 @@ class MarketSignalSummary extends StatelessWidget {
         .toList();
   }
 
-  CategoryUiModel? _findCategory(String name) {
-    final all = [...listedCategories, ...otcCategories];
+  /// 一併回傳所屬市場，供 CategoryNavigation.openCategory 導向正確的即時資料來源。
+  ({CategoryUiModel category, MarketType market})? _findCategory(String name) {
     try {
-      return all.firstWhere((c) => c.name == name);
+      final listed = listedCategories.firstWhere((c) => c.name == name);
+      return (category: listed, market: MarketType.listed);
+    } catch (_) {}
+    try {
+      final otc = otcCategories.firstWhere((c) => c.name == name);
+      return (category: otc, market: MarketType.otc);
     } catch (_) {
       return null;
     }
@@ -225,10 +231,11 @@ class MarketSignalSummary extends StatelessWidget {
     Color textColor,
     Color bgColor,
   ) {
-    final cat = _findCategory(categoryName);
+    final found = _findCategory(categoryName);
     return GestureDetector(
-      onTap: cat != null
-          ? () => CategoryNavigation.openCategory(context, cat, historyRepository)
+      onTap: found != null
+          ? () => CategoryNavigation.openCategory(
+              context, found.market, found.category, historyRepository)
           : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -248,7 +255,7 @@ class MarketSignalSummary extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            if (cat != null) ...[
+            if (found != null) ...[
               const SizedBox(width: 4),
               Icon(Icons.chevron_right, size: 13, color: textColor),
             ],
@@ -265,13 +272,14 @@ class MarketSignalSummary extends StatelessWidget {
     Color accentColor,
     Color bgColor,
   ) {
-    final cat = _findCategory(signal.category);
+    final found = _findCategory(signal.category);
     // 裁剪 reason：去掉開頭的 emoji 標籤行，保留核心說明文字
     final shortReason = _trimReason(signal.reason);
 
     return GestureDetector(
-      onTap: cat != null
-          ? () => CategoryNavigation.openCategory(context, cat, historyRepository)
+      onTap: found != null
+          ? () => CategoryNavigation.openCategory(
+              context, found.market, found.category, historyRepository)
           : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 6),
@@ -328,7 +336,7 @@ class MarketSignalSummary extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (cat != null)
+                if (found != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 4),
                     child: Icon(Icons.arrow_forward_ios, size: 10, color: accentColor),

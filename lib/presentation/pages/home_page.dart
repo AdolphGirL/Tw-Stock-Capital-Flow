@@ -26,6 +26,7 @@ import 'package:tw_stock_capital_flow/domain/models/strategy_signal.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/debug_log_page.dart'; // TODO(debug): 除錯用
 
 class HomePage extends StatefulWidget {
@@ -274,8 +275,8 @@ class _HomePageState extends State<HomePage> {
 
   Widget _buildHeader() {
     final now = DateTime.now();
-    // 白天靜默期（07:00–19:00）：與 SyncManager 的雙開口視窗模型一致，此期間確定沒有新收盤資料。
-    final isBeforeCutoff = now.hour >= 7 && now.hour < 19;
+    // 白天靜默期（08:00–18:00）：與 SyncManager 的時間護欄一致，此期間確定沒有新收盤資料。
+    final isBeforeCutoff = now.hour >= 8 && now.hour < 18;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -445,7 +446,7 @@ class _HomePageState extends State<HomePage> {
               MaterialPageRoute(
                 builder: (_) => MainCategoryPage(
                   title: '上市市場板塊',
-                  categories: listedCategories,
+                  market: MarketType.listed,
                   historyRepository: historyRepository,
                 ),
               ),
@@ -467,7 +468,7 @@ class _HomePageState extends State<HomePage> {
               MaterialPageRoute(
                 builder: (_) => MainCategoryPage(
                   title: '上櫃市場板塊',
-                  categories: otcCategories,
+                  market: MarketType.otc,
                   historyRepository: historyRepository,
                 ),
               ),
@@ -724,18 +725,19 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  /// 在上市 / 上櫃大板塊中尋找符合名稱的 CategoryUiModel（含子層搜尋）
-  CategoryUiModel? _findCategory(String name) {
+  /// 在上市 / 上櫃大板塊中尋找符合名稱的 CategoryUiModel（含子層搜尋），
+  /// 一併回傳所屬市場，供 CategoryNavigation.openCategory 導向正確的即時資料來源。
+  ({CategoryUiModel category, MarketType market})? _findCategory(String name) {
     for (final cat in listedCategories) {
-      if (cat.name == name) return cat;
+      if (cat.name == name) return (category: cat, market: MarketType.listed);
       for (final child in cat.children) {
-        if (child.name == name) return child;
+        if (child.name == name) return (category: child, market: MarketType.listed);
       }
     }
     for (final cat in otcCategories) {
-      if (cat.name == name) return cat;
+      if (cat.name == name) return (category: cat, market: MarketType.otc);
       for (final child in cat.children) {
-        if (child.name == name) return child;
+        if (child.name == name) return (category: child, market: MarketType.otc);
       }
     }
     return null;
@@ -768,11 +770,12 @@ class _HomePageState extends State<HomePage> {
         break;
     }
 
-    final cat = _findCategory(name);
+    final found = _findCategory(name);
     return GestureDetector(
-      onTap: cat == null
+      onTap: found == null
           ? null
-          : () => CategoryNavigation.openCategory(context, cat, historyRepository),
+          : () => CategoryNavigation.openCategory(
+              context, found.market, found.category, historyRepository),
       child: Container(
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -793,7 +796,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-            if (cat != null)
+            if (found != null)
               const Icon(Icons.chevron_right, size: 14, color: Colors.grey),
             const SizedBox(width: 4),
             Container(

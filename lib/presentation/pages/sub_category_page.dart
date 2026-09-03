@@ -7,15 +7,22 @@ import 'package:tw_stock_capital_flow/data/history/repositories/category_history
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 import 'package:tw_stock_capital_flow/data/database/app_database.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/category_trend_chart.dart';
+import 'package:tw_stock_capital_flow/domain/usecases/app_bootstrap_result.dart';
+import 'package:tw_stock_capital_flow/domain/services/live_bootstrap_data.dart';
 
+/// 細類板塊列表。以 [market] + [mainCategoryName] 為準訂閱 [LiveBootstrapData]，
+/// 隨資料更新即時反映最新個股明細（漲跌、成交量、成交值等），不再持有進入頁面
+/// 當下的靜態快照。
 class SubCategoryPage extends StatefulWidget {
-  final List<CategoryUiModel> categories;
+  final MarketType market;
+  final String mainCategoryName;
   final String title;
   final CategoryHistoryRepository historyRepository;
 
   const SubCategoryPage({
     super.key,
-    required this.categories,
+    required this.market,
+    required this.mainCategoryName,
     required this.title,
     required this.historyRepository,
   });
@@ -25,12 +32,13 @@ class SubCategoryPage extends StatefulWidget {
 }
 
 class _SubCategoryPageState extends State<SubCategoryPage> {
-  late List<CategoryUiModel> categories;
   CategorySortType sortType = CategorySortType.score;
+  List<CategoryUiModel> _lastKnownChildren = const [];
 
   // 🚀 Phase 5 變數：儲存調取出來的歷史看盤數據與載入狀態
   List<CategoryHistoryData> _historyRecords = [];
   bool _isLoadingHistory = true;
+  bool _hasFetchedHistory = false;
 
   // 🚀 數據統計防線：當無歷史資料時，計算今日大板塊內細分產業股票的加總分佈
   int _totalRiseCount = 0;
@@ -40,18 +48,30 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
   @override
   void initState() {
     super.initState();
-    categories = [...widget.categories];
-    applySort();
-
-    // 💡 預先統計今日該板塊內所有個股的漲跌總數，提供雷達圓餅圖最精準的占比
-    _calculateLiveDistribution();
-
-    // 🚀 初始化時，立刻向本地 SQLite 發起歷史數據穿透回溯
+    // 🚀 初始化時，立刻向本地 SQLite 發起歷史數據穿透回溯（只查一次，不隨個股資料刷新重查）
     _fetchHistoryData();
   }
 
-  /// 計算今日即時分布狀態
-  void _calculateLiveDistribution() {
+  /// 依 market + mainCategoryName 從全域最新資料中查找對應的子板塊清單；
+  /// 資料尚未就緒或名稱一時查無（極端邊界）時，沿用上次已知的清單。
+  List<CategoryUiModel> _lookupChildren(AppBootstrapResult? result) {
+    if (result == null) return _lastKnownChildren;
+    final marketCategories = widget.market == MarketType.listed
+        ? result.listedCategories
+        : result.otcCategories;
+    CategoryUiModel? mainCat;
+    try {
+      mainCat = marketCategories.firstWhere((c) => c.name == widget.mainCategoryName);
+    } catch (_) {
+      mainCat = null;
+    }
+    if (mainCat == null) return _lastKnownChildren;
+    _lastKnownChildren = mainCat.children;
+    return mainCat.children;
+  }
+
+  /// 計算今日即時分布狀態（直接寫入 state 欄位，由呼叫端的 build 同步顯示）
+  void _calculateLiveDistribution(List<CategoryUiModel> categories) {
     _totalRiseCount = 0;
     _totalFallCount = 0;
     _totalStockCount = 0;
@@ -64,6 +84,8 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
 
   // 🚀 Phase 5 方法：實作非同步歷史軌跡回溯
   Future<void> _fetchHistoryData() async {
+    if (_hasFetchedHistory) return;
+    _hasFetchedHistory = true;
     setState(() => _isLoadingHistory = true);
     try {
       // 💡 精確對接專案原始代碼：呼叫 getCategoryTrend 取得 15 天歷史
@@ -85,132 +107,139 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
     }
   }
 
-  void applySort() {
+  List<CategoryUiModel> _applySort(List<CategoryUiModel> raw) {
+    final list = [...raw];
     switch (sortType) {
       case CategorySortType.score:
-        categories.sort((a, b) => b.score.compareTo(a.score));
+        list.sort((a, b) => b.score.compareTo(a.score));
         break;
       case CategorySortType.riseCount:
-        categories.sort((a, b) => b.riseCount.compareTo(a.riseCount));
+        list.sort((a, b) => b.riseCount.compareTo(a.riseCount));
         break;
       case CategorySortType.fallCount:
-        categories.sort((a, b) => b.fallCount.compareTo(a.fallCount));
+        list.sort((a, b) => b.fallCount.compareTo(a.fallCount));
         break;
       case CategorySortType.totalCount:
-        categories.sort((a, b) => b.totalCount.compareTo(a.totalCount));
+        list.sort((a, b) => b.totalCount.compareTo(a.totalCount));
         break;
       case CategorySortType.threeDayTrend:
-        categories.sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
+        list.sort((a, b) => b.trendStrength.compareTo(a.trendStrength));
         break;
     }
-    setState(() {});
+    return list;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: Text(
-          widget.title,
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          PopupMenuButton<CategorySortType>(
-            onSelected: (value) {
-              sortType = value;
-              applySort();
-            },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: CategorySortType.score,
-                child: Text('資金流優先'),
-              ),
-              const PopupMenuItem(
-                value: CategorySortType.threeDayTrend,
-                child: Text('三日強度排序'),
-              ),
-              const PopupMenuItem(
-                value: CategorySortType.riseCount,
-                child: Text('上漲家數多'),
-              ),
-              const PopupMenuItem(
-                value: CategorySortType.fallCount,
-                child: Text('下跌家數多'),
-              ),
-              const PopupMenuItem(
-                value: CategorySortType.totalCount,
-                child: Text('股票數量規模'),
+    return ValueListenableBuilder<AppBootstrapResult?>(
+      valueListenable: LiveBootstrapData.notifier,
+      builder: (context, result, _) {
+        final rawChildren = _lookupChildren(result);
+        _calculateLiveDistribution(rawChildren);
+        final categories = _applySort(rawChildren);
+
+        return Scaffold(
+          backgroundColor: Colors.grey.shade50,
+          appBar: AppBar(
+            title: Text(
+              widget.title,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            actions: [
+              PopupMenuButton<CategorySortType>(
+                onSelected: (value) => setState(() => sortType = value),
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: CategorySortType.score,
+                    child: Text('資金流優先'),
+                  ),
+                  const PopupMenuItem(
+                    value: CategorySortType.threeDayTrend,
+                    child: Text('三日強度排序'),
+                  ),
+                  const PopupMenuItem(
+                    value: CategorySortType.riseCount,
+                    child: Text('上漲家數多'),
+                  ),
+                  const PopupMenuItem(
+                    value: CategorySortType.fallCount,
+                    child: Text('下跌家數多'),
+                  ),
+                  const PopupMenuItem(
+                    value: CategorySortType.totalCount,
+                    child: Text('股票數量規模'),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-      // 🚀【升級核心】：將原本的 body: ListView 改用 CustomScrollView
-      // 如此一來才能在同一個滾動視窗中，完美結合「頂部歷史趨勢面板」與「下方細分類卡片列表」
-      body: CustomScrollView(
-        slivers: [
-          // 🚀 1. 頂部組件：歷史看盤面板外殼
-          SliverToBoxAdapter(child: _buildHistoryTrendHeader()),
+          // 🚀【升級核心】：將原本的 body: ListView 改用 CustomScrollView
+          // 如此一來才能在同一個滾動視窗中，完美結合「頂部歷史趨勢面板」與「下方細分類卡片列表」
+          body: CustomScrollView(
+            slivers: [
+              // 🚀 1. 頂部組件：歷史看盤面板外殼
+              SliverToBoxAdapter(child: _buildHistoryTrendHeader()),
 
-          // 🚀 1.5 板塊強勢個股排行
-          SliverToBoxAdapter(child: _buildTopStocksSection(context)),
+              // 🚀 1.5 板塊強勢個股排行
+              SliverToBoxAdapter(child: _buildTopStocksSection(context, rawChildren)),
 
-          // 🚀 2. 分隔小標題
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),
-              child: Text(
-                '包含細分板塊 (${categories.length})',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey.shade600,
+              // 🚀 2. 分隔小標題
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 16, top: 12, bottom: 8),
+                  child: Text(
+                    '包含細分板塊 (${categories.length})',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
 
-          // 🚀 3. 下方列表：將舊的 ListView 完美轉換為高級的 SliverList
-          SliverPadding(
-            // 🟢 修正點：使用 EdgeInsets.only 精確定義上下左右的間距
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
-            sliver: SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final item = categories[index];
+              // 🚀 3. 下方列表：將舊的 ListView 完美轉換為高級的 SliverList
+              SliverPadding(
+                // 🟢 修正點：使用 EdgeInsets.only 精確定義上下左右的間距
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    final item = categories[index];
 
-                return Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: 12,
-                  ), // 替代原本 ListView 的間距效果
-                  child: CategoryCard(
-                    key: ValueKey('sub_cat_${item.name}_$index'),
-                    title: item.name,
-                    totalCount: item.totalCount,
-                    riseCount: item.riseCount,
-                    fallCount: item.fallCount,
-                    score: item.score,
-                    trendValues: [
-                      item.day3Score,
-                      item.day2Score,
-                      item.day1Score,
-                      item.score,
-                    ],
-                    persistence: item.persistence,
-                    onTap: () {
-                      CategoryNavigation.showStockListSheet(
-                        context: context,
-                        categoryName: item.name,
-                        uiStocks: item.stocks,
-                      );
-                    },
-                  ),
-                );
-              }, childCount: categories.length),
-            ),
+                    return Padding(
+                      padding: const EdgeInsets.only(
+                        bottom: 12,
+                      ), // 替代原本 ListView 的間距效果
+                      child: CategoryCard(
+                        key: ValueKey('sub_cat_${item.name}_$index'),
+                        title: item.name,
+                        totalCount: item.totalCount,
+                        riseCount: item.riseCount,
+                        fallCount: item.fallCount,
+                        score: item.score,
+                        trendValues: [
+                          item.day3Score,
+                          item.day2Score,
+                          item.day1Score,
+                          item.score,
+                        ],
+                        persistence: item.persistence,
+                        onTap: () {
+                          CategoryNavigation.showStockListSheet(
+                            context: context,
+                            categoryName: item.name,
+                            uiStocks: item.stocks,
+                          );
+                        },
+                      ),
+                    );
+                  }, childCount: categories.length),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -226,11 +255,11 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
     return closePos >= 0.7 && intradayUp;
   }
 
-  Widget _buildTopStocksSection(BuildContext context) {
+  Widget _buildTopStocksSection(BuildContext context, List<CategoryUiModel> children) {
     // 聚合並去重
     final allStocks = <StockUiModel>[];
     final seenCodes = <String>{};
-    for (final child in widget.categories) {
+    for (final child in children) {
       for (final s in child.stocks) {
         if (seenCodes.add(s.stock.code)) {
           allStocks.add(s);

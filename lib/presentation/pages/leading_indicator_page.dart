@@ -8,6 +8,7 @@ import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/category_history_summary.dart';
 import 'package:tw_stock_capital_flow/data/watchlist/repositories/watchlist_repository.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/watchlist_button.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
 class LeadingIndicatorPage extends StatelessWidget {
   final List<RotationResult> listedRotations; // 上市市場獨立輪動
@@ -66,8 +67,8 @@ class LeadingIndicatorPage extends StatelessWidget {
         body: SafeArea(
           child: TabBarView(
             children: [
-              _buildMarketView(context, listedRotations, listedCategories),
-              _buildMarketView(context, otcRotations, otcCategories),
+              _buildMarketView(context, listedRotations, listedCategories, MarketType.listed),
+              _buildMarketView(context, otcRotations, otcCategories, MarketType.otc),
             ],
           ),
         ),
@@ -79,6 +80,7 @@ class LeadingIndicatorPage extends StatelessWidget {
     BuildContext context,
     List<RotationResult> rotations,
     List<CategoryUiModel> marketCategories,
+    MarketType market,
   ) {
     final indicators = _analyser.calculateLeadingIndicators(rotations);
 
@@ -101,7 +103,7 @@ class LeadingIndicatorPage extends StatelessWidget {
               Colors.green.shade800,
               Icons.bolt,
             ),
-            ...leaders.map((e) => _buildIndicatorCard(context, e, marketCategories)),
+            ...leaders.map((e) => _buildIndicatorCard(context, e, marketCategories, market)),
             const SizedBox(height: 20),
           ],
 
@@ -111,7 +113,7 @@ class LeadingIndicatorPage extends StatelessWidget {
               Colors.red.shade800,
               Icons.money_off,
             ),
-            ...laggards.map((e) => _buildIndicatorCard(context, e, marketCategories)),
+            ...laggards.map((e) => _buildIndicatorCard(context, e, marketCategories, market)),
           ],
 
           if (leaders.isEmpty && laggards.isEmpty) _buildNoDataCard(),
@@ -262,6 +264,7 @@ class LeadingIndicatorPage extends StatelessWidget {
     BuildContext context,
     LeadingIndicatorResult item,
     List<CategoryUiModel> marketCategories,
+    MarketType market,
   ) {
     final isPositive = item.netRotationScore > 0;
     final themeColor = isPositive
@@ -278,7 +281,7 @@ class LeadingIndicatorPage extends StatelessWidget {
 
     return GestureDetector(
       onTap: category != null
-          ? () => CategoryNavigation.openCategory(context, category, historyRepository)
+          ? () => CategoryNavigation.openCategory(context, market, category, historyRepository)
           : null,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),

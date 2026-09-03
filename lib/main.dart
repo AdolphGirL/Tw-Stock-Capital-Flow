@@ -22,6 +22,7 @@ import 'package:tw_stock_capital_flow/domain/services/signal_change_detector.dar
 import 'package:tw_stock_capital_flow/presentation/widgets/signal_change_dialog.dart';
 import 'package:tw_stock_capital_flow/core/services/notification_service.dart';
 import 'package:tw_stock_capital_flow/data/services/debug_log_service.dart'; // TODO(debug): 除錯用
+import 'package:tw_stock_capital_flow/domain/services/live_bootstrap_data.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -145,6 +146,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
           loading = false;
           _pendingSignalChanges = changes;
         });
+        LiveBootstrapData.notifier.value = resultWithDates;
         return;
       }
 
@@ -182,6 +184,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         loading = false;
         _pendingSignalChanges = changes;
       });
+      LiveBootstrapData.notifier.value = result;
       DebugLogService.log('Init', '✅ 冷啟動完成，listedDate=$_listedDate，otcDate=$_otcDate');
     } catch (e) {
       DebugLogService.log('Init', '❌ 冷啟動例外（${e.runtimeType}）: $e');
@@ -200,6 +203,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
           loading = false;
           _pendingSignalChanges = changes;
         });
+        LiveBootstrapData.notifier.value = fallbackResult;
       } else {
         setState(() {
           error = '首次開屏需要網路同步，請檢查您的網路連線並重試。\n($e)';
@@ -210,7 +214,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
   }
 
   /// 手動刷新：強制向 API 同步、重新計算、upsert SQLite，並更新 UI。
-  /// 使用者點擊刷新按鈕時呼叫，完全繞過 07:00–19:00 白天靜默期護欄。
+  /// 使用者點擊刷新按鈕時呼叫，完全繞過 08:00–18:00 白天靜默期護欄。
   ///
   /// 回傳這輪的 [SyncResult]（含 listedFetchSucceeded／otcFetchSucceeded），
   /// 讓呼叫端（HomePage._handleRefresh）能判斷這次刷新是否真的更新到每個
@@ -282,6 +286,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
           bootstrapResult = result;
         });
       }
+      LiveBootstrapData.notifier.value = result;
 
       DebugLogService.log('Refresh', '✅ 手動刷新完成，畫面已更新');
       return syncResult;
@@ -354,6 +359,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         _pendingSignalChanges = changes;
         if (changes.isNotEmpty) _signalDialogShown = false;
       });
+      LiveBootstrapData.notifier.value = result;
       DebugLogService.log('Resume', '✅ 背景恢復同步完成，畫面已更新');
     } catch (e) {
       // 悄悄失敗，維持現有畫面資料

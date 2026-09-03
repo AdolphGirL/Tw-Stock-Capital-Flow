@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
 // 🚀 正確引入歷史紀錄 Repository 依賴
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 
 class MarketHeatmap extends StatelessWidget {
   final List<CategoryUiModel> categories;
+  final MarketType market;
 
   // 🚀 注入歷史資料庫接口，用以向下傳遞給二級導頁
   final CategoryHistoryRepository historyRepository;
@@ -14,6 +16,7 @@ class MarketHeatmap extends StatelessWidget {
   const MarketHeatmap({
     super.key,
     required this.categories,
+    required this.market,
     required this.historyRepository, // ⚡ 納入必要參數
   });
 
@@ -63,8 +66,8 @@ class MarketHeatmap extends StatelessWidget {
 
             return GestureDetector(
               onTap: () {
-                // 🚀 【完美修復點】：精確傳入三個參數，完成依賴穿透鏈結
-                CategoryNavigation.openCategory(context, e, historyRepository);
+                // 🚀 【完美修復點】：精確傳入參數，完成依賴穿透鏈結
+                CategoryNavigation.openCategory(context, market, e, historyRepository);
               },
               child: Container(
                 padding: const EdgeInsets.all(12),

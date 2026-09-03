@@ -49,19 +49,19 @@ class SyncManager {
     DebugLogService.log('Sync', '=== syncTodayData(forceSync: $forceSync) 開始 ===');
     try {
       // ── 時間護欄：僅保留確定的白天靜默期 ──────────────────────────────
-      // 07:00–19:00：台股收盤 13:30，官方資料在此期間確定不會有更新，一律略過 API 呼叫。
-      // 靜默期以外（當日 19:00～隔日 07:00，跨過午夜）：當日資料因官方提供方作業時間關係，
-      // 最快當日傍晚、最晚隔日才有機會整理完成，確切時間點無法得知，不再嘗試用「今天/前一天
-      // 是否交易日」去猜測是否值得嘗試——嘗試抓取本身無害（抓不到新資料只是白跑一趟，不會
-      // 寫壞本地資料），因此一律嘗試，正確性交給呼叫端的 isNewTradingDay 判斷把關；同時 UI
-      // 層（home_page.dart 提示條）會引導使用者在需要時自行點擊手動刷新（forceSync）取得最新資料。
+      // 08:00–18:00：台股收盤 13:30，官方資料在此期間確定不會有更新，一律略過 API 呼叫。
+      // 靜默期以外（當日 18:00～隔日 08:00，跨過午夜）：只要使用者在這段期間開啟／喚醒
+      // App，就一律嘗試向 API 抓取——不再判斷是否交易日、是否已抓過，簡化為單一原則：
+      // 只要嘗試，就依照這次實際回傳的資料日期，正確更新或新增 SQLite／本地快照
+      // （由呼叫端 main.dart 依 listedFetchSucceeded／otcFetchSucceeded 逐市場處理）。
+      // 抓不到新資料只是白跑一趟，不會寫壞本地資料，因此嘗試本身無害。
       // 例外：連假後本地資料可能超過 3 個日曆天，此時即使落在靜默期內也必須強制取得新資料。
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
-      final isDaytimeBlackout = now.hour >= 7 && now.hour < 19;
+      final isDaytimeBlackout = now.hour >= 8 && now.hour < 18;
 
       if (!forceSync && isDaytimeBlackout) {
-        const skipReason = '現在為白天靜默期（07:00–19:00），尚無新收盤資料';
+        const skipReason = '現在為白天靜默期（08:00–18:00），尚無新收盤資料';
         final localDate = await storageService.getLatestAvailableDate();
         if (localDate != null && localDate.isNotEmpty) {
           final localDt = _parseRocDate(localDate);

@@ -8,8 +8,13 @@ import 'package:tw_stock_capital_flow/data/history/repositories/category_history
 
 class CategoryNavigation {
   /// 主分類 -> SubCategoryPage
+  ///
+  /// [market] 決定 SubCategoryPage 要向哪個市場的最新資料訂閱更新（見
+  /// [LiveBootstrapData]）；[category] 僅用於取得當下的名稱（.name），
+  /// 不再把整個物件當作靜態資料快照傳入子頁面。
   static void openCategory(
     BuildContext context,
+    MarketType market,
     CategoryUiModel category,
     CategoryHistoryRepository historyRepository,
   ) {
@@ -17,8 +22,9 @@ class CategoryNavigation {
       context,
       MaterialPageRoute(
         builder: (_) => SubCategoryPage(
+          market: market,
+          mainCategoryName: category.name,
           title: category.name,
-          categories: category.children,
           historyRepository: historyRepository,
         ),
       ),

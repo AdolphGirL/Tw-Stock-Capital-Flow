@@ -5,6 +5,7 @@ import 'package:tw_stock_capital_flow/data/database/app_database.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
 
 // ── 資料模型 ────────────────────────────────────────────────────────────────
 
@@ -205,12 +206,14 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
                           outflows: _listedOutflows,
                           date: widget.listedDate,
                           marketLabel: '上市',
+                          market: MarketType.listed,
                         ),
                         _buildMarketContent(
                           inflows: _otcInflows,
                           outflows: _otcOutflows,
                           date: widget.otcDate,
                           marketLabel: '上櫃',
+                          market: MarketType.otc,
                         ),
                       ],
                     ),
@@ -224,6 +227,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
     required List<_Anomaly> outflows,
     required String date,
     required String marketLabel,
+    required MarketType market,
   }) {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -240,7 +244,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
             Icons.trending_up_rounded,
           ),
           ...inflows.map((a) => Builder(
-              builder: (ctx) => _buildAnomalyCard(ctx, a))),
+              builder: (ctx) => _buildAnomalyCard(ctx, a, market))),
           const SizedBox(height: 16),
         ],
 
@@ -252,7 +256,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
             Icons.trending_down_rounded,
           ),
           ...outflows.map((a) => Builder(
-              builder: (ctx) => _buildAnomalyCard(ctx, a))),
+              builder: (ctx) => _buildAnomalyCard(ctx, a, market))),
         ],
 
         if (inflows.isEmpty && outflows.isEmpty) _buildNoAnomalyCard(),
@@ -365,7 +369,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
 
   // ── 異常板塊卡片 ───────────────────────────────────────────────────────────
 
-  Widget _buildAnomalyCard(BuildContext context, _Anomaly anomaly) {
+  Widget _buildAnomalyCard(BuildContext context, _Anomaly anomaly, MarketType market) {
     final isInflow = anomaly.isInflow;
     final accentColor =
         isInflow ? const Color(0xFFC62828) : const Color(0xFF2E7D32);
@@ -384,6 +388,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
     return GestureDetector(
       onTap: () => CategoryNavigation.openCategory(
         context,
+        market,
         anomaly.category,
         widget.historyRepository,
       ),
