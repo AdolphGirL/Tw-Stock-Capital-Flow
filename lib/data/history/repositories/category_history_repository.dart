@@ -109,6 +109,22 @@ class CategoryHistoryRepository {
     }
   }
 
+  /// 【重置用】清空四張市場數據歷史表（板塊/主流/生命週期/輪動）。
+  /// 不動 watchlist、signal_snapshot 這兩張使用者資料表。
+  Future<void> clearAllHistory() async {
+    int totalDeleted = 0;
+    await db.transaction(() async {
+      totalDeleted += await db.delete(db.categoryHistoryTable).go();
+      totalDeleted += await db.delete(db.mainstreamHistoryTable).go();
+      totalDeleted += await db.delete(db.lifecycleHistoryTable).go();
+      totalDeleted += await db.delete(db.rotationHistoryTable).go();
+    });
+    dev.log(
+      'SQLite 歷史已全部清空，共刪除 $totalDeleted 筆（watchlist/signal_snapshot 不受影響）',
+      name: 'CategoryHistoryRepository',
+    );
+  }
+
   /// 儲存每日完整的板塊快照至 SQLite（每次啟動有新交易日資料時呼叫）。
   /// 使用強型別參數，避免 dynamic 欄位存取錯誤。
   Future<void> saveDailySnapshot({

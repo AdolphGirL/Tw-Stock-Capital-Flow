@@ -8,7 +8,6 @@ import 'package:tw_stock_capital_flow/core/constants/app_constants.dart';
 import 'package:tw_stock_capital_flow/core/utils/date_utils.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'dart:developer' as dev;
-import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
   Future<Directory> _getDailyDirectory() async {
@@ -37,17 +36,7 @@ class StorageService {
     return File(filePath).exists();
   }
 
-  // ── 快照存取（原始格式保留供向下相容）────────────────────────────────────
-
-  Future<void> saveDailySnapshot(StockDaySnapshot snapshot) async {
-    final filePath = await _buildFilePath(snapshot.date);
-    dev.log('儲存快照: ${snapshot.date}', name: 'StorageService');
-    final file = File(filePath);
-    final jsonString = jsonEncode(snapshot.toJson());
-    await file.writeAsString(jsonString);
-  }
-
-  // ── 分市場存取（新格式：listed_YYYMMDD / otc_YYYMMDD）─────────────────
+  // ── 分市場存取（listed_YYYMMDD / otc_YYYMMDD）──────────────────────────
 
   Future<void> saveListedSnapshot(StockDaySnapshot snapshot) async {
     final filePath = await _buildFilePath('listed_${snapshot.date}');
@@ -83,15 +72,13 @@ class StorageService {
     }
   }
 
-  /// 讀取快照：優先嘗試新格式（listed_+otc_），若不存在則回退舊格式（YYYMMDD）。
+  /// 讀取快照：合併同一天的 listed_+otc_。
   Future<StockDaySnapshot?> loadSnapshot(String date) async {
     final listed = await _loadSnapshotFromFile('listed_$date');
-    if (listed != null) {
-      final otc = await _loadSnapshotFromFile('otc_$date');
-      final merged = [...listed.stocks, ...?otc?.stocks];
-      return StockDaySnapshot(date: date, stocks: merged);
-    }
-    return await _loadSnapshotFromFile(date);
+    if (listed == null) return null;
+    final otc = await _loadSnapshotFromFile('otc_$date');
+    final merged = [...listed.stocks, ...?otc?.stocks];
+    return StockDaySnapshot(date: date, stocks: merged);
   }
 
   /// 取得已知的上市（listed_）日期清單（降序）。
@@ -115,17 +102,14 @@ class StorageService {
   }
 
   /// 取得本地最新可用的交易日期（按日期由新到舊排序）。
-  /// 同時識別舊格式（YYYMMDD）與新格式（listed_YYYMMDD）。
   Future<String?> getLatestAvailableDate() async {
     try {
       final all = await listAvailableDates();
 
-      final oldPattern = RegExp(r'^\d{7,8}$');
       final newPattern = RegExp(r'^listed_(\d{7,8})$');
 
       final dates = <String>{};
       for (final d in all) {
-        if (oldPattern.hasMatch(d)) dates.add(d);
         final m = newPattern.firstMatch(d);
         if (m != null) dates.add(m.group(1)!);
       }
@@ -195,8 +179,7 @@ class StorageService {
 
   // ── 分級保留清理 ─────────────────────────────────────────────────────────
 
-  /// 保留最近 [keepCount] 筆快照，刪除更舊的檔案。
-  /// 同時處理三種格式：舊版 YYYMMDD、新版 listed_YYYMMDD、otc_YYYMMDD。
+  /// 保留最近 [keepCount] 筆快照，刪除更舊的檔案（listed_YYYMMDD、otc_YYYMMDD 分開計算）。
   Future<void> pruneOldSnapshots({int keepCount = 7}) async {
     try {
       final dir = await _getDailyDirectory();
@@ -217,11 +200,10 @@ class StorageService {
         }
       }
 
-      pruneGroup(RegExp(r'^\d{7,8}$'));           // 舊格式
-      pruneGroup(RegExp(r'^listed_\d{7,8}$'));    // 新格式 listed
-      pruneGroup(RegExp(r'^otc_\d{7,8}$'));       // 新格式 otc
+      pruneGroup(RegExp(r'^listed_\d{7,8}$'));
+      pruneGroup(RegExp(r'^otc_\d{7,8}$'));
 
-      dev.log('快照清理完成（三組各保留最近 $keepCount 筆）', name: 'StorageService');
+      dev.log('快照清理完成（兩組各保留最近 $keepCount 筆）', name: 'StorageService');
     } catch (e) {
       dev.log('快照清理失敗（不影響主流程）: $e', name: 'StorageService', error: e);
     }
@@ -264,20 +246,4 @@ class StorageService {
     }
   }
 
-  // ── SharedPreferences 輔助 ────────────────────────────────────────────────
-
-  /// 🚀 獲取目前本地儲存的所有快取 Key
-  Future<List<String>> getAllKeys() async {
-    try {
-      // 1. 在方法內部直接獲取原生實體，100% 免疫欄位未定義錯誤
-      final SharedPreferences prefsInstance =
-          await SharedPreferences.getInstance();
-
-      // 2. 呼叫原生 getKeys() 並轉為 List 丢出
-      return prefsInstance.getKeys().toList();
-    } catch (e) {
-      dev.log('❌ [StorageService] 獲取全部 Keys 失敗: $e');
-      return [];
-    }
-  }
 }

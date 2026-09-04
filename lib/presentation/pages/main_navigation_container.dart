@@ -36,6 +36,7 @@ class MainNavigationContainer extends StatefulWidget {
   final WatchlistRepository watchlistRepository;
   final StorageService storageService;
   final Future<SyncResult?> Function()? onRefresh;
+  final Future<String> Function()? onResetAndResync;
 
   const MainNavigationContainer({
     super.key,
@@ -60,6 +61,7 @@ class MainNavigationContainer extends StatefulWidget {
     required this.watchlistRepository,
     required this.storageService,
     this.onRefresh,
+    this.onResetAndResync,
   });
 
   @override
@@ -98,6 +100,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   watchlistRepository: widget.watchlistRepository,
                   storageService: widget.storageService,
                   onRefresh: widget.onRefresh,
+                  onResetAndResync: widget.onResetAndResync,
                 ),
 
                 // 📊 Tab 1: 異常資金偵測器

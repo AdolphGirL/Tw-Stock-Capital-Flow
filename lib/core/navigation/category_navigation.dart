@@ -32,10 +32,15 @@ class CategoryNavigation {
   }
 
   /// 細分類 -> BottomSheet 成分股清單
+  ///
+  /// [dataDateLabel] 顯示這份成分股清單實際對應的資料日期（例如「上櫃 09/04」）。
+  /// 上市／上櫃各自獨立更新，偶爾會不同步，讓使用者能直接在清單上核對，
+  /// 不必再回頭翻除錯紀錄畫面才能確認看到的是不是當日資料。
   static void showStockListSheet({
     required BuildContext context,
     required String categoryName,
     required List<StockUiModel> uiStocks,
+    String? dataDateLabel,
   }) {
     final filteredUiStocks =
         uiStocks
@@ -124,6 +129,21 @@ class CategoryNavigation {
                       ],
                     ),
                   ),
+                  if (dataDateLabel != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                      child: Row(
+                        children: [
+                          Icon(Icons.event_outlined, size: 13, color: Colors.grey.shade500),
+                          const SizedBox(width: 4),
+                          Text(
+                            '資料日期：$dataDateLabel',
+                            style: TextStyle(fontSize: 11.5, color: Colors.grey.shade500),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const Divider(height: 20),
 
                   // 清單

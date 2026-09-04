@@ -109,3 +109,19 @@ images/
 skills-lock.json
 
 CLAUDE.md
+node_modules
+
+# Next.js App Store 截圖產生器（獨立工具，與 Flutter App 無關，見 CLAUDE.md）
+.next/
+app-store-screenshots.json
+bun.lock
+components.json
+next-env.d.ts
+next.config.mjs
+package-lock.json
+package.json
+postcss.config.mjs
+public/
+src/
+tailwind.config.ts
+tsconfig.json

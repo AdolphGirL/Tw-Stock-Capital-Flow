@@ -47,6 +47,7 @@ class HomePage extends StatefulWidget {
   final WatchlistRepository watchlistRepository;
   final StorageService storageService;
   final Future<SyncResult?> Function()? onRefresh;
+  final Future<String> Function()? onResetAndResync;
 
   const HomePage({
     super.key,
@@ -66,6 +67,7 @@ class HomePage extends StatefulWidget {
     required this.watchlistRepository,
     required this.storageService,
     this.onRefresh,
+    this.onResetAndResync,
   });
 
   @override
@@ -339,7 +341,9 @@ class _HomePageState extends State<HomePage> {
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const DebugLogPage()),
+                MaterialPageRoute(
+                  builder: (_) => DebugLogPage(onResetAndResync: widget.onResetAndResync),
+                ),
               ),
               child: Container(
                 margin: const EdgeInsets.only(top: 4, left: 6),

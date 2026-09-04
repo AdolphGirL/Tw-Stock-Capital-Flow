@@ -8,7 +8,6 @@ import 'package:tw_stock_capital_flow/data/models/rotation_result.dart';
 import 'package:tw_stock_capital_flow/domain/models/market_sentiment_result.dart';
 import 'package:tw_stock_capital_flow/domain/enums/lifecycle_stage.dart';
 import 'package:tw_stock_capital_flow/domain/enums/sentiment_level.dart';
-import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'dart:developer' as dev;
 
 class AnalysisCacheService {
@@ -17,7 +16,7 @@ class AnalysisCacheService {
 
   AnalysisCacheService(this._storageService);
 
-  /// 將全域計算好的 AppBootstrapResult 轉換成 JSON，並借用專案現有的快取儲存通道
+  /// 將全域計算好的 AppBootstrapResult 轉換成 JSON，寫入 `bootstrap_cache_{dateKey}.json`
   Future<void> saveBootstrapCache(
     String dateKey,
     AppBootstrapResult result,
@@ -56,31 +55,16 @@ class AnalysisCacheService {
       };
 
       final jsonString = jsonEncode(jsonMap);
-
-      // 利用現有的通道將 jsonString 拼接在 date 內，安全傳入硬碟中儲存
-      await _storageService.saveDailySnapshot(
-        StockDaySnapshot(
-          date: '$_cachePrefix$dateKey|$jsonString',
-          stocks: const [],
-        ),
-      );
+      await _storageService.writeFile('$_cachePrefix$dateKey.json', jsonString);
     } catch (_) {}
   }
 
   /// 嘗試讀取今日快取，完美還原為強型別物件
   Future<AppBootstrapResult?> loadBootstrapCache(String dateKey) async {
     try {
-      // 修正點 1：依據 StorageService 實作，讀取應呼叫 loadSnapshot
-      final snapshot = await _storageService.loadSnapshot(
-        '$_cachePrefix$dateKey',
-      );
-      if (snapshot == null || snapshot.date.isEmpty) return null;
+      final jsonString = await _storageService.readFile('$_cachePrefix$dateKey.json');
+      if (jsonString == null || jsonString.isEmpty) return null;
 
-      // 解析出當初拼接進去的 JSON 字串
-      final parts = snapshot.date.split('|');
-      if (parts.length < 2) return null;
-
-      final jsonString = parts[1];
       final Map<String, dynamic> jsonMap = jsonDecode(jsonString);
 
       // 還原為完整的 AppBootstrapResult 物件
@@ -132,24 +116,21 @@ class AnalysisCacheService {
     }
   }
 
-  /// 離線防禦兜底機制
+  /// 離線防禦兜底機制：掃描本地快照目錄找出最新一份 bootstrap_cache_*.json
   Future<AppBootstrapResult?> tryGetAnyLatestCache() async {
     try {
-      // 🚀 修正點：因為 getAllKeys 回傳 Future，這裡必須加上 await 喔！
-      final List<String> keys = await _storageService.getAllKeys();
+      final List<String> allFiles = await _storageService.listAvailableDates();
 
-      if (keys.isEmpty) return null;
-
-      // 篩選屬於資金流快取的 Key
-      final cacheKeys = keys
-          .where((k) => k.startsWith('bootstrap_cache_'))
+      // 篩選屬於資金流快取的檔名
+      final cacheKeys = allFiles
+          .where((k) => k.startsWith(_cachePrefix))
           .toList();
       if (cacheKeys.isEmpty) return null;
 
       // 排序並還原日期標籤
       cacheKeys.sort((a, b) => b.compareTo(a));
       final String latestCacheKey = cacheKeys.first.replaceFirst(
-        'bootstrap_cache_',
+        _cachePrefix,
         '',
       );
 

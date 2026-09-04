@@ -7,13 +7,19 @@ import 'package:tw_stock_capital_flow/data/services/debug_log_service.dart';
 /// 顯示 DebugLogService 蒐集到的同步/抓取事件，新到舊排序。
 /// 「複製全部」比截圖更精確（不需要辨識文字），優先用這個回報。
 class DebugLogPage extends StatefulWidget {
-  const DebugLogPage({super.key});
+  /// 一鍵重置：清空本地快照＋SQLite 市場數據歷史，強制重新抓取並重算。
+  /// 由 main.dart 的 `_resetAndResync` 一路傳下來；為 null 時不顯示重置按鈕。
+  final Future<String> Function()? onResetAndResync;
+
+  const DebugLogPage({super.key, this.onResetAndResync});
 
   @override
   State<DebugLogPage> createState() => _DebugLogPageState();
 }
 
 class _DebugLogPageState extends State<DebugLogPage> {
+  bool _isResetting = false;
+
   @override
   void initState() {
     super.initState();
@@ -30,6 +36,64 @@ class _DebugLogPageState extends State<DebugLogPage> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _confirmAndReset() async {
+    if (widget.onResetAndResync == null || _isResetting) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        title: const Text('一鍵重置並重新抓取', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          '會先強制重新向 TWSE/TPEX 抓取一次今日資料，確定抓取成功後才清空本機'
+          'SQLite 裡的板塊/主流/生命週期/輪動歷史，並重新計算、整批寫回。\n\n'
+          '關注清單與訊號比對紀錄不受影響。若這次抓取失敗，本機既有資料不會被'
+          '動到。30 日走勢圖裡「今天」以前的獨立紀錄會消失，要等那幾天重新'
+          '變成「今天」才會再補回 SQLite（TWSE/TPEX 的 API 本身也只給得到最新'
+          '一天的資料）。\n\n此動作無法復原，確定要繼續嗎？',
+          style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.redAccent),
+            child: const Text('確定重置'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isResetting = true);
+    try {
+      final message = await widget.onResetAndResync!();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.green.shade700,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('重置失敗：$e'),
+          backgroundColor: Colors.red.shade700,
+          duration: const Duration(seconds: 4),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isResetting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final entries = DebugLogService.entries;
@@ -41,6 +105,18 @@ class _DebugLogPageState extends State<DebugLogPage> {
         backgroundColor: const Color(0xFF161B22),
         foregroundColor: Colors.white,
         actions: [
+          if (widget.onResetAndResync != null)
+            IconButton(
+              tooltip: '一鍵重置並重新抓取',
+              icon: _isResetting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.redAccent),
+                    )
+                  : const Icon(Icons.restart_alt_rounded, color: Colors.redAccent),
+              onPressed: _isResetting ? null : _confirmAndReset,
+            ),
           IconButton(
             tooltip: '複製全部',
             icon: const Icon(Icons.copy_all_rounded),

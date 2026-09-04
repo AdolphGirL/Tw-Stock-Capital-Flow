@@ -70,6 +70,18 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
     return mainCat.children;
   }
 
+  /// 依 [widget.market] 取出這份成分股清單實際對應的資料日期（民國年 YYYMMDD → MM/DD），
+  /// 讓使用者能在成分股清單上直接核對「現在看到的到底是不是今天的資料」。
+  String? _dataDateLabel(AppBootstrapResult? result) {
+    if (result == null) return null;
+    final roc = widget.market == MarketType.listed ? result.listedDate : result.otcDate;
+    if (roc.length != 7) return null;
+    final month = roc.substring(3, 5);
+    final day = roc.substring(5, 7);
+    final marketLabel = widget.market == MarketType.listed ? '上市' : '上櫃';
+    return '$marketLabel $month/$day';
+  }
+
   /// 計算今日即時分布狀態（直接寫入 state 欄位，由呼叫端的 build 同步顯示）
   void _calculateLiveDistribution(List<CategoryUiModel> categories) {
     _totalRiseCount = 0;
@@ -229,6 +241,7 @@ class _SubCategoryPageState extends State<SubCategoryPage> {
                             context: context,
                             categoryName: item.name,
                             uiStocks: item.stocks,
+                            dataDateLabel: _dataDateLabel(result),
                           );
                         },
                       ),

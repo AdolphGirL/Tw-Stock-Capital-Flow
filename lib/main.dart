@@ -369,6 +369,97 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
     }
   }
 
+  /// 【重置用】清空 SQLite 市場數據歷史表（板塊/主流/生命週期/輪動；watchlist／
+  /// signal_snapshot 不動），強制向 API 重新抓取今日資料，重新計算後把結果整批
+  /// 重新寫回 SQLite，最後更新畫面。
+  ///
+  /// 刻意保留本地既有的 listed_/otc_ 快照檔（不清空）——先重新抓取成功、確定
+  /// 這輪真的拿得到資料，才動 SQLite；期間若抓取失敗，本機既有資料完全不受
+  /// 影響，不會落入「清空了卻抓不到新資料」的更糟狀態。保留快照檔也讓重算
+  /// 能沿用近幾天既有的原始資料，而不是清空快照後被迫只剩今天一天可看。
+  ///
+  /// 與 `_refresh()`／`_resyncOnResume()` 共用 `_isRefreshing` 鎖，避免重置途中
+  /// 又被背景同步或手動刷新打斷。SQLite 只會補回「今天」這一列；過去某一天
+  /// 若本機仍留有當時的原始快照，該天的走勢分數依然算得出來，但那一天在
+  /// SQLite 歷史表裡的獨立紀錄要等它下次真的成為「今天」才會重新寫入，這是
+  /// 目前架構下的預期行為（TWSE/TPEX 的 API 本身也只回傳最新一天的資料，
+  /// 沒有歷史回補端點）。
+  ///
+  /// 回傳結果訊息供呼叫端（DebugLogPage）用 SnackBar 顯示；失敗時拋出例外。
+  Future<String> _resetAndResync() async {
+    if (_isRefreshing) {
+      throw Exception('目前有其他同步正在進行，請稍後再試');
+    }
+    _isRefreshing = true;
+    DebugLogService.log('Reset', '=== 使用者觸發一鍵重置＋重新抓取 ===');
+    try {
+      final syncManager = SyncManager(
+        storageService: _storageService,
+        calendarService: MarketCalendarService(),
+      );
+      final syncResult = await syncManager
+          .syncTodayData(forceSync: true)
+          .timeout(const Duration(seconds: 120));
+
+      if (!syncResult.success || (!syncResult.listedFetchSucceeded && !syncResult.otcFetchSucceeded)) {
+        throw Exception('重新抓取失敗，本機資料未受影響：${syncResult.message}');
+      }
+
+      // 抓取確定成功才清空 SQLite 舊資料，避免清空後才發現抓不到新資料。
+      await _categoryHistoryRepository!.clearAllHistory();
+      DebugLogService.log('Reset', '重新抓取成功，已清空 SQLite 市場數據歷史，開始重新計算');
+
+      _listedDate = syncResult.listedDate;
+      _otcDate = syncResult.otcDate;
+
+      final historyRepository = HistoryRepository(storageService: _storageService);
+      final snapshots = await historyRepository.loadRecentSnapshots(5);
+      if (snapshots.isEmpty) {
+        throw Exception('重新抓取後仍無可用資料');
+      }
+
+      final rawResult = await BootstrapAnalyzer.analyzeAsync(snapshots);
+      final result = rawResult.copyWith(listedDate: _listedDate, otcDate: _otcDate);
+
+      final cacheService = AnalysisCacheService(_storageService);
+      await cacheService.saveBootstrapCache(_listedDate, result);
+
+      await _saveHistoryToSqlite(
+        result,
+        saveListed: syncResult.listedFetchSucceeded,
+        saveOtc: syncResult.otcFetchSucceeded,
+      );
+
+      final changes = await _detectAndSaveSignalChanges(result);
+
+      if (mounted) {
+        setState(() {
+          bootstrapResult = result;
+          loading = false;
+          error = null;
+          isOfflineMode = false;
+          _pendingSignalChanges = changes;
+          if (changes.isNotEmpty) _signalDialogShown = false;
+        });
+      }
+      LiveBootstrapData.notifier.value = result;
+
+      final failedMarkets = [
+        if (!syncResult.listedFetchSucceeded) '上市',
+        if (!syncResult.otcFetchSucceeded) '上櫃',
+      ];
+      DebugLogService.log('Reset', '✅ 重置完成，資料日期：上市 $_listedDate／上櫃 $_otcDate');
+      return failedMarkets.isEmpty
+          ? '已重置並重新抓取完成（$_listedDate）'
+          : '已重置並重新抓取，但 ${failedMarkets.join("、")} 這次沒抓到新資料';
+    } catch (e) {
+      DebugLogService.log('Reset', '❌ 重置失敗（${e.runtimeType}）: $e');
+      rethrow;
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+
   /// 將今日 bootstrap 計算結果寫入 SQLite 歷史表，供 30 日走勢圖使用。
   ///
   /// [saveListed]／[saveOtc] 對應「這一輪是否真的抓到該市場的新資料」
@@ -604,6 +695,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
                 watchlistRepository: _watchlistRepository!,
                 storageService: _storageService,
                 onRefresh: _refresh,
+                onResetAndResync: _resetAndResync,
               ),
             ),
           ],
