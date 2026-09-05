@@ -58,4 +58,10 @@ class WatchlistRepository {
       await add(categoryName);
     }
   }
+
+  /// 【重置用】清空整張 watchlist 表。不連動清 signal_snapshot，
+  /// 呼叫端如需一併清空請另外呼叫 SignalSnapshotRepository.clearAll()。
+  Future<void> clearAll() async {
+    await db.delete(db.watchlistTable).go();
+  }
 }

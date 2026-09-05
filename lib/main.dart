@@ -5,6 +5,8 @@ import 'package:tw_stock_capital_flow/presentation/theme/app_theme.dart';
 import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
 import 'package:tw_stock_capital_flow/data/services/market_calendar_service.dart';
 import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 import 'package:tw_stock_capital_flow/presentation/pages/main_navigation_container.dart'; // 🚀 引入全新導航控制外殼
 import 'package:tw_stock_capital_flow/domain/usecases/app_bootstrap_result.dart';
 import 'package:tw_stock_capital_flow/domain/usecases/bootstrap_analyzer.dart';
@@ -373,17 +375,20 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
   /// signal_snapshot 不動），強制向 API 重新抓取今日資料，重新計算後把結果整批
   /// 重新寫回 SQLite，最後更新畫面。
   ///
-  /// 刻意保留本地既有的 listed_/otc_ 快照檔（不清空）——先重新抓取成功、確定
-  /// 這輪真的拿得到資料，才動 SQLite；期間若抓取失敗，本機既有資料完全不受
-  /// 影響，不會落入「清空了卻抓不到新資料」的更糟狀態。保留快照檔也讓重算
-  /// 能沿用近幾天既有的原始資料，而不是清空快照後被迫只剩今天一天可看。
+  /// 抓取確定成功才清空，避免清空後才發現抓不到新資料——期間若抓取失敗，
+  /// 本機既有資料完全不受影響。一旦確認成功，會清空「全部」本地儲存的資料：
+  /// SQLite 全部 6 張表（含 watchlist、signal_snapshot）與 daily 目錄下所有
+  /// JSON 檔案（股票快照、分析結果快取、三大法人／融資融券歷史），只保留這
+  /// 輪剛抓到的「今天」資料重新寫回再重新計算。
   ///
-  /// 與 `_refresh()`／`_resyncOnResume()` 共用 `_isRefreshing` 鎖，避免重置途中
-  /// 又被背景同步或手動刷新打斷。SQLite 只會補回「今天」這一列；過去某一天
-  /// 若本機仍留有當時的原始快照，該天的走勢分數依然算得出來，但那一天在
-  /// SQLite 歷史表裡的獨立紀錄要等它下次真的成為「今天」才會重新寫入，這是
-  /// 目前架構下的預期行為（TWSE/TPEX 的 API 本身也只回傳最新一天的資料，
-  /// 沒有歷史回補端點）。
+  /// 清空後只剩「今天」一天原始快照，需要仰賴多天歷史窗口的指標（
+  /// MainstreamEngine 3 日延續力、CapitalFlowEngine N 日均量、LifecycleEngine
+  /// 5 日趨勢、異常偵測 35 日 Z-score）會在重置後的頭幾天因樣本不足而暫時
+  /// 退化，需等 App 正常使用幾天重新累積資料才會恢復——這是使用者主動選擇
+  /// 「全部清空」後的預期行為，非本方法的臭蟲。
+  ///
+  /// 與 `_refresh()`／`_resyncOnResync()` 共用 `_isRefreshing` 鎖，避免重置途中
+  /// 又被背景同步或手動刷新打斷。
   ///
   /// 回傳結果訊息供呼叫端（DebugLogPage）用 SnackBar 顯示；失敗時拋出例外。
   Future<String> _resetAndResync() async {
@@ -391,7 +396,7 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
       throw Exception('目前有其他同步正在進行，請稍後再試');
     }
     _isRefreshing = true;
-    DebugLogService.log('Reset', '=== 使用者觸發一鍵重置＋重新抓取 ===');
+    DebugLogService.log('Reset', '=== 使用者觸發一鍵重置＋重新抓取（全部清空）===');
     try {
       final syncManager = SyncManager(
         storageService: _storageService,
@@ -405,12 +410,32 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         throw Exception('重新抓取失敗，本機資料未受影響：${syncResult.message}');
       }
 
-      // 抓取確定成功才清空 SQLite 舊資料，避免清空後才發現抓不到新資料。
+      // 抓取確定成功才清空，避免清空後才發現抓不到新資料。
       await _categoryHistoryRepository!.clearAllHistory();
-      DebugLogService.log('Reset', '重新抓取成功，已清空 SQLite 市場數據歷史，開始重新計算');
+      await _watchlistRepository!.clearAll();
+      await _signalSnapshotRepository!.clearAll();
+      await _storageService.clearAllFiles();
+      DebugLogService.log('Reset', '重新抓取成功，已清空 SQLite 全部資料表與本地 JSON 快取，開始重新計算');
 
       _listedDate = syncResult.listedDate;
       _otcDate = syncResult.otcDate;
+
+      // clearAllFiles() 連同 syncTodayData 剛寫入的「今天」快照一併刪除，
+      // 這裡用回傳的 stocks 依市場拆分後重新寫回，確保後續分析讀得到今天的資料。
+      final listedStocks =
+          syncResult.stocks.where((s) => s.market == MarketType.listed).toList();
+      final otcStocks =
+          syncResult.stocks.where((s) => s.market == MarketType.otc).toList();
+      if (listedStocks.isNotEmpty) {
+        await _storageService.saveListedSnapshot(
+          StockDaySnapshot(date: _listedDate, stocks: listedStocks),
+        );
+      }
+      if (otcStocks.isNotEmpty) {
+        await _storageService.saveOtcSnapshot(
+          StockDaySnapshot(date: _otcDate, stocks: otcStocks),
+        );
+      }
 
       final historyRepository = HistoryRepository(storageService: _storageService);
       final snapshots = await historyRepository.loadRecentSnapshots(5);
@@ -430,6 +455,8 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
         saveOtc: syncResult.otcFetchSucceeded,
       );
 
+      // watchlist 已清空，_detectAndSaveSignalChanges 內部讀到空清單會直接
+      // 回傳空列表，不會誤發訊號異動通知。
       final changes = await _detectAndSaveSignalChanges(result);
 
       if (mounted) {
@@ -450,8 +477,8 @@ class _BootstrapAppState extends State<BootstrapApp> with WidgetsBindingObserver
       ];
       DebugLogService.log('Reset', '✅ 重置完成，資料日期：上市 $_listedDate／上櫃 $_otcDate');
       return failedMarkets.isEmpty
-          ? '已重置並重新抓取完成（$_listedDate）'
-          : '已重置並重新抓取，但 ${failedMarkets.join("、")} 這次沒抓到新資料';
+          ? '已全部清空並重新抓取完成（$_listedDate）'
+          : '已全部清空並重新抓取，但 ${failedMarkets.join("、")} 這次沒抓到新資料';
     } catch (e) {
       DebugLogService.log('Reset', '❌ 重置失敗（${e.runtimeType}）: $e');
       rethrow;

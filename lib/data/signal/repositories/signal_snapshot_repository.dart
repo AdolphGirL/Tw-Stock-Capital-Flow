@@ -36,4 +36,9 @@ class SignalSnapshotRepository {
           ..where((t) => t.categoryName.equals(categoryName)))
         .go();
   }
+
+  /// 【重置用】清空整張 signal_snapshot 表。
+  Future<void> clearAll() async {
+    await db.delete(db.signalSnapshotTable).go();
+  }
 }

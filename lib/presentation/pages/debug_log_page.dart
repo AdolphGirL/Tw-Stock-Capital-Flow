@@ -45,12 +45,15 @@ class _DebugLogPageState extends State<DebugLogPage> {
         backgroundColor: const Color(0xFF161B22),
         title: const Text('一鍵重置並重新抓取', style: TextStyle(color: Colors.white)),
         content: const Text(
-          '會先強制重新向 TWSE/TPEX 抓取一次今日資料，確定抓取成功後才清空本機'
-          'SQLite 裡的板塊/主流/生命週期/輪動歷史，並重新計算、整批寫回。\n\n'
-          '關注清單與訊號比對紀錄不受影響。若這次抓取失敗，本機既有資料不會被'
-          '動到。30 日走勢圖裡「今天」以前的獨立紀錄會消失，要等那幾天重新'
-          '變成「今天」才會再補回 SQLite（TWSE/TPEX 的 API 本身也只給得到最新'
-          '一天的資料）。\n\n此動作無法復原，確定要繼續嗎？',
+          '會先強制重新向 TWSE/TPEX 抓取一次今日資料，確定抓取成功後才「全部'
+          '清空」本機資料：SQLite 全部資料表（板塊/主流/生命週期/輪動歷史，'
+          '以及觀察清單、訊號比對紀錄）與本機所有 JSON 快取（股票快照、分析'
+          '結果快取、三大法人與融資融券歷史），只保留剛抓到的「今天」資料重'
+          '新寫回並重新計算。若這次抓取失敗，本機既有資料不會被動到。\n\n'
+          '清空後只剩今天一天資料，需要多天歷史窗口的指標（如延續力、異常偵'
+          '測 Z-score）會在接下來幾天內因樣本不足而暫時失準，需等 App 正常使'
+          '用幾天重新累積資料才會恢復；觀察清單收藏與訊號通知比對基準也會一'
+          '併清空、需重新設定。\n\n此動作無法復原，確定要繼續嗎？',
           style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.5),
         ),
         actions: [

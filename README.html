@@ -723,9 +723,8 @@ diffusionScore   = riseCount / totalCount × 100
 leaderScore      = leader.value/億 × 0.6 + leader.changePercent × 0.4
 
 <span class="hl">mainstreamScore  = flowScore×0.35 + persistenceScore×0.30
-                 + diffusionScore×0.20 + leaderScore×0.15</span>
-
-hotMoneyIn = flowScore > 0 AND diffusionScore > 45</div></div>
+                 + diffusionScore×0.20 + leaderScore×0.15</span></div></div>
+    <p style="font-size:13px;margin-top:8px">此引擎輸出的 <code>flowScore</code>／<code>diffusionScore</code> 是 <a href="#eng-lifecycle">LifecycleEngine</a> 計算 <code>hotMoneyIn</code>（<code>flowScore &gt; 0 AND diffusionScore &gt; 45</code>）的輸入來源，實際判斷邏輯在 LifecycleEngine 內執行。</p>
   </div>
 
   <!-- TrendMetricsEngine -->
@@ -743,6 +742,7 @@ stability    = 100 − volatility</div></div>
     <h3 class="subsection-title">4. LifecycleEngine — 生命週期引擎</h3>
     <p>對每個板塊建立3條時間序列（分數/流量/擴散），透過 TrendMetricsEngine 取得趨勢特徵，依規則判定所屬生命週期階段。</p>
     <div class="note"><strong>市場獨立計算</strong>：上市與上櫃各自有一個獨立的 LifecycleEngine 實例（由 <code>_runLifecycleForMarket</code> 在 Isolate 中執行），避免同名板塊跨市場干擾。詳見 <a href="#market-split">上市/上櫃分離架構</a>。</div>
+    <p style="font-size:13px"><code>hotMoneyIn = mainstream.flowScore &gt; 0 AND mainstream.diffusionScore &gt; 45</code>（取自 <a href="#eng-mainstream">MainstreamEngine</a> 輸出）也是在此引擎計算，供 <a href="#eng-momentum">MomentumStrategy</a> 判斷用。</p>
     <div class="table-wrap"><table>
       <thead><tr><th>優先</th><th>階段</th><th>判斷條件（簡）</th></tr></thead>
       <tbody>
@@ -750,7 +750,7 @@ stability    = 100 − volatility</div></div>
         <tr><td>2</td><td>退潮 (Decline)</td><td>slope &lt; 0 AND accel &lt; 0 AND flow &lt; 0</td></tr>
         <tr><td>3</td><td>出貨 (Distribution)</td><td>score &gt; 70 AND accel &lt; 0 AND volatility &gt; 15</td></tr>
         <tr><td>4</td><td>狂熱 (Euphoric)</td><td>score &gt; 85 AND diffusion &gt; 75 AND volatility &gt; 20</td></tr>
-        <tr><td>5</td><td>主升 (Markup)</td><td>score &gt; 60 AND slope &gt; 20 AND stability &gt; 70</td></tr>
+        <tr><td>5</td><td>主升 (Markup)</td><td>score &gt; 60 AND slope &gt; 20 AND stability &gt; 70 AND volatility &lt; 18</td></tr>
         <tr><td>6</td><td>擴散 (Expansion)</td><td>diffusion &gt; 45 AND slope &gt; 10 AND flowTrend.slope &gt; 0</td></tr>
         <tr><td>7</td><td>點火 (Ignition)</td><td>accel &gt; 5 OR flowTrend.accel &gt; 0</td></tr>
         <tr><td>8</td><td>盤整 (Consolidation)</td><td>（以上條件皆不符）</td></tr>
@@ -961,13 +961,13 @@ intradayReturn = (close − open) / open × 100
   <div class="note"><strong>背景</strong>：TWSE / TPEX 官方開放資料實際整理完成的確切時間點無法得知（可能傍晚就緒，也可能延到隔天）。與其用一個猜測的精確時間點決定何時抓取，不如鎖定「確定沒有新資料」的區間直接略過、其餘時間都允許嘗試，並讓使用者隨時能自行手動刷新取得最新狀況。</div>
 
   <div class="subsection">
-    <h3 class="subsection-title">白天靜默期（07:00–19:00）</h3>
+    <h3 class="subsection-title">白天靜默期（08:00–18:00）</h3>
     <p><code>SyncManager.syncTodayData()</code> 每次啟動 App 時執行，邏輯如下：</p>
     <div class="table-wrap"><table>
       <thead><tr><th>時段 / 條件</th><th>行為</th><th>原因</th></tr></thead>
       <tbody>
-        <tr><td><strong>07:00–19:00</strong>（白天靜默期）</td><td>略過 API 呼叫，直接使用本地快照</td><td>台股收盤 13:30，此區間內確定不會有新收盤資料，是唯一有把握的判斷依據</td></tr>
-        <tr><td>19:00～隔日 07:00（靜默期以外）</td><td>一律嘗試向 API 抓取</td><td>官方實際整理完成時間不確定，抓不到新資料只是白跑一趟、不會寫壞本地資料，因此不再猜測精確時間點</td></tr>
+        <tr><td><strong>08:00–18:00</strong>（白天靜默期）</td><td>略過 API 呼叫，直接使用本地快照</td><td>台股收盤 13:30，此區間內確定不會有新收盤資料，是唯一有把握的判斷依據</td></tr>
+        <tr><td>18:00～隔日 08:00（靜默期以外）</td><td>一律嘗試向 API 抓取</td><td>官方實際整理完成時間不確定，抓不到新資料只是白跑一趟、不會寫壞本地資料，因此不再猜測精確時間點</td></tr>
         <tr><td>本地資料超過 <strong>3 個日曆天</strong></td><td>無論在不在靜默期，強制向 API 同步</td><td>避免連假／網路異常後資料一直停留在舊快照</td></tr>
         <tr><td>手動刷新（<code>forceSync</code>）</td><td>完全略過以上護欄，直接呼叫 API</td><td>使用者主動要求最新資料時的最高優先權</td></tr>
       </tbody>
@@ -979,7 +979,7 @@ intradayReturn = (close − open) / open × 100
     <h3 class="subsection-title">首頁提示條</h3>
     <p>大盤診斷首頁的標題區塊會依資料狀態即時顯示對應提示，並附上手動刷新的文字連結：</p>
 
-    <p style="font-size:12.5px;color:var(--ink-3);margin-top:14px">白天靜默期（07:00–19:00）：</p>
+    <p style="font-size:12.5px;color:var(--ink-3);margin-top:14px">白天靜默期（08:00–18:00）：</p>
     <div class="mock-banner warn">
       <span>⏱</span>
       <span style="flex:1">目前顯示上一交易日資料，官方資料整理時間不一定，最快當日傍晚、最晚隔日才會更新；如需查看最新狀況，請點擊：</span>
@@ -1126,7 +1126,7 @@ intradayReturn = (close − open) / open × 100
 │   ├── strategies/
 │   │   └── momentum_strategy.dart
 │   └── usecases/
-│       ├── bootstrap_analyzer.dart         <span class="cm"># Phase1 並行 5 Isolate；_runLifecycleForMarket</span>
+│       ├── bootstrap_analyzer.dart         <span class="cm"># Phase1 並行 6 Isolate；_runLifecycleForMarket</span>
 │       └── app_bootstrap_result.dart       <span class="cm"># listedDate/otcDate/listedLifecycles/otcLifecycles</span>
 │
 └── presentation/

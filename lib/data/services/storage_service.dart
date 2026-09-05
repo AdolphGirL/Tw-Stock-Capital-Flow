@@ -246,4 +246,16 @@ class StorageService {
     }
   }
 
+  /// 【重置用】清空 daily 目錄下所有檔案：股票快照（listed_*/otc_*/舊格式
+  /// YYYMMDD.json）、分析結果快取（bootstrap_cache_*.json）、三大法人與
+  /// 融資融券歷史 json，一律不留。呼叫端負責在清空後視需要重新寫回資料。
+  Future<void> clearAllFiles() async {
+    final dir = await _getDailyDirectory();
+    final files = dir.listSync().whereType<File>().toList();
+    for (final file in files) {
+      await file.delete();
+    }
+    dev.log('🗑️ 已清空 daily 目錄所有檔案，共 ${files.length} 筆', name: 'StorageService');
+  }
+
 }
