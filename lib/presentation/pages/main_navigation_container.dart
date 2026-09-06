@@ -10,9 +10,8 @@ import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
 import 'package:tw_stock_capital_flow/data/managers/sync_manager.dart';
 // 引入各分流頁面
 import 'package:tw_stock_capital_flow/presentation/pages/home_page.dart'; // 瘦身後的首頁
-import 'package:tw_stock_capital_flow/presentation/pages/strategy_dashboard_page.dart'; // 策略看板
 import 'package:tw_stock_capital_flow/presentation/pages/leading_indicator_page.dart'; // 領先指標
-import 'package:tw_stock_capital_flow/presentation/pages/anomaly_detector_page.dart';
+import 'package:tw_stock_capital_flow/presentation/pages/turnover_share_page.dart';
 
 class MainNavigationContainer extends StatefulWidget {
   final String listedDate; // TWSE 上市交易日
@@ -29,8 +28,6 @@ class MainNavigationContainer extends StatefulWidget {
   final List<RotationResult> otcRotations;    // 上櫃市場獨立輪動
   final List<MainstreamResult> mainstreams;
   final List<LifecycleResult> lifecycles;
-  final List<LifecycleResult> listedLifecycles; // 上市獨立週期
-  final List<LifecycleResult> otcLifecycles;    // 上櫃獨立週期
   final MarketSentimentResult? sentiment;
   final CategoryHistoryRepository historyRepository;
   final WatchlistRepository watchlistRepository;
@@ -54,8 +51,6 @@ class MainNavigationContainer extends StatefulWidget {
     required this.otcRotations,
     required this.mainstreams,
     required this.lifecycles,
-    required this.listedLifecycles,
-    required this.otcLifecycles,
     required this.sentiment,
     required this.historyRepository,
     required this.watchlistRepository,
@@ -103,28 +98,17 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
                   onResetAndResync: widget.onResetAndResync,
                 ),
 
-                // 📊 Tab 1: 異常資金偵測器
-                AnomalyDetectorPage(
+                // 🥧 Tab 1: 板塊資金佔比異動
+                TurnoverSharePage(
                   listedCategories: widget.listedCategories,
                   otcCategories: widget.otcCategories,
                   historyRepository: widget.historyRepository,
+                  storageService: widget.storageService,
                   listedDate: widget.listedDate,
                   otcDate: widget.otcDate,
                 ),
 
-                // ⚡ Tab 2: 機構動量策略
-                StrategyDashboardPage(
-                  listedLifecycles: widget.listedLifecycles,
-                  otcLifecycles: widget.otcLifecycles,
-                  listedDate: widget.listedDate,
-                  otcDate: widget.otcDate,
-                  listedCategories: widget.listedCategories,
-                  otcCategories: widget.otcCategories,
-                  historyRepository: widget.historyRepository,
-                  watchlistRepository: widget.watchlistRepository,
-                ),
-
-                // 📡 Tab 3: 輪動領先雷達
+                // 📡 Tab 2: 輪動領先雷達
                 LeadingIndicatorPage(
                   listedRotations: widget.listedRotations,
                   otcRotations: widget.otcRotations,
@@ -160,11 +144,7 @@ class _MainNavigationContainerState extends State<MainNavigationContainer> {
             icon: Icon(Icons.dashboard_rounded),
             label: '大盤診斷',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.bolt_rounded), label: '異常偵測'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.traffic_rounded),
-            label: '動量決策',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.pie_chart_rounded), label: '資金佔比'),
           BottomNavigationBarItem(
             icon: Icon(Icons.radar_rounded),
             label: '領先雷達',

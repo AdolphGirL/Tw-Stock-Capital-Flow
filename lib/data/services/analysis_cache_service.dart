@@ -88,7 +88,7 @@ class AnalysisCacheService {
             .map((e) => _mapToLifecycle(e))
             .toList(), // 點 3：對齊生命週期引擎
         // listedLifecycles/otcLifecycles 為舊版快取所無的欄位，缺省時退回空清單
-        // （StrategyDashboardPage 會在下次有新資料時自然補齊，不影響其他頁面）
+        // （下次有新資料時自然補齊，不影響其他頁面；目前無 UI 消費此二欄位）
         listedLifecycles: jsonMap['listedLifecycles'] == null
             ? const []
             : (jsonMap['listedLifecycles'] as List)

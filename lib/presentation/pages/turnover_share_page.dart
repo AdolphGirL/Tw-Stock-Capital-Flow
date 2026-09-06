@@ -1,73 +1,80 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
-import 'package:tw_stock_capital_flow/data/database/app_database.dart';
 import 'package:tw_stock_capital_flow/data/history/repositories/category_history_repository.dart';
+import 'package:tw_stock_capital_flow/data/repositories/history_repository.dart';
+import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
 import 'package:tw_stock_capital_flow/presentation/models/category_ui_model.dart';
 import 'package:tw_stock_capital_flow/core/navigation/category_navigation.dart';
 import 'package:tw_stock_capital_flow/data/models/stock_data.dart';
+import 'package:tw_stock_capital_flow/data/models/stock_day_snapshot.dart';
 
 // ── 資料模型 ────────────────────────────────────────────────────────────────
 
-class _Anomaly {
+/// 一個板塊「今日成交值佔大盤/櫃買比重」相對過去均值的偏移。
+class _ShareShift {
   final CategoryUiModel category;
-  final double todayScore;
-  final double historicalMean;
-  final double zScore;
-  final int historyDays;
+  final double todayWeightPct;   // 今日成交值佔該市場總成交值的比重（%）
+  final double avgWeightPct;     // 過去 N 個交易日的平均比重（%）
+  final int sampleDays;          // 平均用了幾天算出
 
-  const _Anomaly({
+  const _ShareShift({
     required this.category,
-    required this.todayScore,
-    required this.historicalMean,
-    required this.zScore,
-    required this.historyDays,
+    required this.todayWeightPct,
+    required this.avgWeightPct,
+    required this.sampleDays,
   });
 
-  /// 百分比偏差，用於 UI 顯示
-  double get deviationPercent {
-    final denom = historicalMean.abs().clamp(0.5, double.infinity);
-    return (todayScore - historicalMean) / denom * 100;
-  }
+  /// 百分點差（非相對百分比）：今日比重 − 過去均值比重
+  double get deviation => todayWeightPct - avgWeightPct;
 
-  bool get isInflow => zScore > 0;
+  bool get isGaining => deviation > 0;
 }
 
 // ── Page ────────────────────────────────────────────────────────────────────
 
-class AnomalyDetectorPage extends StatefulWidget {
+/// 板塊資金佔比異動：計算每個大類股「今日成交值佔大盤/櫃買總成交值的比重」，
+/// 與過去最多 5 個交易日的平均比重相比，偏移達門檻（百分點）即標註。
+/// 取代原本以 trendStrength 做 Z-score 統計的「異常資金偵測器」——
+/// 直接反映「今天錢實際往哪個板塊集中」，對散戶更直覺。
+class TurnoverSharePage extends StatefulWidget {
   final List<CategoryUiModel> listedCategories;
   final List<CategoryUiModel> otcCategories;
   final CategoryHistoryRepository historyRepository;
+  final StorageService storageService;
   final String listedDate; // TWSE 上市交易日
   final String otcDate;    // TPEX 上櫃交易日
 
-  const AnomalyDetectorPage({
+  const TurnoverSharePage({
     super.key,
     required this.listedCategories,
     required this.otcCategories,
     required this.historyRepository,
+    required this.storageService,
     required this.listedDate,
     required this.otcDate,
   });
 
   @override
-  State<AnomalyDetectorPage> createState() => _AnomalyDetectorPageState();
+  State<TurnoverSharePage> createState() => _TurnoverSharePageState();
 }
 
-class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
-  // 上市異常清單
-  List<_Anomaly> _listedInflows  = [];
-  List<_Anomaly> _listedOutflows = [];
-  // 上櫃異常清單
-  List<_Anomaly> _otcInflows  = [];
-  List<_Anomaly> _otcOutflows = [];
+class _TurnoverSharePageState extends State<TurnoverSharePage> {
+  static const double _thresholdPoints = 5.0; // 偏移門檻：5 個百分點
+  static const int _minSampleDays = 3;        // 至少要有 3 天歷史樣本才列入比較
+  static const int _targetHistoryDays = 6;    // 今日 + 最多 5 天歷史
+
+  List<_ShareShift> _listedGaining = [];
+  List<_ShareShift> _listedLosing = [];
+  List<_ShareShift> _otcGaining = [];
+  List<_ShareShift> _otcLosing = [];
+
+  int _listedAnalyzed = 0;
+  int _otcAnalyzed = 0;
+  double _listedTotalValueYi = 0;
+  double _otcTotalValueYi = 0;
 
   bool _isLoading = true;
   bool _hasEnoughHistory = false;
-  int _totalAnalyzed = 0;
-  int _historyDaysAvailable = 0;
-  int _daysAccumulated = 0; // 實際已累積天數（含未達門檻者），供倒數顯示
+  int _daysAccumulated = 0; // 實際可用的歷史天數（不含今日），供倒數顯示
 
   /// 民國年 YYYMMDD (7碼) 或西元年 YYYYMMDD (8碼) → 帶分隔符顯示字串
   String _formatDate(String raw) {
@@ -87,7 +94,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
   }
 
   @override
-  void didUpdateWidget(AnomalyDetectorPage oldWidget) {
+  void didUpdateWidget(TurnoverSharePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.listedDate != widget.listedDate ||
         oldWidget.otcDate != widget.otcDate) {
@@ -96,76 +103,123 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
   }
 
   Future<void> _compute() async {
-    final historyMap =
-        await widget.historyRepository.loadAllCategoriesHistory(days: 35);
+    final historyRepo = HistoryRepository(storageService: widget.storageService);
+    final snapshots = await historyRepo.loadRecentSnapshots(_targetHistoryDays);
 
-    final allCategories = [
-      ...widget.listedCategories,
-      ...widget.otcCategories,
-    ];
+    if (snapshots.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _hasEnoughHistory = false;
+          _daysAccumulated = 0;
+        });
+      }
+      return;
+    }
 
-    final anomalies = <_Anomaly>[];
-    const int minDays = 5;
+    final today = snapshots.first;
+    final priorDays = snapshots.skip(1).toList();
 
-    int maxDays = 0;
-    int actualMaxDays = 0; // 不受 minDays 過濾，用於倒數計算
+    final listedResult = _computeForMarket(
+      market: MarketType.listed,
+      categories: widget.listedCategories,
+      today: today,
+      priorDays: priorDays,
+    );
+    final otcResult = _computeForMarket(
+      market: MarketType.otc,
+      categories: widget.otcCategories,
+      today: today,
+      priorDays: priorDays,
+    );
 
-    for (final cat in allCategories) {
-      final records = historyMap[cat.name] ?? <CategoryHistoryData>[];
+    if (!mounted) return;
+    setState(() {
+      _listedGaining = listedResult.gaining;
+      _listedLosing = listedResult.losing;
+      _otcGaining = otcResult.gaining;
+      _otcLosing = otcResult.losing;
+      _listedAnalyzed = listedResult.analyzed;
+      _otcAnalyzed = otcResult.analyzed;
+      _listedTotalValueYi = listedResult.totalValueYi;
+      _otcTotalValueYi = otcResult.totalValueYi;
+      _daysAccumulated = priorDays.length;
+      // 至少要有 _minSampleDays 天歷史才有意義；raw 快照最多只保留 7 天，
+      // 不強求一定要湊滿 5 天。
+      _hasEnoughHistory = priorDays.length >= _minSampleDays;
+      _isLoading = false;
+    });
+  }
 
-      // 追蹤所有板塊的真實最大天數（用於計算還需幾天才能解鎖）
-      if (records.length > actualMaxDays) actualMaxDays = records.length;
+  ({
+    List<_ShareShift> gaining,
+    List<_ShareShift> losing,
+    int analyzed,
+    double totalValueYi,
+  }) _computeForMarket({
+    required MarketType market,
+    required List<CategoryUiModel> categories,
+    required StockDaySnapshot today,
+    required List<StockDaySnapshot> priorDays,
+  }) {
+    final todayStocks = today.stocks.where((s) => s.market == market).toList();
+    final todayTotal = todayStocks.fold<int>(0, (sum, s) => sum + s.value);
 
-      if (records.length < minDays) continue;
+    if (todayTotal == 0) {
+      return (gaining: <_ShareShift>[], losing: <_ShareShift>[], analyzed: 0, totalValueYi: 0);
+    }
 
-      if (records.length > maxDays) maxDays = records.length;
+    final Map<String, int> todayCategoryValue = {};
+    for (final s in todayStocks) {
+      todayCategoryValue.update(s.mainCategory, (v) => v + s.value, ifAbsent: () => s.value);
+    }
 
-      // 使用 trendStrength 做偏差計算——對資金動能變化最靈敏
-      final values = records.map((r) => r.trendStrength).toList();
-      final mean = values.reduce((a, b) => a + b) / values.length;
-      final variance =
-          values.map((v) => (v - mean) * (v - mean)).reduce((a, b) => a + b) /
-              values.length;
-      final stdDev = math.sqrt(variance);
+    // 逐日計算歷史比重，同板塊累積成一個樣本清單再取平均
+    final Map<String, List<double>> historicalWeights = {};
+    for (final day in priorDays) {
+      final dayStocks = day.stocks.where((s) => s.market == market).toList();
+      final dayTotal = dayStocks.fold<int>(0, (sum, s) => sum + s.value);
+      if (dayTotal == 0) continue;
 
-      final zScore =
-          stdDev > 0.01 ? (cat.trendStrength - mean) / stdDev : 0.0;
+      final Map<String, int> dayCategoryValue = {};
+      for (final s in dayStocks) {
+        dayCategoryValue.update(s.mainCategory, (v) => v + s.value, ifAbsent: () => s.value);
+      }
+      dayCategoryValue.forEach((name, value) {
+        historicalWeights.putIfAbsent(name, () => []).add(value / dayTotal * 100);
+      });
+    }
 
-      anomalies.add(_Anomaly(
+    final shifts = <_ShareShift>[];
+    for (final cat in categories) {
+      final todayValue = todayCategoryValue[cat.name];
+      if (todayValue == null) continue;
+
+      final hist = historicalWeights[cat.name];
+      if (hist == null || hist.length < _minSampleDays) continue;
+
+      final todayWeight = todayValue / todayTotal * 100;
+      final avgWeight = hist.reduce((a, b) => a + b) / hist.length;
+
+      shifts.add(_ShareShift(
         category: cat,
-        todayScore: cat.trendStrength,
-        historicalMean: mean,
-        zScore: zScore,
-        historyDays: records.length,
+        todayWeightPct: todayWeight,
+        avgWeightPct: avgWeight,
+        sampleDays: hist.length,
       ));
     }
 
-    // 依 zScore 排序
-    final sorted = [...anomalies]..sort((a, b) => b.zScore.compareTo(a.zScore));
-    final outflowsSorted = [...anomalies]..sort((a, b) => a.zScore.compareTo(b.zScore));
+    final gaining = shifts.where((s) => s.deviation >= _thresholdPoints).toList()
+      ..sort((a, b) => b.deviation.compareTo(a.deviation));
+    final losing = shifts.where((s) => s.deviation <= -_thresholdPoints).toList()
+      ..sort((a, b) => a.deviation.compareTo(b.deviation));
 
-    // 全部異常清單
-    final inflows  = sorted.where((a) => a.zScore > 0.8).take(8).toList();
-    final outflows = outflowsSorted.where((a) => a.zScore < -0.8).take(8).toList();
-
-    // 依市場分流（CategoryUiModel 沒有 override ==，用 object identity 精確區分
-    // 上市和上櫃中同名板塊的不同實例，避免名稱重疊時歸類錯誤）
-    final listedSet = widget.listedCategories.toSet();
-    bool isListed(_Anomaly a) => listedSet.contains(a.category);
-
-    if (mounted) {
-      setState(() {
-        _listedInflows  = inflows.where(isListed).toList();
-        _listedOutflows = outflows.where(isListed).toList();
-        _otcInflows     = inflows.where((a) => !isListed(a)).toList();
-        _otcOutflows    = outflows.where((a) => !isListed(a)).toList();
-        _hasEnoughHistory = anomalies.isNotEmpty;
-        _totalAnalyzed = anomalies.length;
-        _historyDaysAvailable = maxDays;
-        _daysAccumulated = actualMaxDays;
-        _isLoading = false;
-      });
-    }
+    return (
+      gaining: gaining,
+      losing: losing,
+      analyzed: shifts.length,
+      totalValueYi: todayTotal / 100000000.0,
+    );
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -178,16 +232,16 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
         backgroundColor: const Color(0xFFF3F6FB),
         appBar: AppBar(
           title: const Text(
-            '異常資金偵測器',
+            '板塊資金佔比異動',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           backgroundColor: Colors.white,
           foregroundColor: Colors.black87,
           elevation: 0,
           bottom: const TabBar(
-            labelColor: Color(0xFF1A237E),
+            labelColor: Color(0xFF00695C),
             unselectedLabelColor: Colors.grey,
-            indicatorColor: Color(0xFF1A237E),
+            indicatorColor: Color(0xFF00695C),
             tabs: [
               Tab(text: '上市'),
               Tab(text: '上櫃'),
@@ -202,18 +256,22 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
                   : TabBarView(
                       children: [
                         _buildMarketContent(
-                          inflows: _listedInflows,
-                          outflows: _listedOutflows,
+                          gaining: _listedGaining,
+                          losing: _listedLosing,
                           date: widget.listedDate,
                           marketLabel: '上市',
                           market: MarketType.listed,
+                          analyzed: _listedAnalyzed,
+                          totalValueYi: _listedTotalValueYi,
                         ),
                         _buildMarketContent(
-                          inflows: _otcInflows,
-                          outflows: _otcOutflows,
+                          gaining: _otcGaining,
+                          losing: _otcLosing,
                           date: widget.otcDate,
                           marketLabel: '上櫃',
                           market: MarketType.otc,
+                          analyzed: _otcAnalyzed,
+                          totalValueYi: _otcTotalValueYi,
                         ),
                       ],
                     ),
@@ -223,43 +281,50 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
   }
 
   Widget _buildMarketContent({
-    required List<_Anomaly> inflows,
-    required List<_Anomaly> outflows,
+    required List<_ShareShift> gaining,
+    required List<_ShareShift> losing,
     required String date,
     required String marketLabel,
     required MarketType market,
+    required int analyzed,
+    required double totalValueYi,
   }) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        _buildSummaryCard(date: date, marketLabel: marketLabel,
-            inflows: inflows, outflows: outflows),
+        _buildSummaryCard(
+          date: date,
+          marketLabel: marketLabel,
+          analyzed: analyzed,
+          totalValueYi: totalValueYi,
+          shiftCount: gaining.length + losing.length,
+        ),
         const SizedBox(height: 16),
 
-        if (inflows.isNotEmpty) ...[
+        if (gaining.isNotEmpty) ...[
           _buildSectionHeader(
-            '異常資金湧入',
-            '今日趨勢強度顯著高於歷史均值',
+            '佔比顯著上升',
+            '今日成交值比重明顯高於過去均值，資金集中度上升',
             const Color(0xFFC62828),
             Icons.trending_up_rounded,
           ),
-          ...inflows.map((a) => Builder(
-              builder: (ctx) => _buildAnomalyCard(ctx, a, market))),
+          ...gaining.map((s) => Builder(
+              builder: (ctx) => _buildShiftCard(ctx, s, market))),
           const SizedBox(height: 16),
         ],
 
-        if (outflows.isNotEmpty) ...[
+        if (losing.isNotEmpty) ...[
           _buildSectionHeader(
-            '異常資金流出',
-            '今日趨勢強度顯著低於歷史均值',
+            '佔比顯著下降',
+            '今日成交值比重明顯低於過去均值，資金關注度降溫',
             const Color(0xFF2E7D32),
             Icons.trending_down_rounded,
           ),
-          ...outflows.map((a) => Builder(
-              builder: (ctx) => _buildAnomalyCard(ctx, a, market))),
+          ...losing.map((s) => Builder(
+              builder: (ctx) => _buildShiftCard(ctx, s, market))),
         ],
 
-        if (inflows.isEmpty && outflows.isEmpty) _buildNoAnomalyCard(),
+        if (gaining.isEmpty && losing.isEmpty) _buildNoShiftCard(),
 
         const SizedBox(height: 20),
       ],
@@ -271,8 +336,9 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
   Widget _buildSummaryCard({
     required String date,
     required String marketLabel,
-    required List<_Anomaly> inflows,
-    required List<_Anomaly> outflows,
+    required int analyzed,
+    required double totalValueYi,
+    required int shiftCount,
   }) {
     final dateLabel = _formatDate(date);
 
@@ -280,7 +346,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1A237E), Color(0xFF283593)],
+          colors: [Color(0xFF00695C), Color(0xFF00897B)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -291,7 +357,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
         children: [
           Row(
             children: [
-              const Icon(Icons.radar_rounded, color: Colors.white70, size: 16),
+              const Icon(Icons.pie_chart_rounded, color: Colors.white70, size: 16),
               const SizedBox(width: 6),
               Text(
                 '$marketLabel · $dateLabel',
@@ -302,18 +368,19 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
           const SizedBox(height: 8),
           Row(
             children: [
-              _buildStatChip('分析板塊', '$_totalAnalyzed 個'),
+              _buildStatChip('分析板塊', '$analyzed 個'),
               const SizedBox(width: 12),
-              _buildStatChip('歷史基準', '$_historyDaysAvailable 日均值'),
+              _buildStatChip('今日總成交值', '${totalValueYi.toStringAsFixed(0)} 億'),
               const SizedBox(width: 12),
-              _buildStatChip('異常訊號',
-                  '${inflows.length + outflows.length} 個'),
+              _buildStatChip('異動訊號', '$shiftCount 個'),
             ],
           ),
           const SizedBox(height: 10),
-          const Text(
-            '以板塊自身近期趨勢強度做為基準，偵測今日顯著偏離歷史均值的板塊。\n偏離越大代表資金行為越異常，值得重點關注。',
-            style: TextStyle(color: Colors.white60, fontSize: 11, height: 1.5),
+          Text(
+            '計算各板塊今日成交值佔$marketLabel總成交值的比重，'
+            '與過去 $_daysAccumulated 個交易日的平均比重相比。\n'
+            '偏移達 ±${_thresholdPoints.toStringAsFixed(0)} 個百分點即標註，代表資金集中度出現明顯變化。',
+            style: const TextStyle(color: Colors.white60, fontSize: 11, height: 1.5),
           ),
         ],
       ),
@@ -367,29 +434,27 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
     );
   }
 
-  // ── 異常板塊卡片 ───────────────────────────────────────────────────────────
+  // ── 異動板塊卡片 ───────────────────────────────────────────────────────────
 
-  Widget _buildAnomalyCard(BuildContext context, _Anomaly anomaly, MarketType market) {
-    final isInflow = anomaly.isInflow;
+  Widget _buildShiftCard(BuildContext context, _ShareShift shift, MarketType market) {
+    final isGaining = shift.isGaining;
     final accentColor =
-        isInflow ? const Color(0xFFC62828) : const Color(0xFF2E7D32);
+        isGaining ? const Color(0xFFC62828) : const Color(0xFF2E7D32);
     final bgColor =
-        isInflow ? const Color(0xFFFFF5F5) : const Color(0xFFF1F8E9);
+        isGaining ? const Color(0xFFFFF5F5) : const Color(0xFFF1F8E9);
 
-    final devPct = anomaly.deviationPercent;
-    final devLabel = devPct >= 0
-        ? '+${devPct.toStringAsFixed(0)}%'
-        : '${devPct.toStringAsFixed(0)}%';
-    final zLabel = 'z=${anomaly.zScore.toStringAsFixed(1)}';
+    final devLabel = isGaining
+        ? '+${shift.deviation.toStringAsFixed(1)}pt'
+        : '${shift.deviation.toStringAsFixed(1)}pt';
 
-    // 偏差條：最大寬度對應 z=3
-    final barFill = (anomaly.zScore.abs() / 3.0).clamp(0.0, 1.0);
+    // 偏差條：最大寬度對應 15 個百分點
+    final barFill = (shift.deviation.abs() / 15.0).clamp(0.0, 1.0);
 
     return GestureDetector(
       onTap: () => CategoryNavigation.openCategory(
         context,
         market,
-        anomaly.category,
+        shift.category,
         widget.historyRepository,
       ),
       child: Container(
@@ -404,10 +469,9 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
           children: [
             Row(
               children: [
-                // 板塊名稱
                 Expanded(
                   child: Text(
-                    anomaly.category.name,
+                    shift.category.name,
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
@@ -415,7 +479,6 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
                     ),
                   ),
                 ),
-                // 偏差百分比
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
@@ -435,23 +498,21 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
               ],
             ),
             const SizedBox(height: 8),
-            // 均值 vs 今日
             Row(
               children: [
                 Text(
-                  '均值 ${anomaly.historicalMean.toStringAsFixed(1)}',
-                  style:
-                      TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  '過去均值 ${shift.avgWeightPct.toStringAsFixed(1)}%',
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
                 const SizedBox(width: 8),
                 Icon(
-                  isInflow ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
+                  isGaining ? Icons.arrow_forward_rounded : Icons.arrow_back_rounded,
                   size: 12,
                   color: accentColor,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '今日 ${anomaly.todayScore.toStringAsFixed(1)}',
+                  '今日 ${shift.todayWeightPct.toStringAsFixed(1)}%',
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -459,13 +520,12 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
                 ),
                 const Spacer(),
                 Text(
-                  zLabel,
+                  '${shift.sampleDays} 日均',
                   style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            // 偏差視覺條
             ClipRRect(
               borderRadius: BorderRadius.circular(3),
               child: LinearProgressIndicator(
@@ -485,8 +545,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
   // ── 空態 ───────────────────────────────────────────────────────────────────
 
   Widget _buildNoHistoryState() {
-    const int minDays = 5;
-    final stillNeeded = (minDays - _daysAccumulated).clamp(0, minDays);
+    final stillNeeded = (_minSampleDays - _daysAccumulated).clamp(0, _minSampleDays);
 
     return Padding(
       padding: const EdgeInsets.all(24),
@@ -513,10 +572,9 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
                       color: Colors.black87),
                 ),
                 const SizedBox(height: 12),
-                // 進度指示
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(minDays, (i) {
+                  children: List.generate(_minSampleDays, (i) {
                     final filled = i < _daysAccumulated;
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -524,7 +582,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
                       height: 28,
                       decoration: BoxDecoration(
                         color: filled
-                            ? const Color(0xFF1A237E)
+                            ? const Color(0xFF00695C)
                             : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(6),
                       ),
@@ -547,14 +605,15 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
                       ? '已累積 $_daysAccumulated 個交易日，還需 $stillNeeded 天即可解鎖'
                       : '資料已準備完成，請稍後重新整理',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1A237E)),
+                      color: Color(0xFF00695C)),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '異常偵測需要 $minDays 個交易日的歷史基準，\n系統每日開盤後自動記錄，無需手動操作。',
+                  '需要至少 $_minSampleDays 個交易日的成交值歷史才能算出穩定均值，\n'
+                  '系統每日開盤後自動記錄，無需手動操作。',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 11,
@@ -569,7 +628,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
     );
   }
 
-  Widget _buildNoAnomalyCard() {
+  Widget _buildNoShiftCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -583,7 +642,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
               size: 36, color: Colors.green.shade400),
           const SizedBox(height: 12),
           const Text(
-            '今日市場正常，無明顯異常資金',
+            '今日資金分布正常，無明顯集中度異動',
             style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
@@ -591,7 +650,7 @@ class _AnomalyDetectorPageState extends State<AnomalyDetectorPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            '所有板塊的趨勢強度均在歷史正常範圍內（|z| ≤ 0.8），未偵測到顯著異常。',
+            '所有板塊今日成交值佔比與過去均值相差在 ±${_thresholdPoints.toStringAsFixed(0)} 個百分點以內。',
             textAlign: TextAlign.center,
             style: TextStyle(
                 fontSize: 12, color: Colors.grey.shade600, height: 1.5),

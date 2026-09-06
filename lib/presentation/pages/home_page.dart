@@ -12,7 +12,6 @@ import 'package:tw_stock_capital_flow/data/services/margin_trading_service.dart'
 import 'package:tw_stock_capital_flow/data/services/margin_trading_history_service.dart';
 import 'package:tw_stock_capital_flow/data/services/storage_service.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/market_summary_card.dart';
-import 'package:tw_stock_capital_flow/presentation/widgets/market_signal_summary.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/institutional_flow_chart.dart';
 import 'package:tw_stock_capital_flow/presentation/widgets/margin_trading_chart.dart';
 
@@ -246,11 +245,8 @@ class _HomePageState extends State<HomePage> {
             _buildHeader(), // 頂部動態日期與標題
             const SizedBox(height: 24),
 
-            // 🚦 0. 今日全市場訊號快照
-            _buildSignalSummaryCard(context),
-            const SizedBox(height: 20),
-
-            // ⭐ 0.5 觀察清單（有資料才顯示）
+            // ⭐ 0.5 觀察清單（有資料才顯示；產品決策：首頁只保留觀察清單，
+            // 不再顯示全市場訊號快照／風控警示，避免與動量訊號功能重複）
             _buildWatchlistSection(context),
 
             // 📊 1. 上市與上櫃多空家數診斷（保留作為一開屏的核心摘要）
@@ -844,28 +840,6 @@ class _HomePageState extends State<HomePage> {
           ),
           const Text('暫無資料', style: TextStyle(fontSize: 11, color: Color(0xFFBDBDBD))),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSignalSummaryCard(BuildContext context) {
-    if (lifecycles.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE8EAF0)),
-        boxShadow: const [
-          BoxShadow(color: Color(0x06000000), blurRadius: 6, offset: Offset(0, 2)),
-        ],
-      ),
-      child: MarketSignalSummary(
-        lifecycles: lifecycles,
-        tradeDate: tradeDate,
-        listedCategories: listedCategories,
-        otcCategories: otcCategories,
-        historyRepository: historyRepository,
       ),
     );
   }
