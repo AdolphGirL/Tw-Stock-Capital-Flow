@@ -458,6 +458,8 @@ li { margin-bottom: .3em; }
     <div class="toc-label">架構</div>
     <a class="toc-link" href="#market-split">上市 / 上櫃分離架構</a>
     <a class="toc-link" href="#sync-guard">資料同步與更新機制 <span class="chip chip-new">NEW</span></a>
+    <a class="toc-link" href="#debug-tools">除錯工具與一鍵重置</a>
+    <a class="toc-link" href="#known-issues">已知限制</a>
     <a class="toc-link" href="#database">資料庫設計</a>
     <a class="toc-link" href="#tech">技術棧</a>
     <a class="toc-link" href="#structure">專案結構</a>
@@ -486,13 +488,13 @@ li { margin-bottom: .3em; }
 <!-- ── 專案簡介 ── -->
 <section class="section" id="intro">
   <h2 class="section-title">專案簡介</h2>
-  <p>本 App 是一套專為台灣股市一般投資人設計的<strong>板塊資金流向監控與量化決策系統</strong>。</p>
+  <p>本 App 是一套專為台灣股市一般投資人設計的<strong>板塊資金流向監控與量化決策系統</strong>。底部導覽列共 3 個分頁：<strong>大盤診斷</strong>、<strong>資金佔比</strong>（板塊資金佔比異動）、<strong>領先雷達</strong>。</p>
   <p>傳統看盤工具只告訴你今天哪支股票漲最多，但無法回答：</p>
   <div style="margin:16px 0 0;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px">
     <div class="card accent"><strong>主力集中哪裡？</strong><br><span style="font-size:13px;color:var(--ink-2)">今日資金正往哪個板塊集中</span></div>
     <div class="card accent"><strong>週期在哪？</strong><br><span style="font-size:13px;color:var(--ink-2)">上漲是點火還是即將出貨</span></div>
     <div class="card accent"><strong>潛伏訊號？</strong><br><span style="font-size:13px;color:var(--ink-2)">股價底部但主力已悄悄建倉</span></div>
-    <div class="card accent"><strong>今日異常？</strong><br><span style="font-size:13px;color:var(--ink-2)">統計上顯著異常的資金動向</span></div>
+    <div class="card accent"><strong>資金集中度變了？</strong><br><span style="font-size:13px;color:var(--ink-2)">今日成交值佔比明顯偏離近期均值的板塊</span></div>
   </div>
   <div class="note" style="margin-top:18px">資料來源：臺灣證券交易所（TWSE）/ 證券櫃檯買賣中心（TPEX）開放資料。所有運算皆在設備本地端執行，不上傳任何個人資料。</div>
 </section>
@@ -503,11 +505,16 @@ li { margin-bottom: .3em; }
 
   <div class="subsection" id="feat-home">
     <h3 class="subsection-title">大盤診斷 <span style="font-size:12px;font-weight:400;color:var(--ink-3)">Tab 0</span></h3>
+    <p>首頁由上而下依序為：</p>
     <div class="feature-grid">
-      <div class="feature-card"><div class="fc-label">個人觀察清單</div><div class="fc-title">即時訊號監控</div><div class="fc-desc">StreamBuilder 即時更新，星號快速收藏/取消</div></div>
-      <div class="feature-card"><div class="fc-label">大盤多空診斷</div><div class="fc-title">上市 / 上櫃分開顯示</div><div class="fc-desc">各市場獨立日期標籤、漲跌家數、分數</div></div>
+      <div class="feature-card"><div class="fc-label">個人觀察清單</div><div class="fc-title">即時訊號監控</div><div class="fc-desc">StreamBuilder 即時更新，每個板塊顯示 買進/續抱/出清/觀望；點擊進入該板塊細類頁，⭐ 可直接取消收藏。清單為空時整塊不顯示</div></div>
+      <div class="feature-card"><div class="fc-label">大盤多空診斷</div><div class="fc-title">上市 / 上櫃分開顯示</div><div class="fc-desc">各市場獨立日期標籤、漲跌家數、市場資金流分數；點擊卡片進入該市場的大類板塊列表</div></div>
       <div class="feature-card"><div class="fc-label">三大法人籌碼</div><div class="fc-title">外資 / 投信 / 自營商</div><div class="fc-desc">差額（億元）+ 30 日歷史流向圖</div></div>
+      <div class="feature-card"><div class="fc-label">融資融券餘額</div><div class="fc-title">散戶指標</div><div class="fc-desc">融資/融券增減（張）、融資金額（億）+ 30 日歷史增減圖</div></div>
+      <div class="feature-card"><div class="fc-label">市場熱錢情緒</div><div class="fc-title">MarketSentimentEngine</div><div class="fc-desc">情緒等級徽章、情緒分數進度條（score/100）、上漲/下跌家數、熱錢強度、主流均強</div></div>
     </div>
+    <p style="font-size:13px">標題列右上角有 <strong>手動重新整理</strong> 按鈕（見 <a href="#sync-guard">資料同步與更新機制</a>），以及一個暫時性的 🐞 除錯按鈕（見 <a href="#debug-tools">除錯工具與一鍵重置</a>）。離線且使用快取時，畫面最上方會顯示黃色「網路連線不穩定，已為您加載本地歷史資金流數據」提示條。</p>
+    <div class="note"><strong>觀察清單的訊號來源</strong>：使用「上市＋上櫃混合計算」的 <code>lifecycles</code>（BootstrapAnalyzer Phase 2）餵給 <code>MomentumStrategy</code>，而非分市場的 <code>listedLifecycles</code> / <code>otcLifecycles</code>；因此同名板塊（如「半導體業」）的觀察清單訊號是兩個市場合併後的結果。</div>
     <div class="note"><strong>上市 / 上櫃日期獨立</strong>：首頁各市場卡片各自顯示對應交易日，不再合用單一日期標籤。詳見 <a href="#market-split">上市/上櫃分離架構</a>。</div>
     <div class="note warn"><strong>產品決策</strong>：首頁不再顯示全市場「今日訊號快照／風控警示板塊」，只保留觀察清單——該摘要與「動量決策」瀏覽頁功能重複，且已隨動量決策頁一併下線（見下方 <a href="#feat-strategy-removed">功能異動說明</a>）。</div>
   </div>
@@ -522,10 +529,17 @@ li { margin-bottom: .3em; }
 
 <span class="hl">deviation = 今日比重 − 過去均值比重</span>　　（百分點差，非相對百分比）
 
-<span class="gr">deviation ≥ +5pt</span>  → 佔比顯著上升（資金集中度上升）
-<span class="re">deviation ≤ −5pt</span>  → 佔比顯著下降（資金關注度降溫）</div>
+<span class="re">deviation ≥ +5pt</span>  → 佔比顯著上升（資金集中度上升，紅色）
+<span class="gr">deviation ≤ −5pt</span>  → 佔比顯著下降（資金關注度降溫，綠色）</div>
       <h4>資料來源</h4>
-      <p style="font-size:13px">直接讀取本地最近 6 天的原始股票快照（<code>listed_*.json</code> / <code>otc_*.json</code>），不依賴 SQLite 歷史表，因此不受 <a href="#feat-strategy-removed">一鍵重置</a> 清空 SQLite 影響大小——只要保留的原始快照天數足夠即可計算。</p>
+      <p style="font-size:13px">直接讀取本地最近 6 天的原始股票快照（<code>listed_*.json</code> / <code>otc_*.json</code>，今日 + 最多 5 天歷史），不依賴 SQLite 歷史表，因此不受 SQLite 歷史表清理影響。注意：<a href="#debug-tools">一鍵重置</a>會連原始快照一併刪除，重置後需重新累積至少 3 個交易日才會再出現結果。</p>
+      <h4>畫面呈現</h4>
+      <ul style="font-size:13px">
+        <li>歷史樣本不足 3 天時，整頁顯示「歷史資料累積中」與 1/2/3 天的累積進度方塊。</li>
+        <li>摘要卡顯示：分析板塊數、今日總成交值（億）、異動訊號數。</li>
+        <li>「佔比顯著上升」（紅）與「佔比顯著下降」（綠）兩段，各自依偏移幅度排序；卡片顯示 <code>過去均值% → 今日%</code>、樣本天數與偏移條（滿格 = 15pt），點擊進入該板塊細類頁。</li>
+        <li>僅分析該市場的大類板塊，且該板塊在歷史中至少要有 3 天樣本才列入。</li>
+      </ul>
       <h4>Tab 分市場</h4>
       <p style="font-size:13px">上市 Tab <span class="chip chip-listed">上市</span> 與 上櫃 Tab <span class="chip chip-otc">上櫃</span> 分別以各自市場的總成交值為分母獨立計算，各自顯示對應交易日。</p>
     </div>
@@ -549,7 +563,14 @@ li { margin-bottom: .3em; }
         <tr><td>🔴 大量出逃</td><td>RNM ≤ −45</td><td>資金不計成本被抽走</td></tr>
       </tbody>
     </table></div>
-    <h4>Tab 分市場 <span class="chip chip-new">NEW</span></h4>
+    <h4>畫面呈現</h4>
+    <ul style="font-size:13px">
+      <li>需至少 2 個交易日快照才能計算，否則顯示「資金輪動資料累積中」。</li>
+      <li>依 RNM 分成兩段：<strong>🔥 領先吸籌板塊</strong>（RNM &gt; 0）與 <strong>⚠️ 領先失血板塊</strong>（RNM ≤ 0，最負者在前）。</li>
+      <li>每張卡片：評級徽章、⭐ 收藏鈕、<code>淨動能 RNM</code>、<code>vs 昨日資金流</code>（<code>day1Score − day2Score</code>）、流入/流出能量條、輸血板塊數、SQLite 歷史比較摘要（<code>CategoryHistorySummary</code>）與白話操盤指南；點擊進入該市場的板塊細類頁。</li>
+    </ul>
+    <div class="note warn"><strong>已知限制</strong>：此頁的流入/流出能量條使用綠＝流入、紅＝流出，與全 App「紅＝買超／綠＝賣超」的台股慣例相反。</div>
+    <h4>Tab 分市場</h4>
     <p style="font-size:13px">上市 Tab <span class="chip chip-listed">上市</span> 與 上櫃 Tab <span class="chip chip-otc">上櫃</span> 分別計算：<code>RotationEngine</code> 依市場拆開跑，避免同名板塊（如「半導體業」）的上市/上櫃個股被混算成同一個輪動分數，各自顯示對應交易日，詳見 <a href="#market-split">上市 / 上櫃分離架構</a>。</p>
   </div>
 
@@ -557,21 +578,22 @@ li { margin-bottom: .3em; }
     <h3 class="subsection-title">觀察清單（Watchlist）</h3>
     <ul>
       <li>在領先雷達任何卡片右上角點擊 ⭐ 加入收藏（目前唯一的加入入口；原「動量決策」頁也提供過此入口，隨頁面下線一併移除）</li>
-      <li>首頁「我的觀察清單」即時顯示所有關注板塊的當前訊號</li>
-      <li>取消收藏時自動清除訊號歷史快照</li>
+      <li>首頁「我的觀察清單」即時顯示所有關注板塊的當前訊號（買進 / 續抱 / 出清 / 觀望）；當日查無該板塊的週期結果時顯示「暫無資料」</li>
+      <li>可在領先雷達或首頁觀察清單的 ⭐ 取消收藏；取消時自動刪除該板塊的 <code>signal_snapshot</code> 記錄</li>
       <li>持久化於 SQLite <code>watchlist</code> 表，App 重啟後保留</li>
     </ul>
   </div>
 
   <div class="subsection" id="feat-notify">
     <h3 class="subsection-title">訊號異動通知</h3>
-    <p>每次開啟 App 演算完成後自動執行，同時觸發 App 內 Dialog 與系統本地推播通知。</p>
+    <p>於冷啟動（含命中快取與離線快取）、App 從背景回前景且抓到新資料時自動執行，同時觸發 App 內 Dialog 與系統本地推播通知。手動重新整理<strong>不會</strong>觸發偵測。</p>
     <ol style="margin-top:8px">
       <li>讀取個人觀察清單；若清單為空，<strong>完全跳過（零額外運算）</strong></li>
       <li>載入 <code>signal_snapshot</code> 表的上次訊號記錄</li>
-      <li>重新計算今日訊號，偵測升級（觀望→買進）或降級（持股→出清）</li>
+      <li>以 <code>MomentumStrategy</code> 重新計算今日訊號，與上次記錄比對：<strong>只要訊號不同就算異動</strong>；等級 買進(3) &gt; 續抱(2) &gt; 觀望(1) &gt; 出清(0)，用來判斷升級 ↑ / 降級 ↓</li>
+      <li>新加入清單、尚無上次記錄的板塊，第一次也會通知（「開始追蹤，當前訊號：…」）</li>
       <li>儲存今日訊號作為下次比對基準</li>
-      <li>若有異動：彈出 App 內 Dialog + 推送系統本地通知（iOS / Android）</li>
+      <li>若有異動：彈出 App 內 Dialog（升級排最前、首次追蹤次之、降級最後）+ 推送一則彙整的系統本地通知（iOS / Android）</li>
     </ol>
   </div>
 
@@ -588,8 +610,10 @@ li { margin-bottom: .3em; }
       </tbody>
     </table></div>
     <ul style="margin-top:8px">
-      <li>民國年（7碼 YYYMMDD）自動轉換為西元年（8碼 YYYYMMDD）</li>
+      <li>查詢日期取上市 / 上櫃交易日中較新的一個，民國年（7碼 YYYMMDD）自動轉換為西元年（8碼 YYYYMMDD）</li>
       <li>Fallback：當日無資料時往前找最多 5 個日曆日</li>
+      <li>首頁開啟時與交易日變動時重新抓取；抓取失敗（例如離線）時整張卡片不顯示</li>
+      <li>歷史流向圖需至少 2 筆歷史才顯示</li>
       <li>歷史以 <code>institutional_flow_history.json</code> 儲存，最多 30 筆</li>
       <li>色彩慣例：<span style="color:var(--listed);font-weight:700">紅=買超</span> / <span style="color:var(--green);font-weight:700">綠=賣超</span>（台股慣例）</li>
     </ul>
@@ -615,22 +639,23 @@ li { margin-bottom: .3em; }
 
   <div class="subsection" id="feat-chart">
     <h3 class="subsection-title">板塊走勢互動圖</h3>
-    <p>細類板塊頁頂部，近 30 日互動折線圖，支援 5 種指標即時切換。</p>
+    <p>細類板塊頁（SubCategoryPage）頂部，讀取 SQLite <code>category_history</code> 該板塊最近 30 筆紀錄繪製互動折線圖（fl_chart），支援 5 種指標即時切換、觸碰顯示日期與數值；最新值 ≥ 0（上漲占比為 ≥ 50%）時線條為紅色，否則為綠色。</p>
     <div class="table-wrap"><table>
       <thead><tr><th>指標</th><th>欄位</th><th>說明</th></tr></thead>
       <tbody>
-        <tr><td>趨勢強度</td><td><code>trendStrength</code></td><td>多日複合指標，反映板塊中期強弱</td></tr>
-        <tr><td>資金流分</td><td><code>score</code></td><td>當日資金流原始分數</td></tr>
-        <tr><td>持續力</td><td><code>persistence</code></td><td>主力持倉延續強度</td></tr>
+        <tr><td>趨勢強度</td><td><code>trendStrength</code></td><td>三日加權 + 加速度，公式見 <a href="#eng-capitalflow">板塊層級聚合</a></td></tr>
+        <tr><td>資金流分</td><td><code>score</code></td><td>當日板塊內個股 flowScore 平均</td></tr>
+        <tr><td>持續力</td><td><code>persistence</code></td><td>近三日板塊資金流分平均 <code>(day1+day2+day3)/3</code></td></tr>
         <tr><td>上漲占比</td><td><code>riseCount/totalCount×100</code></td><td>板塊個股多空廣度</td></tr>
         <tr><td>累積走向</td><td><code>Σ trendStrength</code></td><td>觀察中期方向漂移</td></tr>
       </tbody>
     </table></div>
+    <p style="font-size:13px">歷史紀錄不足 2 筆時，改顯示「今日盤態雷達」：以 CustomPainter 繪製的上漲 / 下跌 / 平盤家數甜甜圈圖與比例表。</p>
   </div>
 
   <div class="subsection" id="feat-scanner">
     <h3 class="subsection-title">個股掃描器</h3>
-    <p>整合在細類板塊頁（SubCategoryPage）的板塊個股排行卡片，以純日內資料即時計算。</p>
+    <p>整合在細類板塊頁（SubCategoryPage）的「板塊個股排行」卡片：彙整該大類下所有細類的個股（依代碼去重），列出 <strong>今日強勢</strong>（上漲股依個股 flowScore 排序取前 8）與 <strong>風控注意</strong>（下跌股依跌幅取前 3）。掃描器只對「今日強勢」的 8 檔以純日內資料即時判斷，命中者加上「掃描命中」標籤與外框，標題列顯示命中檔數；點擊個股開啟 Yahoo 股市頁面。</p>
     <div class="table-wrap"><table>
       <thead><tr><th>準則</th><th>判斷方式</th><th>排除的假訊號</th></tr></thead>
       <tbody>
@@ -645,17 +670,22 @@ li { margin-bottom: .3em; }
 <!-- ── 鑽入導覽 ── -->
 <section class="section" id="drilldown">
   <h2 class="section-title">鑽入導覽</h2>
-  <div class="drill"><span class="hl">大類股列表</span> (MainCategoryPage)
-    ↓ 點擊板塊
-<span class="hl">細類股列表</span> (SubCategoryPage)
-    ├── 頂部：30日互動走勢圖（fl_chart，5種指標）
+  <div class="drill">首頁「上市市場 / 上櫃市場」卡片
+    ↓ 點擊
+<span class="hl">大類板塊列表</span> (MainCategoryPage)
+    └── 每張卡片附 Sparkline（SQLite 最近 7 筆；無歷史時退回近 4 日記憶體分數）
+         ↓ 點擊大類板塊
+<span class="hl">細類板塊頁</span> (SubCategoryPage)
+    ├── 頂部：近 30 日互動走勢圖（fl_chart，5 種指標）／無歷史時為今日多空甜甜圈圖
     ├── 中段：板塊個股排行 + 個股掃描器
-    └── 下方：細類股卡片列表
-         ↓ 點擊細類股
-成分股清單 (Bottom Sheet)
+    └── 下方：細類板塊卡片列表（右上選單可切換 5 種排序）
+         ↓ 點擊細類板塊
+<span class="hl">成分股清單</span> (Bottom Sheet，依成交值排序，標示資料日期)
     ↓ 點擊個股
-Yahoo 股市個股頁面（外部瀏覽器）</div>
-  <p style="margin-top:12px;font-size:13px;color:var(--ink-2)">板塊資金佔比異動、領先雷達的卡片點擊後均走相同鑽入路徑。</p>
+Yahoo 股市個股頁面（外部瀏覽器，上市 .TW／上櫃 .TWO）</div>
+  <p style="margin-top:12px;font-size:13px;color:var(--ink-2)">板塊資金佔比異動、領先雷達的卡片，以及首頁觀察清單項目，點擊後<strong>直接進入細類板塊頁</strong>（略過大類列表），之後路徑相同。</p>
+  <p style="font-size:13px;color:var(--ink-2)">細類排序選項：資金流優先（score）、三日強度排序（trendStrength）、上漲家數多、下跌家數多、股票數量規模。</p>
+  <div class="note"><strong>即時資料</strong>：MainCategoryPage / SubCategoryPage 訂閱全域 <code>LiveBootstrapData.notifier</code>，背景恢復同步或手動刷新後，已開啟的鑽入頁面會自動換成最新資料，不會停留在進入頁面當下的舊快照。</div>
 </section>
 
 <!-- ── 核心演算引擎 ── -->
@@ -665,9 +695,9 @@ Yahoo 股市個股頁面（外部瀏覽器）</div>
   <!-- CapitalFlowEngine -->
   <div class="subsection" id="eng-capitalflow">
     <h3 class="subsection-title">1. CapitalFlowEngine — 個股資金流引擎</h3>
-    <p>計算每支個股今日資金流分數，作為板塊層級計算的原子輸入。</p>
+    <p>計算每支個股今日資金流分數，作為板塊層級計算的原子輸入。N = 本地最近最多 5 個交易日快照（<code>loadRecentSnapshots(5)</code>，含今日）。</p>
     <div class="code-wrap"><div class="algo"><span class="cm">── 成交量比（volumeRatio）─────────────────────────────</span>
-volumeRatio   = today.value / avg(N-day value)
+volumeRatio   = today.value / avg(N-day value)   <span class="cm">(均值含今日)</span>
 
 <span class="cm">── 動能分數（momentumScore）──────────────────────────</span>
 volatility    = (high − low) / close × 100
@@ -685,6 +715,14 @@ persistenceScore = today.changePercent × (positiveDays / totalDays)
 <span class="gr">flowScore > 1</span>   → inflow
 <span class="re">flowScore < −1</span>  → outflow
               → neutral</div></div>
+    <h4>板塊層級聚合（CapitalFlowAnalyzer → CategoryUiModel）</h4>
+    <p style="font-size:13px">大類與細類板塊皆依市場分開聚合，這些欄位驅動大盤卡片、板塊卡片、排序與 30 日走勢圖：</p>
+    <div class="code-wrap"><div class="algo">dayK          = mean( 該板塊個股 flowScore, 第 K 個交易日 )   <span class="cm">(K = 1 今日, 2 昨日, 3 前日)</span>
+score         = day1
+persistence   = (day1 + day2 + day3) / 3
+<span class="hl">trendStrength = (day1×0.5 + day2×0.3 + day3×0.2) + ((day1 − day2) + (day2 − day3)×0.5)</span>
+marketScore   = mean( 該市場所有個股 flowScore )            <span class="cm">(首頁大盤卡片分數)</span></div></div>
+    <p style="font-size:13px">個股篩選：只納入 4 碼且非 <code>00</code> 開頭的代碼（排除 ETF 等）；<code>changePercent = change / (close − change) × 100</code>（以昨收為分母，與 Yahoo 一致）；類股對照來自 <code>assets/stock_mapping.txt</code>，查無對照者歸入「其他」。</p>
   </div>
 
   <!-- MainstreamEngine -->
@@ -715,8 +753,8 @@ stability    = 100 − volatility</div></div>
   <!-- LifecycleEngine -->
   <div class="subsection" id="eng-lifecycle">
     <h3 class="subsection-title">4. LifecycleEngine — 生命週期引擎</h3>
-    <p>對每個板塊建立3條時間序列（分數/流量/擴散），透過 TrendMetricsEngine 取得趨勢特徵，依規則判定所屬生命週期階段。</p>
-    <div class="note"><strong>市場獨立計算</strong>：上市與上櫃各自有一個獨立的 LifecycleEngine 實例（由 <code>_runLifecycleForMarket</code> 在 Isolate 中執行），避免同名板塊跨市場干擾。詳見 <a href="#market-split">上市/上櫃分離架構</a>。</div>
+    <p>對每個板塊以最近 5 日快照建立 3 條時間序列（分數 = mean(漲跌幅×成交值/億)、流量 = mean(成交值/億)、擴散 = 上漲家數%），透過 TrendMetricsEngine 取得趨勢特徵，依規則判定所屬生命週期階段。</p>
+    <div class="note"><strong>兩種執行方式</strong>：BootstrapAnalyzer 會跑一份「上市＋上櫃混合」的 LifecycleEngine（Phase 2，結果為 <code>lifecycles</code>），以及上市、上櫃各自獨立的實例（Phase 1 <code>_runLifecycleForMarket</code>，結果為 <code>listedLifecycles</code> / <code>otcLifecycles</code>）。目前<strong>實際被使用的是混合版</strong>（觀察清單訊號、訊號異動通知、SQLite <code>lifecycle_history</code>）；分市場版只寫入分析快取，暫無 UI 使用。詳見 <a href="#market-split">上市/上櫃分離架構</a>。</div>
     <p style="font-size:13px"><code>hotMoneyIn = mainstream.flowScore &gt; 0 AND mainstream.diffusionScore &gt; 45</code>（取自 <a href="#eng-mainstream">MainstreamEngine</a> 輸出）也是在此引擎計算，供 <a href="#eng-momentum">MomentumStrategy</a> 判斷用。</p>
     <div class="table-wrap"><table>
       <thead><tr><th>優先</th><th>階段</th><th>判斷條件（簡）</th></tr></thead>
@@ -748,6 +786,7 @@ stability    = 100 − volatility</div></div>
 
 <span class="cm">④ HOLD — 鎖籌續抱</span>
    hotMoneyIn AND persistence ≥ 40.0
+   <span class="cm">（若 stage == euphoric，改為「狂熱期・禁止追高」：可續抱但禁止加碼）</span>
 
 <span class="cm">⑤ SELL — 動能渙散（雙殺條件）</span>
    !hotMoneyIn AND persistence < 40.0
@@ -759,9 +798,13 @@ stability    = 100 − volatility</div></div>
   <!-- RotationEngine -->
   <div class="subsection" id="eng-rotation">
     <h3 class="subsection-title">6. RotationEngine — 輪動引擎</h3>
-    <p>比較今日與昨日各板塊資金流分，計算資金在板塊間的搬移路徑。</p>
-    <div class="code-wrap"><div class="algo">diff = todayScore − yesterdayScore
-<span class="gr">diff > 0</span> → 流入板塊   <span class="re">diff < 0</span> → 流出板塊
+    <p>比較今日與昨日各板塊資金流分，計算資金在板塊間的搬移路徑（依市場分開執行，至少需 2 個交易日快照）。</p>
+    <div class="code-wrap"><div class="algo">categoryScore = mean( changePercent × value/億, per stock )
+diff = todayScore − yesterdayScore
+<span class="re">diff > 0</span> → 流入板塊   <span class="gr">diff ≤ 0</span> → 流出板塊
+
+流入、流出板塊各自依 |diff| 由大到小排序，<strong>按名次一對一配對</strong>
+（第 1 大流出 ↔ 第 1 大流入、第 2 ↔ 第 2 …），配對數 = 兩邊較少者
 
 <span class="hl">rotationScore = ( |outflow_diff| + |inflow_diff| ) / 2</span></div></div>
   </div>
@@ -780,12 +823,17 @@ RNM > 15                      → 🍏 溫和流入
 −15 ≤ RNM ≤ 15               → ⚪ 中性觀望
 RNM < −15                     → 🟠 派發風險
 RNM ≤ −45                     → 🔴 大量出逃</div></div>
+    <div class="note warn"><strong>已知限制</strong>：由於 <a href="#eng-rotation">RotationEngine</a> 採名次一對一配對，每個板塊在單日輪動結果中最多只會以「流入方」或「流出方」出現一次，因此 <code>feederCount</code> 實際上最多為 1、且同一板塊的 <code>inflowSum</code> 與 <code>outflowSum</code> 必有一個為 0——目前「🟢 強力吸籌」評級（需 feederCount ≥ 2）在實務上不會出現，RNM ≥ 45 的板塊會落在「🍏 溫和流入」。</div>
   </div>
 
   <!-- MarketSentimentEngine -->
   <div class="subsection" id="eng-sentiment">
     <h3 class="subsection-title">8. MarketSentimentEngine — 市場情緒引擎</h3>
-    <div class="code-wrap"><div class="algo">hotMoneyStrength = mean( value/億 × changePercent, per stock )
+    <p style="font-size:13px">以上市＋上櫃混合的最新快照與混合版 <code>mainstreams</code> 計算，結果顯示於首頁「市場熱錢情緒」卡片。</p>
+    <div class="code-wrap"><div class="algo">riseRatio           = 上漲家數 / 總家數        <span class="cm">(0–1 的比例)</span>
+strongCategoryCount = mainstreamScore > 30 的板塊數
+mainstreamAverage   = mean( mainstreamScore )
+hotMoneyStrength    = mean( value/億 × changePercent, per stock )
 
 <span class="hl">score = riseRatio × 30
       + strongCategoryCount × 8
@@ -805,11 +853,11 @@ avgWeight     = mean( 同板塊過去最多 5 個交易日的 todayWeight )
 
 <span class="hl">deviation = todayWeight − avgWeight</span>　　（百分點差，非相對百分比）
 
-<span class="gr">deviation ≥ +5pt</span>  → 佔比顯著上升
-<span class="re">deviation ≤ −5pt</span>  → 佔比顯著下降
+<span class="re">deviation ≥ +5pt</span>  → 佔比顯著上升
+<span class="gr">deviation ≤ −5pt</span>  → 佔比顯著下降
 
 最少樣本：≥ 3 天歷史   最大回溯：5 天（受原始快照僅保留 7 天限制）</div></div>
-    <div class="note"><strong>不吃 SQLite 歷史</strong>：直接讀取 <code>HistoryRepository</code> 保留的最近 6 天原始股票快照（<code>listed_*.json</code> / <code>otc_*.json</code>）即時計算，不依賴 <code>category_history</code> 表，因此不受一鍵重置清空 SQLite 影響——只要原始快照天數足夠即可算出均值。</div>
+    <div class="note"><strong>不吃 SQLite 歷史</strong>：直接讀取 <code>HistoryRepository</code> 保留的最近 6 天原始股票快照（<code>listed_*.json</code> / <code>otc_*.json</code>）即時計算，不依賴 <code>category_history</code> 表，因此不受 SQLite 歷史清理影響——只要原始快照天數足夠即可算出均值（一鍵重置會連原始快照一起刪除，需重新累積）。此邏輯目前直接寫在 <code>turnover_share_page.dart</code> 內，未抽成 domain 引擎。</div>
     <div class="note"><strong>市場分流天生正確</strong>：直接以每筆 <code>StockData.market</code> 過濾加總，不像舊版 AnomalyDetector 需要額外用 object identity 修正同名板塊誤判問題。</div>
   </div>
 
@@ -821,7 +869,10 @@ intradayReturn = (close − open) / open × 100
 
 <span class="hl">命中 = changePercent > 0
      AND closePosition ≥ 0.7
-     AND intradayReturn > 0</span></div></div>
+     AND intradayReturn > 0</span>
+
+<span class="cm">high == low（一字線）時 closePosition 以 0.5 計 → 不命中</span></div></div>
+    <p style="font-size:13px">邏輯直接寫在 <code>sub_category_page.dart</code>（<code>_passesScanner</code>），未抽成獨立引擎類別。</p>
   </div>
 </section>
 
@@ -845,7 +896,13 @@ intradayReturn = (close − open) / open × 100
         <span style="font-size:12px;color:var(--ink-2)">只包含 <code>market == otc</code> 的股票</span>
       </div>
     </div>
-    <p>讀取時兩檔合併為單一 <code>StockDaySnapshot</code> 供分析引擎使用。舊格式 <code>YYYMMDD.json</code>（無前綴）透過 fallback 機制向下相容，升級後第一次啟動不會空白。</p>
+    <p>讀取時（<code>HistoryRepository.loadRecentSnapshots</code>）以<strong>上市日期清單為主軸</strong>，逐日合併上櫃檔為單一 <code>StockDaySnapshot</code> 供分析引擎使用：</p>
+    <ul style="font-size:13px">
+      <li>最新一筆：若本地最新的上櫃檔比上市新（上櫃常較早公告），直接合併最新上櫃檔，確保上櫃畫面用到最新資料。</li>
+      <li>其餘各日：找同日期的上櫃檔，找不到則退回最新一筆上櫃檔。</li>
+      <li>沒有任何 <code>listed_*</code> 檔時視為無資料。</li>
+    </ul>
+    <div class="note warn">舊格式 <code>YYYMMDD.json</code>（無前綴）<strong>已不再讀取也不再寫入</strong>；早期版本留下的此類檔案只會在一鍵重置時被清掉。</div>
   </div>
 
   <div class="subsection">
@@ -855,7 +912,7 @@ intradayReturn = (close − open) / open × 100
       <tbody>
         <tr><td><code>listedDate</code></td><td>TWSE 上市交易日（YYYMMDD）</td><td>首頁上市卡片、SQLite listed 寫入、Tab 日期標籤</td></tr>
         <tr><td><code>otcDate</code></td><td>TPEX 上櫃交易日（YYYMMDD）</td><td>首頁上櫃卡片、SQLite OTC 寫入、Tab 日期標籤</td></tr>
-        <tr><td><code>date</code></td><td>相容欄位 = max(listed, otc)</td><td>舊版快取讀取時的 fallback</td></tr>
+        <tr><td><code>date</code></td><td><code>SyncResult</code> 相容欄位 = max(listed, otc)</td><td>僅供判斷是否為新交易日與 log</td></tr>
       </tbody>
     </table></div>
   </div>
@@ -928,7 +985,39 @@ intradayReturn = (close − open) / open × 100
         <tr><td>手動刷新（<code>forceSync</code>）</td><td>完全略過以上護欄，直接呼叫 API</td><td>使用者主動要求最新資料時的最高優先權</td></tr>
       </tbody>
     </table></div>
-    <div class="note warn">抓取失敗或抓到舊資料都不會覆蓋本地已存在的正確快照——正確性由 <code>isNewTradingDay</code> 比對日期把關，時間護欄只負責「要不要嘗試」，不影響資料正確性。</div>
+    <div class="note warn">時間護欄只負責「要不要嘗試」，不影響資料正確性：快照檔以 <strong>API 回傳的實際交易日</strong> 命名（<code>listed_{上市日期}</code>、<code>otc_{上櫃日期}</code>），抓到同一天的資料只會覆寫同一個檔案；某個市場這輪抓取失敗（空清單）時<strong>不寫入</strong>該市場的快照與 SQLite，回報日期也改用本地既有的舊日期，讓日期不一致警示能正確顯示。<code>isNewTradingDay</code> 只影響 log 訊息，不決定是否寫檔。</div>
+    <p style="font-size:13px">靜默期內命中本地快照時，<code>SyncResult.saved = false</code>，啟動流程會優先使用 <code>bootstrap_cache_{上市日期}.json</code> 分析快取，免重新計算。</p>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">API 抓取與重試</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>市場</th><th>API</th></tr></thead>
+      <tbody>
+        <tr><td><span class="chip chip-listed">上市</span></td><td><code>openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL</code></td></tr>
+        <tr><td><span class="chip chip-otc">上櫃</span></td><td><code>www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes</code></td></tr>
+      </tbody>
+    </table></div>
+    <ul style="font-size:13px;margin-top:8px">
+      <li>每次請求附加時間戳參數與 <code>Cache-Control: no-cache</code>，避免中間層快取回傳舊資料。</li>
+      <li>每個市場最多嘗試 3 次，每次 20 秒逾時，失敗後間隔遞增（1s、2s）再試；整趟同步上限 120 秒。</li>
+      <li>兩個市場都抓不到 → 同步失敗；只抓到一個 → 視為成功，只更新成功的那一邊。</li>
+    </ul>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">背景回前景自動同步</h3>
+    <p>App 沒有常駐背景同步。<code>BootstrapApp</code> 監聽 <code>AppLifecycleState.resumed</code>，從背景回到前景時靜默執行一次 <code>syncTodayData()</code>（<strong>沿用白天靜默期護欄</strong>，非強制）：</p>
+    <ul style="font-size:13px">
+      <li>30 秒冷卻，避免快速切換 App 時連續打 API。</li>
+      <li>只有真的抓到新資料（<code>saved = true</code>）才重新計算、寫入快取與 SQLite、更新畫面並執行訊號異動偵測；否則維持現有畫面，不顯示 loading 或錯誤。</li>
+      <li>與手動重新整理共用同一把鎖：回前景時若手動刷新正在進行則直接略過；反之手動刷新遇到背景同步進行中，會等待最多 30 秒再執行。</li>
+    </ul>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">離線模式</h3>
+    <p>冷啟動流程任何一步拋出例外（典型為無網路），改載入本地最新一份 <code>bootstrap_cache_*.json</code>，並在畫面頂端顯示離線提示條；若本地連一份快取都沒有，顯示「首次開屏需要網路同步」錯誤頁。</p>
   </div>
 
   <div class="subsection">
@@ -954,11 +1043,23 @@ intradayReturn = (close − open) / open × 100
   <div class="subsection">
     <h3 class="subsection-title">手動重新整理</h3>
     <p>首頁右上角圖示按鈕與上述兩個提示條內的文字連結，都會觸發同一個 <code>forceSync</code> 流程：完全略過時間護欄、向 TWSE / TPEX 取最新資料、重新計算並寫回 SQLite。使用者不需等待任何時間窗口，隨時可自行取得最新狀態。</p>
+    <ul style="font-size:13px">
+      <li>若這輪有市場沒抓到新資料，以橘色 SnackBar 提示「上市／上櫃資料本次未成功更新，可能仍是先前資料」。</li>
+      <li>整趟流程失敗時，以紅色 SnackBar 提示「重新整理失敗，請稍後再試」。</li>
+    </ul>
   </div>
 
   <div class="subsection">
     <h3 class="subsection-title">SQLite 歷史寫入重試</h3>
-    <p>每次同步到新資料後，<code>_saveHistoryToSqlite()</code> 會把當日板塊指標寫入 SQLite（供 30 日走勢圖使用；板塊資金佔比異動改讀原始 JSON 快照，不依賴此表）。寫入失敗時最多重試 <strong>3 次</strong>（間隔遞增），並記錄失敗 log，不再靜默吞錯：</p>
+    <p>每次同步到新資料後，<code>_saveHistoryToSqlite()</code> 會把當日板塊指標寫入 SQLite（供 30 日走勢圖、大類 Sparkline 與領先雷達歷史摘要使用；板塊資金佔比異動改讀原始 JSON 快照，不依賴此表）。只寫入這輪真的抓到新資料的市場，並以該市場自己的交易日為 key：</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>市場</th><th>寫入內容</th></tr></thead>
+      <tbody>
+        <tr><td><span class="chip chip-listed">上市</span></td><td>上市大類板塊 → <code>category_history</code>；混合版 mainstreams / lifecycles → <code>mainstream_history</code> / <code>lifecycle_history</code>；上市輪動 → <code>rotation_history</code></td></tr>
+        <tr><td><span class="chip chip-otc">上櫃</span></td><td>上櫃大類板塊 → <code>category_history</code>；上櫃輪動 → <code>rotation_history</code></td></tr>
+      </tbody>
+    </table></div>
+    <p>寫入失敗時最多重試 <strong>3 次</strong>（間隔遞增），並記錄失敗 log，不再靜默吞錯：</p>
     <div class="code-wrap"><pre><span class="kw">for</span> (attempt = 1; attempt &lt;= 3; attempt++) {
   <span class="kw">try</span> { <span class="cm">// saveDailySnapshot 為 upsert，重試整個方法安全、不會重複</span>
     <span class="kw">await</span> saveDailySnapshot(...);
@@ -971,10 +1072,49 @@ intradayReturn = (close − open) / open × 100
   </div>
 </section>
 
+<!-- ── 除錯工具與一鍵重置 ── -->
+<section class="section" id="debug-tools">
+  <h2 class="section-title">除錯工具與一鍵重置</h2>
+  <div class="note warn"><strong>暫時性功能</strong>：此區為排查背景同步與資料快取問題而加的診斷介面（程式碼以 <code>TODO(debug)</code> 標記），問題確認排除後預計移除，不屬於正式產品功能。</div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">除錯 Log 頁面</h3>
+    <p>首頁標題列右上角的 🐞 按鈕開啟 <code>DebugLogPage</code>。<code>DebugLogService</code> 在記憶體中保留最近 400 筆同步／啟動／SQLite 寫入事件（App 重啟即清空），頁面可即時查看、清除，或一鍵複製全部 log 到剪貼簿。</p>
+  </div>
+
+  <div class="subsection">
+    <h3 class="subsection-title">一鍵重置並重新抓取</h3>
+    <p>DebugLogPage 內的重置按鈕，經確認對話框後執行 <code>_resetAndResync()</code>：</p>
+    <ol style="font-size:13px">
+      <li>先以 <code>forceSync</code> 向 API 重新抓取；<strong>抓取失敗則直接中止，本機資料完全不動</strong>。</li>
+      <li>抓取成功後才清空：SQLite 全部 6 張表（含 <code>watchlist</code>、<code>signal_snapshot</code>）與 <code>daily/</code> 目錄下所有 JSON（原始快照、分析快取、三大法人／融資融券歷史）。</li>
+      <li>把剛抓到的資料依市場重新寫回 <code>listed_*</code> / <code>otc_*</code>，重新計算、寫入快取與 SQLite，更新畫面。</li>
+    </ol>
+    <div class="note">重置後本地只剩一天資料，需要多日窗口的指標（CapitalFlow N 日均量、Mainstream 三日延續力、Lifecycle 趨勢、Rotation、資金佔比異動、30 日走勢圖）會暫時退化，需正常使用數個交易日重新累積。觀察清單也會被清空。</div>
+  </div>
+</section>
+
+<!-- ── 已知限制 ── -->
+<section class="section" id="known-issues">
+  <h2 class="section-title">已知限制</h2>
+  <p>以下為依目前程式碼行為整理、尚未處理的限制，修改前請先討論方案：</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>項目</th><th>現象</th><th>位置</th></tr></thead>
+    <tbody>
+      <tr><td>分析快取不含細類與個股</td><td><code>bootstrap_cache_*.json</code> 只序列化大類板塊欄位，<code>children</code> / <code>stocks</code> 還原為空清單。命中快取（例如白天靜默期內開啟 App）或離線模式時，細類板塊列表、板塊個股排行與成分股清單會是空的，直到下一次重新計算。</td><td><code>analysis_cache_service.dart</code></td></tr>
+      <tr><td>從大類列表進入細類頁時走勢圖查不到歷史</td><td>MainCategoryPage 進入 SubCategoryPage 時標題為「{板塊} - 子板塊」，而走勢圖以標題查詢 <code>category_history</code>，因此這條路徑永遠顯示「今日盤態雷達」；從其他頁面直接進入則正常。</td><td><code>main_category_page.dart</code> / <code>sub_category_page.dart</code></td></tr>
+      <tr><td>上市 / 上櫃同名板塊共用 SQLite 歷史</td><td><code>category_history</code> 主鍵為 <code>(tradeDate, categoryName)</code>，不含市場；兩市場同一天的同名板塊會互相覆寫，走勢圖也以名稱查詢而不分市場。</td><td><code>category_history_table.dart</code></td></tr>
+      <tr><td>「強力吸籌」評級不會觸發</td><td>見 <a href="#eng-leading">RotationLeadingAnalyser</a> 說明。</td><td><code>rotation_engine.dart</code></td></tr>
+      <tr><td>走勢圖日期標籤</td><td>X 軸 / tooltip 的日期格式化只處理 8 碼，對 7 碼民國年日期會直接顯示原字串（如 <code>1150722</code>）。</td><td><code>category_trend_chart.dart</code></td></tr>
+      <tr><td>首頁提示卡文案過時</td><td>首頁最下方提示卡仍提到已下線的「資金熱區熱圖」、「動量紅綠燈決策」。</td><td><code>home_page.dart</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
 <!-- ── 資料庫設計 ── -->
 <section class="section" id="database">
   <h2 class="section-title">資料庫設計</h2>
-  <p>使用 <strong>Drift（SQLite ORM）</strong>持久化，共 <strong>6 張表</strong>，Schema V6：</p>
+  <p>使用 <strong>Drift（SQLite ORM）</strong>持久化（App Documents 目錄下的 <code>capital_flow.db</code>，WAL 模式），共 <strong>6 張表</strong>，Schema V6。四張歷史表在每次寫入新交易日資料後清理超過 365 個日曆天的紀錄：</p>
   <div class="schema-grid">
     <div class="schema-table history">
       <div class="st-head">category_history</div>
@@ -1003,13 +1143,14 @@ intradayReturn = (close − open) / open × 100
   </div>
 
   <h4 style="margin-top:24px">JSON 本地檔案（非 SQLite）</h4>
+  <p style="font-size:13px">全部存放於 App Documents 目錄下的 <code>daily/</code> 資料夾，由 <code>StorageService</code> 以一般檔案讀寫（未使用 shared_preferences）。</p>
   <div class="table-wrap"><table>
     <thead><tr><th>檔案</th><th>說明</th><th>保留</th></tr></thead>
     <tbody>
-      <tr><td><code>listed_YYYMMDD.json</code> <span class="chip chip-listed">上市</span></td><td>上市個股快照（新格式）</td><td>最近 7 天</td></tr>
-      <tr><td><code>otc_YYYMMDD.json</code> <span class="chip chip-otc">上櫃</span></td><td>上櫃個股快照（新格式）</td><td>最近 7 天</td></tr>
-      <tr><td><code>YYYMMDD.json</code></td><td>舊格式（向下相容，逐步淘汰）</td><td>最近 7 天</td></tr>
-      <tr><td><code>bootstrap_cache_YYYMMDD.json</code></td><td>啟動分析結果快取（離線防禦）</td><td>最近 3 份</td></tr>
+      <tr><td><code>listed_YYYMMDD.json</code> <span class="chip chip-listed">上市</span></td><td>上市個股快照</td><td>最近 7 個檔案</td></tr>
+      <tr><td><code>otc_YYYMMDD.json</code> <span class="chip chip-otc">上櫃</span></td><td>上櫃個股快照</td><td>最近 7 個檔案</td></tr>
+      <tr><td><code>YYYMMDD.json</code></td><td>早期舊格式，已不再讀寫</td><td>—</td></tr>
+      <tr><td><code>bootstrap_cache_YYYMMDD.json</code></td><td>啟動分析結果快取（以上市日期為 key；離線防禦），不含細類與個股明細</td><td>最近 3 份</td></tr>
       <tr><td><code>institutional_flow_history.json</code></td><td>三大法人 30 日流向歷史</td><td>最近 30 筆</td></tr>
       <tr><td><code>margin_trading_history.json</code></td><td>融資融券 30 日餘額歷史</td><td>最近 30 筆</td></tr>
     </tbody>
@@ -1022,17 +1163,18 @@ intradayReturn = (close − open) / open × 100
   <div class="table-wrap"><table>
     <thead><tr><th>類別</th><th>套件 / 技術</th></tr></thead>
     <tbody>
-      <tr><td>框架</td><td>Flutter 3.x / Dart SDK ^3.11.5</td></tr>
-      <tr><td>本地資料庫</td><td>Drift 2.28.1（SQLite ORM，響應式 Stream）</td></tr>
-      <tr><td>圖表</td><td>fl_chart 1.2.0（互動折線圖 + 長條圖）</td></tr>
-      <tr><td>動畫</td><td>flutter_animate 4.5.0 / animations 2.0.11</td></tr>
-      <tr><td>字型</td><td>google_fonts 8.1.0</td></tr>
-      <tr><td>外部連結</td><td>url_launcher 6.3.1</td></tr>
-      <tr><td>快取</td><td>shared_preferences（分析結果 JSON 快取）</td></tr>
-      <tr><td>網路</td><td>http 1.2.0（TWSE / TPEX 開放 API）</td></tr>
-      <tr><td>推播通知</td><td>flutter_local_notifications 17.2.4</td></tr>
-      <tr><td>Code Gen</td><td>drift_dev + build_runner</td></tr>
-      <tr><td>自訂圖表</td><td>CustomPainter（Sparkline、多空分佈圓餅圖）</td></tr>
+      <tr><td>框架</td><td>Flutter / Dart SDK ^3.11.5</td></tr>
+      <tr><td>本地資料庫</td><td>drift ^2.28.1（SQLite ORM，響應式 Stream）+ sqlite3 / sqlite3_flutter_libs</td></tr>
+      <tr><td>本地檔案</td><td>path_provider + path（<code>daily/</code> 目錄 JSON 快照與快取）</td></tr>
+      <tr><td>圖表</td><td>fl_chart ^1.2.0（互動折線圖 + 長條圖）</td></tr>
+      <tr><td>動畫</td><td>flutter_animate ^4.5.0 / animated_flip_counter ^0.3.4</td></tr>
+      <tr><td>字型</td><td>google_fonts ^8.1.0</td></tr>
+      <tr><td>外部連結</td><td>url_launcher ^6.3.1</td></tr>
+      <tr><td>網路</td><td>http ^1.2.0（TWSE / TPEX 開放 API）</td></tr>
+      <tr><td>推播通知</td><td>flutter_local_notifications ^17.2.4</td></tr>
+      <tr><td>Code Gen / 工具</td><td>drift_dev + build_runner、flutter_launcher_icons、flutter_lints</td></tr>
+      <tr><td>自訂圖表</td><td>CustomPainter（Sparkline、多空分佈甜甜圈圖）</td></tr>
+      <tr><td>狀態傳遞</td><td>無狀態管理套件：由 <code>BootstrapApp</code> 以建構子參數往下傳，鑽入頁訂閱 <code>LiveBootstrapData</code>（ValueNotifier），觀察清單用 Drift Stream</td></tr>
     </tbody>
   </table></div>
 </section>
@@ -1042,9 +1184,10 @@ intradayReturn = (close − open) / open × 100
   <h2 class="section-title">專案結構</h2>
   <div class="code-wrap"><pre style="font-size:12px">lib/
 ├── core/
-│   ├── constants/              <span class="cm"># 全域常數（API endpoint、分析參數）</span>
-│   ├── extensions/             <span class="cm"># List 擴充方法</span>
-│   ├── navigation/             <span class="cm"># CategoryNavigation（板塊鑽入、Yahoo Finance）</span>
+│   ├── constants/              <span class="cm"># 全域常數（daily 資料夾名稱等）</span>
+│   ├── extensions/             <span class="cm"># List / MarketType 擴充方法</span>
+│   ├── utils/                  <span class="cm"># 日期工具</span>
+│   ├── navigation/             <span class="cm"># CategoryNavigation（板塊鑽入、成分股 Bottom Sheet、Yahoo 股市）</span>
 │   └── services/
 │       └── notification_service.dart  <span class="cm"># 本地推播通知</span>
 │
@@ -1059,9 +1202,12 @@ intradayReturn = (close − open) / open × 100
 │   ├── models/                 <span class="cm"># 資料層模型（StockData, StockDaySnapshot...）</span>
 │   ├── repositories/           <span class="cm"># HistoryRepository（本地 JSON 快照，支援 listed_* / otc_* 格式）</span>
 │   └── services/
-│       ├── stock_service.dart              <span class="cm"># lastListedDate / lastOtcDate 分離</span>
-│       ├── storage_service.dart            <span class="cm"># saveListedSnapshot / saveOtcSnapshot</span>
+│       ├── stock_service.dart              <span class="cm"># TWSE/TPEX 抓取 + stock_mapping 類股對照</span>
+│       ├── storage_service.dart            <span class="cm"># daily/ 目錄 JSON 讀寫與清理</span>
+│       ├── capital_flow_analyzer.dart      <span class="cm"># 大類/細類板塊聚合（CategoryUiModel）</span>
+│       ├── market_calendar_service.dart
 │       ├── analysis_cache_service.dart
+│       ├── debug_log_service.dart          <span class="cm"># TODO(debug) 記憶體 log</span>
 │       ├── institutional_flow_service.dart
 │       ├── institutional_flow_history_service.dart
 │       ├── margin_trading_service.dart     <span class="cm"># TWSE MI_MARGN，散戶指標</span>
@@ -1079,6 +1225,9 @@ intradayReturn = (close − open) / open × 100
 │   │   └── rotation_leading_analyser.dart
 │   ├── enums/
 │   ├── models/
+│   ├── services/
+│   │   ├── signal_change_detector.dart     <span class="cm"># 觀察清單訊號異動比對</span>
+│   │   └── live_bootstrap_data.dart        <span class="cm"># 全域最新分析結果 ValueNotifier</span>
 │   ├── strategies/
 │   │   └── momentum_strategy.dart
 │   └── usecases/
@@ -1086,21 +1235,26 @@ intradayReturn = (close − open) / open × 100
 │       └── app_bootstrap_result.dart       <span class="cm"># listedDate/otcDate/listedLifecycles/otcLifecycles</span>
 │
 └── presentation/
+    ├── enums/                  <span class="cm"># CategorySortType</span>
     ├── models/                 <span class="cm"># CategoryUiModel / StockUiModel</span>
+    ├── theme/                  <span class="cm"># AppTheme</span>
     ├── pages/
     │   ├── home_page.dart                  <span class="cm"># 各市場卡片顯示獨立日期</span>
-    │   ├── main_navigation_container.dart  <span class="cm"># IndexedStack，3 個 Tab</span>
+    │   ├── main_navigation_container.dart  <span class="cm"># IndexedStack，3 個 Tab + 底部免責聲明列</span>
     │   ├── turnover_share_page.dart        <span class="cm"># 板塊成交值佔比異動，上市/上櫃 Tab</span>
     │   ├── leading_indicator_page.dart
     │   ├── main_category_page.dart
-    │   └── sub_category_page.dart          <span class="cm"># 走勢圖 + 個股掃描器</span>
+    │   ├── sub_category_page.dart          <span class="cm"># 走勢圖 + 個股掃描器</span>
+    │   └── debug_log_page.dart             <span class="cm"># TODO(debug) 除錯 log + 一鍵重置</span>
     └── widgets/
         ├── market_summary_card.dart        <span class="cm"># dateLabel 顯示各市場交易日</span>
+        ├── category_card.dart / trend_sparkline.dart / hot_badge.dart
         ├── category_history_summary.dart
         ├── category_trend_chart.dart
         ├── institutional_flow_chart.dart
         ├── margin_trading_chart.dart
         ├── signal_change_dialog.dart
+        ├── shimmer_skeleton.dart           <span class="cm"># 啟動載入骨架畫面</span>
         └── watchlist_button.dart</pre></div>
 </section>
 
@@ -1109,18 +1263,18 @@ intradayReturn = (close − open) / open × 100
   <h2 class="section-title">安裝與執行</h2>
   <h4>前置需求</h4>
   <ul>
-    <li>Flutter SDK ≥ 3.11.5 / Dart SDK ≥ 3.0.0</li>
+    <li>Dart SDK ^3.11.5（<code>pubspec.yaml</code> 的 environment 限制）與其對應版本的 Flutter SDK</li>
     <li>Android Studio / Xcode（依目標平台）</li>
   </ul>
   <div class="code-wrap"><pre><span class="cm"># 1. 安裝套件</span>
 flutter pub get
 
 <span class="cm"># 2. 產生 Drift 程式碼（首次或修改 Table 後需執行）</span>
-dart run build_runner build
+dart run build_runner build --delete-conflicting-outputs
 
 <span class="cm"># 3. 執行</span>
 flutter run</pre></div>
-  <div class="note" style="margin-top:16px">首次啟動需要網路連線，App 會自動從 TWSE / TPEX 同步最新交易日資料。同步完成後可離線使用快取資料。三大法人籌碼每次啟動即時抓取，離線時不顯示此卡片。</div>
+  <div class="note" style="margin-top:16px">首次啟動需要網路連線，App 會自動從 TWSE / TPEX 同步最新交易日資料。同步完成後可離線使用快取資料。三大法人籌碼與融資融券每次開啟首頁即時抓取，離線時不顯示這兩張卡片。</div>
   <h4>推播通知權限</h4>
   <ul>
     <li><strong>iOS</strong>：首次啟動時系統彈窗請求通知權限</li>
